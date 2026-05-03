@@ -1,0 +1,29 @@
+# Enforces the layered architecture for this CLI.
+# See docs/conventions/layering.md.
+#
+# Layers (low to high):
+#   types  ->  config  ->  io  ->  core  ->  cli
+#
+# A module in layer N may import from layers <= N. Imports flowing the other
+# direction fail this lint. Run via:
+#
+#   uv run lint-imports
+#
+# Configured to run in CI by .github/workflows/harness.yml.
+
+[importlinter]
+root_packages =
+    argus
+
+[importlinter:contract:layers]
+name = argus layered architecture
+type = layers
+layers =
+    argus.cli
+    argus.core
+    argus.io
+    argus.config
+    argus.types
+containers =
+    argus
+exhaustive = false

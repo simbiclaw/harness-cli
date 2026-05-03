@@ -1,0 +1,32 @@
+# Pre-commit hooks. Install with:
+#   uv run pre-commit install --hook-type pre-commit --hook-type commit-msg --hook-type pre-push
+#
+# Versions are pinned per docs/conventions/deps-and-secrets.md.
+
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.7
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: commit-msg-format
+        name: commit-msg trailer format
+        entry: python3 .claude/hooks/check_commit_msg.py
+        language: system
+        stages: [commit-msg]
+
+      - id: block-force-push
+        name: block force-push without unlock
+        entry: bash -c 'if [ "$CLAUDE_FORCE_PUSH_OK" != "1" ] && echo "$@" | grep -q -- "--force"; then echo "Force-push blocked. See docs/conventions/commit-hygiene.md."; exit 1; fi'
+        language: system
+        stages: [pre-push]
+        pass_filenames: false

@@ -1,0 +1,22 @@
+# Tier C automatic. PreToolUse hook blocks edits unless an active ExecPlan
+# has 'Awaiting Steering: resolved' for the path. See
+# docs/conventions/ask-threshold.md.
+
+# Application surface area with high blast radius.
+src/argus/io/secrets/**
+src/argus/config/**
+src/argus/cli/main.py
+
+# Project-level configuration that controls the build.
+pyproject.toml
+.importlinter
+
+# Harness mechanism. Changes here change agent behavior; require human.
+.claude/hooks/**
+.claude/tests/**
+.claude/sensitive-paths.txt
+.github/workflows/**
+
+# Documentation that defines the methodology itself.
+CLAUDE.md
+docs/PLANS.md

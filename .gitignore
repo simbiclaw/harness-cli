@@ -1,0 +1,43 @@
+# Secrets — never commit.
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+id_rsa*
+**/credentials*.json
+**/secrets.toml
+**/service-account*.json
+
+# Python build / install artifacts.
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+build/
+dist/
+.eggs/
+.venv/
+venv/
+
+# Test and coverage outputs.
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# uv lockfile is COMMITTED. Don't ignore it.
+# uv.lock
+
+# Verifier subagent run logs (kept locally, not committed).
+.claude/verifier-runs/
+
+# OS / editor.
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
