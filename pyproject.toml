@@ -54,10 +54,7 @@ select = [
     "ANN",              # flake8-annotations (force type hints)
     "S",                # flake8-bandit (basic security)
 ]
-ignore = [
-    "ANN101",  # Missing type for self
-    "ANN102",  # Missing type for cls
-]
+ignore = []
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["ANN", "S101"]
