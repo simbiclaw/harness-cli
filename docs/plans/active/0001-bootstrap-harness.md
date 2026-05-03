@@ -63,10 +63,10 @@ Notes: this milestone modifies the very plan file it is part of. Do this in two 
 
 ## Progress
 
-- [ ] M1: Verify uv environment installs and structural tests pass  (created 2026-05-01)
-- [ ] M2: Verify lint, type, and layer enforcement  (created 2026-05-01)
-- [ ] M3: Verify hook scripts run  (created 2026-05-01)
-- [ ] M4: Verify pre-commit hooks fire  (created 2026-05-01)
+- [x] M1: Verify uv environment installs and structural tests pass  (created 2026-05-01, verified 2026-05-04)
+- [x] M2: Verify lint, type, and layer enforcement  (created 2026-05-01, verified 2026-05-04)
+- [x] M3: Verify hook scripts run  (created 2026-05-01, verified 2026-05-04)
+- [x] M4: Verify pre-commit hooks fire  (created 2026-05-01, verified 2026-05-04)
 - [ ] M5: Verify CI workflow  (created 2026-05-01)
 - [ ] M6: Self-archive bootstrap  (created 2026-05-01)
 
@@ -129,11 +129,35 @@ Revisit: by 2026-09-01, expand the forbidden list based on observed failure mode
 
 ## Surprises & Discoveries
 
-*(Empty until execution begins.)*
+### M1: Typer treats no-arg `@app.command()` as callback when no explicit callback exists
+
+`@app.command()` on a function with no parameters (like `def version()`) was treated as the app callback when no `@app.callback()` was defined. The function's docstring replaced the app-level help text, and the subcommand was never registered. Fix: add an explicit `@app.callback()` before defining commands.
+
+Also worth noting: `uv sync --dev` does NOT install optional dependencies in PEP 621 layout — it uses `--extra dev` (or `--group dev` for uv-native groups). The plan's instructions said `--dev` which was stale.
+
+### M2: import-linter container/layer path collision
+
+`.importlinter` defined `containers = argus` and `layers = argus.cli` etc. — import-linter joins container to layer, so it looked for `argus.argus.cli`. Fix: layers must be relative to the container: `cli`, `core`, `io`, `config`, `types`.
+
+Also: `ruff` 0.15 has removed rules ANN101/ANN102 — referencing them in `pyproject.toml` `[tool.ruff.lint] ignore` generates warnings but doesn't fail.
+
+### M3: `tests/` and `.claude/tests/` namespace collision
+
+Both directories have `__init__.py` and are both named `tests`. Pytest collects one first, then fails to import the other's modules under the `tests` namespace. Fix: remove `__init__.py` from `.claude/tests/` since it's not a Python package — it's a harness test suite.
+
+### M4: pre-commit `--hook-stage` flag required for non-default stages
+
+Running `pre-commit run commit-msg-format` failed because the hook is defined with `stages: [commit-msg]` but pre-commit defaults to the `pre-commit` stage. Fix: pass `--hook-stage commit-msg` to target the correct stage.
+
+Also: `.pre-commit-config.yaml` was deleted from the working tree (pre-existing state). Restored from git HEAD. Ruff pin updated from v0.5.7 to v0.15.12 to match the installed version.
 
 ## Awaiting Steering
 
-*(Empty. Will be populated after M3 to request hook activation.)*
+### Hook activation (M3 post-requisite, blocking M4)
+
+The hook scripts under `.claude/hooks/` are verified runnable (M3 Acceptance Test: `test_hooks_runnable.py`). They are also registered in `.claude/hooks/settings.json` and will be activated by Claude Code automatically when that file is present.
+
+**Action required**: Confirm that the hooks have been activated by running something that triggers a guard (e.g., edit a sensitive path, or try a package install without a dep-vet record) and observing the block message. Once confirmed, mark this section "Awaiting Steering: resolved" and proceed to M4.
 
 ## Outcomes & Retrospective
 
