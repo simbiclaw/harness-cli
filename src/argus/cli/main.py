@@ -16,6 +16,12 @@ app = typer.Typer(
 )
 
 
+@app.callback(invoke_without_command=True)
+def _main() -> None:
+    """Argus CLI."""
+    pass
+
+
 @app.command()
 def version() -> None:
     """Print the package version."""
