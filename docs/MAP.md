@@ -25,7 +25,7 @@
 |------|----------|--------|
 | 0 | MAP.md (transient)  | complete |
 | 1 | PRODUCT_SENSE.md    | complete |
-| 2 | DESIGN.md           | pending  |
+| 2 | DESIGN.md           | complete |
 | 3 | ARCHITECTURE.md     | pending  |
 | 4 | QUALITY_SCORE.md    | pending  |
 | 5 | teardown            | pending  |
