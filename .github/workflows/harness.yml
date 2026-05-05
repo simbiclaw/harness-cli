@@ -68,3 +68,20 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  harness-go-scaffolding:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assert harness-go scaffolding is torn down
+        run: |
+          if grep -q 'harness-spine-bootstrap' CLAUDE.md; then
+            echo "ERROR: harness-spine-bootstrap sentinel found in CLAUDE.md on main."
+            echo "Run harness-go Step 5 to remove it."
+            exit 1
+          fi
+          if [ -f docs/MAP.md ]; then
+            echo "ERROR: docs/MAP.md exists on main. Bootstrap scaffolding was not torn down."
+            echo "Run harness-go Step 5 to delete it."
+            exit 1
+          fi

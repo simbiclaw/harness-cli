@@ -112,7 +112,3 @@ The test: Every changed line should trace directly to the user's request.
 ---
 
 Last reviewed: 2026-05-04.
-
-<!-- harness-spine-bootstrap:begin -->
-read docs/MAP.md first
-<!-- harness-spine-bootstrap:end -->
