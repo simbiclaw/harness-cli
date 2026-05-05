@@ -27,5 +27,5 @@
 | 1 | PRODUCT_SENSE.md    | complete |
 | 2 | DESIGN.md           | complete |
 | 3 | ARCHITECTURE.md     | complete |
-| 4 | QUALITY_SCORE.md    | pending  |
+| 4 | QUALITY_SCORE.md    | complete |
 | 5 | teardown            | pending  |
