@@ -25,6 +25,8 @@ Read the most recent file in `docs/plans/active/` end-to-end. Read its **Surpris
 3. **Deps and secrets** — new dependencies are vetted by the dep-vetter skill before adoption; secrets never enter the repo. See `deps-and-secrets.md`.
 4. **Commit hygiene** — every commit references its ExecPlan and milestone, with a Decision trailer. See `commit-hygiene.md`.
 5. **"I don't know" protocol** — Decision Log entries cite evidence, run experiments, or flag uncertainty explicitly. Forbidden phrases enforced by structural test. See `i-dont-know-protocol.md`.
+6. All the harnesses in this repository are inspired by and derived from this source material[harness-engineering(read document)](docs/references/harness-engineering-llm.md)], when you struggle with a harness-related task,re-read this file for new angles, and try combining previous near-misses.
+
 
 ## The promotion rule
 
@@ -110,3 +112,7 @@ The test: Every changed line should trace directly to the user's request.
 ---
 
 Last reviewed: 2026-05-04.
+
+<!-- harness-spine-bootstrap:begin -->
+read docs/MAP.md first
+<!-- harness-spine-bootstrap:end -->
