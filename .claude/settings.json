@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/pre_tool_use.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^(Edit|MultiEdit|Write)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/post_tool_use.py"
+          }
+        ]
+      }
+    ]
+  }
+}
