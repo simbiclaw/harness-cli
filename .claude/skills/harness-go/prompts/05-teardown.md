@@ -61,11 +61,52 @@ If no sentinel block exists (cleanup trap already ran), skip this action.
 
 ---
 
-## Action 3 — commit both deletions together
+## Action 3 — regenerate PRD_MANIFEST.json
 
-Stage and commit `docs/MAP.md` deletion and the `CLAUDE.md` sentinel removal
-in a single commit alongside the four spine artifacts (if not already
-committed individually per step).
+Recompute the SHA256 hash of every `.md` file in the resolved PRD directory
+(follow the `docs/PRD` symlink to its target). Update `docs/PRD_MANIFEST.json`:
+
+- `generated_at`: current ISO-8601 timestamp
+- `harness_go_commit`: current HEAD SHA (`git rev-parse HEAD`)
+- `files`: recomputed `sha256:<hexdigest>` for each PRD `.md` file
+- `stage_affinity`: preserved as-is unless PRD files were added or removed — if
+  files changed, update the affinity lists to match
+
+Do not invent new hashes. Compute them:
+
+```python
+import hashlib, json, os, subprocess
+from datetime import datetime, timezone
+from pathlib import Path
+
+prd_dir = Path("docs/PRD").resolve()
+manifest = json.loads(Path("docs/PRD_MANIFEST.json").read_text())
+
+manifest["generated_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+manifest["harness_go_commit"] = subprocess.run(
+    ["git", "rev-parse", "HEAD"], capture_output=True, text=True
+).stdout.strip()
+
+for f in sorted(prd_dir.glob("*.md")):
+    digest = hashlib.sha256(f.read_bytes()).hexdigest()
+    manifest["files"][f.name] = f"sha256:{digest}"
+
+# Remove entries for files that no longer exist
+manifest["files"] = {
+    k: v for k, v in manifest["files"].items()
+    if (prd_dir / k).exists()
+}
+
+Path("docs/PRD_MANIFEST.json").write_text(json.dumps(manifest, indent=2) + "\n")
+```
+
+Verify the manifest is valid JSON with `python3 -c "import json; json.load(open('docs/PRD_MANIFEST.json'))"`.
+
+## Action 4 — commit everything together
+
+Stage and commit `docs/MAP.md` deletion, `CLAUDE.md` sentinel removal,
+and `docs/PRD_MANIFEST.json` update in a single commit alongside the four
+spine artifacts (if not already committed individually per step).
 
 Commit message format:
 
@@ -73,13 +114,15 @@ Commit message format:
 harness-go: ship knowledge spine, tear down bootstrap scaffolding
 
 Adds: PRODUCT_SENSE.md, docs/product-specs/, DESIGN.md, docs/design-docs/,
-      ARCHITECTURE.md, tools/lint/rules.md, QUALITY_SCORE.md
+      ARCHITECTURE.md, tools/lint/rules.md, QUALITY_SCORE.md,
+      PRD_MANIFEST.json (updated hashes)
 Removes: docs/MAP.md (bootstrap routing aid, no longer needed)
 Removes: harness-spine-bootstrap sentinel block from CLAUDE.md
 
 Plan: harness-go/05-teardown
 Decision: Source — all four spine artifacts complete and cross-linked;
-          MAP.md and sentinel removed per harness-go transactional borrow protocol.
+          MAP.md and sentinel removed per harness-go transactional borrow protocol;
+          PRD_MANIFEST.json updated with current file hashes.
 ```
 
 ---
@@ -93,6 +136,7 @@ Decision: Source — all four spine artifacts complete and cross-linked;
         removed sentinel block (no other diffs)
 [CHECK] PRODUCT_SENSE.md, DESIGN.md, ARCHITECTURE.md, QUALITY_SCORE.md
         all exist in the commit
+[CHECK] PRD_MANIFEST.json hashes match current PRD file contents
 [CHECK] commit message contains Plan: and Decision: trailers
 ```
 

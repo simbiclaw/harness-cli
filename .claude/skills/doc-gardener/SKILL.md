@@ -40,6 +40,18 @@ Walk `git log --grep='\[dep-override-approved-by-human\]'` and confirm
 each override commit corresponds to an ExecPlan section explaining why
 the override was necessary. Flag any unexplained overrides.
 
+### PRD-to-spine drift
+If `docs/PRD_MANIFEST.json` exists:
+- Resolve the `docs/PRD` symlink to its target directory.
+- For each file in the manifest's `files` key, compute its current SHA256
+  hash and compare against the stored hash.
+- Flag any mismatches, new `.md` files not in the manifest, or manifest
+  entries pointing to files that no longer exist.
+On drift: add a milestone to the ExecPlan to re-run harness-go for the
+affected stages (from `stage_affinity`). Mismatch severity is
+**regeneration-recommended** — the spine may be stale but is not known to
+be wrong.
+
 ## Output
 
 If ANY check fails, open
