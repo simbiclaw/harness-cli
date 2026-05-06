@@ -72,35 +72,14 @@ Recompute the SHA256 hash of every `.md` file in the resolved PRD directory
 - `stage_affinity`: preserved as-is unless PRD files were added or removed — if
   files changed, update the affinity lists to match
 
-Do not invent new hashes. Compute them:
+Run the shared manifest utility:
 
-```python
-import hashlib, json, os, subprocess
-from datetime import datetime, timezone
-from pathlib import Path
-
-prd_dir = Path("docs/PRD").resolve()
-manifest = json.loads(Path("docs/PRD_MANIFEST.json").read_text())
-
-manifest["generated_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-manifest["harness_go_commit"] = subprocess.run(
-    ["git", "rev-parse", "HEAD"], capture_output=True, text=True
-).stdout.strip()
-
-for f in sorted(prd_dir.glob("*.md")):
-    digest = hashlib.sha256(f.read_bytes()).hexdigest()
-    manifest["files"][f.name] = f"sha256:{digest}"
-
-# Remove entries for files that no longer exist
-manifest["files"] = {
-    k: v for k, v in manifest["files"].items()
-    if (prd_dir / k).exists()
-}
-
-Path("docs/PRD_MANIFEST.json").write_text(json.dumps(manifest, indent=2) + "\n")
+```bash
+python3 .claude/skills/harness-go/scripts/compute_manifest.py
 ```
 
-Verify the manifest is valid JSON with `python3 -c "import json; json.load(open('docs/PRD_MANIFEST.json'))"`.
+This script resolves the PRD symlink, computes SHA256 hashes of every `.md` file,
+updates `docs/PRD_MANIFEST.json`, and reports what changed. No inline hashing.
 
 ## Action 4 — commit everything together
 

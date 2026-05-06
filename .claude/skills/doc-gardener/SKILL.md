@@ -47,7 +47,7 @@ If `docs/PRD_MANIFEST.json` exists:
   hash and compare against the stored hash.
 - Flag any mismatches, new `.md` files not in the manifest, or manifest
   entries pointing to files that no longer exist.
-On drift: add a milestone to the ExecPlan to re-run harness-go for the
+On drift: add a milestone to the ExecPlan to run harness-go-sync for the
 affected stages (from `stage_affinity`). Mismatch severity is
 **regeneration-recommended** — the spine may be stale but is not known to
 be wrong.

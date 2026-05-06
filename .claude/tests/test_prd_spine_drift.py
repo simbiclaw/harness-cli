@@ -83,7 +83,7 @@ def test_no_prd_hash_mismatches() -> None:
         if not filepath.exists():
             mismatches.append(
                 f"PRD file '{filename}' removed. "
-                f"Update PRD_MANIFEST.json and re-run harness-go."
+                f"Update PRD_MANIFEST.json and run harness-go-sync."
             )
             continue
         current_hash = _compute_hash(filepath)
@@ -93,7 +93,7 @@ def test_no_prd_hash_mismatches() -> None:
                 f"PRD file '{filename}' has changed.\n"
                 f"  Expected: {expected_hash}\n"
                 f"  Current:  {current_hash}\n"
-                f"  Re-run harness-go stages: {affected}"
+                f"  Run harness-go-sync stages: {affected}"
             )
 
     assert not mismatches, (
@@ -120,7 +120,7 @@ def test_no_new_prd_files() -> None:
 
     assert not new_files, (
         f"New PRD file(s) detected: {', '.join(new_files)}. "
-        f"Add them to {MANIFEST_PATH} stage_affinity and re-run harness-go."
+        f"Add them to {MANIFEST_PATH} stage_affinity and run harness-go-sync."
     )
 
 
@@ -142,7 +142,7 @@ def test_no_orphan_manifest_entries() -> None:
 
     assert not orphans, (
         f"PRD file(s) in manifest no longer exist: {', '.join(orphans)}. "
-        f"Update {MANIFEST_PATH} and re-run harness-go."
+        f"Update {MANIFEST_PATH} and run harness-go-sync."
     )
 
 
