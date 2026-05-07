@@ -38,6 +38,10 @@ For the methodology, read:
 - `CLAUDE.md` — the entry-point routing file
 - `docs/PLANS.md` — the rubric every ExecPlan follows
 - `docs/conventions/` — the five harnesses
+- `docs/ARCHITECTURE.md` — the single map of domains, layers, and dependency directions
+- `docs/PRODUCT_SENSE.md` — taste, non-goals, failure tolerances, and tiebreakers
+- `docs/DESIGN.md` — the design contract for the three apps
+- `docs/QUALITY_SCORE.md` — graded matrix of the platform's current state
 
 ## Repository layout
 
@@ -50,14 +54,29 @@ argus/
 ├── .gitignore
 ├── docs/                          ← System of record
 │   ├── PLANS.md                   ← ExecPlan rubric
+│   ├── ARCHITECTURE.md            ← Domain and layer map
+│   ├── PRODUCT_SENSE.md           ← Taste, non-goals, tiebreakers
+│   ├── DESIGN.md                  ← Design contract for the three apps
+│   ├── QUALITY_SCORE.md           ← Current-state grading matrix
 │   ├── conventions/               ← The five harnesses, documented
-│   ├── plans/
+│   ├── product-specs/             ← Per-app feature specifications
+│   │   ├── shared/                ← Cross-cutting specs (audio, docs, calibration)
+│   │   ├── argus/                 ← AI QA specs
+│   │   ├── metis/                 ← Business diagnosis specs
+│   │   └── hermes/                ← Autonomous service agent specs
+│   ├── design-docs/               ← Per-app design documents
+│   │   ├── shared/                ← Shared UI surfaces
+│   │   ├── argus/                 ← QA review surface
+│   │   ├── metis/                 ← Triage kanban
+│   │   └── hermes/                ← Citizen chat, action confirmation
+│   ├── exec-plans/
 │   │   ├── active/                ← In-flight ExecPlans
 │   │   ├── completed/             ← Shipped ExecPlans
 │   │   └── archived/              ← Cancelled / absorbed
 │   ├── adr/                       ← Architecture Decision Records
 │   ├── experiments/               ← "I don't know" protocol artifacts
-│   └── retrospectives/            ← Cross-plan retrospectives
+│   ├── retrospectives/            ← Cross-plan retrospectives
+│   └── references/                ← External reference material
 ├── .claude/                       ← Mechanical enforcement
 │   ├── hooks/                     ← PreToolUse / PostToolUse / commit-msg
 │   ├── tests/                     ← Structural tests over the repo itself
@@ -67,5 +86,8 @@ argus/
 ├── .github/
 │   └── workflows/harness.yml
 ├── src/                           ← Application code (created by ExecPlans)
-└── tests/                         ← Application tests
+│   └── argus/                     ← Python package (domain/layer structure)
+├── tools/                         ← Lint and enforcement tools
+│   └── lint/                      ← Architectural-edge linters
+└── tests/                         ← Application and structural tests
 ```
