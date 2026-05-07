@@ -2,11 +2,11 @@
 
 ## What this repository is
 
-A CLI tool built end-to-end by Claude Code. A human steers; agents execute. There is no human-written application code in `src/`. The system of record is `docs/`.
+Three products --`Argus`,`Metis`,`Hermes`-- built end-to-end by Claude Code.  human engineers steer; agents execute. There is no human-written application code in `src/`. The system of record is `docs/`. Now focus on `Argus` first.
 
 ## First action on every session
 
-Read the most recent file in `docs/plans/active/` end-to-end. Read its **Surprises & Discoveries** section first. That is the work in flight. If there is more than one active plan, ask the human which to pick up. Do not start work in the middle of a plan you have not read.
+Read the most recent file in `docs/exec-plans/active/` end-to-end. Read its **Surprises & Discoveries** section first. That is the work in flight. If there is more than one active plan, ask the human which to pick up. Do not start work in the middle of a plan you have not read.
 
 ## Read these before doing any non-trivial work
 
@@ -111,4 +111,4 @@ The test: Every changed line should trace directly to the user's request.
 
 ---
 
-Last reviewed: 2026-05-04.
+Last reviewed: 2026-05-07.

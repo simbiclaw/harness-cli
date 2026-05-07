@@ -2,7 +2,9 @@
 name: doc-gardener
 description: Recurring custodial agent. Walks docs/conventions/, CLAUDE.md,
   and docs/PLANS.md for staleness, broken cross-references, and
-  past-deadline Confidence-low entries. Opens an ExecPlan if any check fails.
+  past-deadline Confidence-low entries. Also verification-status staleness,
+  QUALITY_SCORE.md regrade staleness, and cross-doc link integrity.
+  Opens an ExecPlan if any check fails.
 ---
 
 # Doc-Gardener Skill
@@ -40,6 +42,21 @@ Walk `git log --grep='\[dep-override-approved-by-human\]'` and confirm
 each override commit corresponds to an ExecPlan section explaining why
 the override was necessary. Flag any unexplained overrides.
 
+### Verification-status staleness
+For every file under `docs/` with a `verification-status:` field:
+- `proposed` older than 14 days without movement → flag.
+- `implemented` where rendered DOM doesn't match design-doc claimed selectors → flag as `drifted`.
+- `obsolete` older than 90 days → flag for archival review.
+
+### Cross-doc link integrity
+Every `docs/product-specs/` file must reference `PRODUCT_SENSE.md` in a tiebreaker context. Every `docs/design-docs/` file must link to its corresponding product-spec. Missing cross-references are flagged.
+
+### Forbidden hand-edits
+Files under `docs/generated/` must not be hand-edited. Hand-edits are detected by comparing the file's content against its declared generation source. Flag any mismatch.
+
+### QUALITY_SCORE.md regrade staleness
+If `QUALITY_SCORE.md` has a `Next regrade` date in the past and no active exec-plan covers the regrade, flag it. Also flag any hand-edited grade without inline evidence (reinforcing the `quality-grade-evidence-required` lint).
+
 ### PRD-to-spine drift
 If `docs/PRD_MANIFEST.json` exists:
 - Resolve the `docs/PRD` symlink to its target directory.
@@ -55,7 +72,7 @@ be wrong.
 ## Output
 
 If ANY check fails, open
-`docs/plans/active/NNNN-doc-garden-<date>.md` listing the failures as
+`docs/exec-plans/active/NNNN-doc-garden-<date>.md` listing the failures as
 Milestones. Each milestone has a clear remediation (update the link,
 refresh the doc, run the experiment, etc.). Many failures = many
 milestones in one ExecPlan, not many ExecPlans.
