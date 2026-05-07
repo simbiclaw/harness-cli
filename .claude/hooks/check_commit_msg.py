@@ -17,7 +17,7 @@ Commit message must follow the format:
 
   <type>(<scope>): <subject>
 
-  Plan: docs/plans/active/NNNN-<slug>.md#milestone-N
+  Plan: docs/exec-plans/active/NNNN-<slug>.md#milestone-N
   Decision: <one-line rationale, or "implementation only">
 
 Where <type> is one of: feat fix refactor test docs chore harness
@@ -26,7 +26,7 @@ Where <type> is one of: feat fix refactor test docs chore harness
 SUBJECT_RE = re.compile(
     r"^(feat|fix|refactor|test|docs|chore|harness)(\([\w\-]+\))?:\s+(.{12,72})$"
 )
-TRAILER_PLAN = re.compile(r"^Plan:\s*docs/plans/", re.MULTILINE)
+TRAILER_PLAN = re.compile(r"^Plan:\s*docs/exec-plans/", re.MULTILINE)
 TRAILER_DECISION = re.compile(r"^Decision:\s*\S", re.MULTILINE)
 USELESS_SUBJECT = re.compile(
     r"^(update files|fix issues|various changes|wip|misc|stuff|tweaks?|"
@@ -59,7 +59,7 @@ def main(argv: list[str]) -> int:
         if USELESS_SUBJECT.match(subject):
             errs.append(f"Subject is too vague: {subject!r}")
     if not TRAILER_PLAN.search(msg):
-        errs.append("Missing 'Plan: docs/plans/...' trailer.")
+        errs.append("Missing 'Plan: docs/exec-plans/...' trailer.")
     if not TRAILER_DECISION.search(msg):
         errs.append("Missing 'Decision: ...' trailer.")
 

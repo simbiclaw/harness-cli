@@ -1,10 +1,26 @@
 # Verification Floor
 
-No milestone is done until proof of behavior exists. For a CLI tool, proof means: the binary runs, exits with the expected code, and produces the expected output.
+No milestone is done until proof of behavior exists. Every milestone in every ExecPlan has an `Acceptance Test:` line naming a specific runnable test. The test is written first or in the same commit as the implementation. Untested milestones cannot have their checkbox flipped.
 
-## Acceptance Test required per milestone
+## Per-layer test floor
 
-Every milestone in every ExecPlan has an `Acceptance Test:` line naming a specific runnable test (`tests/path/to/test.py::test_function_name`) that validates the milestone's externally observable property. The test is written first or in the same commit as the implementation. Untested milestones cannot have their checkbox flipped.
+What "test-floor-met" means depends on the layer. The definitions below are the minimum; exceeding them is fine, falling short is not.
+
+### Repo
+
+Every Repo method has a test that **fails before implementation and passes after**. The test exercises the method's external contract: for a read method, assert on the returned shape and null-vs-data discrimination; for a write method, assert on the persisted state being retrievable and correct. Repo never throws on "not found" — returns a typed null-or-not result. Tests assert this.
+
+### Service
+
+Every Service function is exercised by a test that asserts on its **return type** and at least one **specific value transformation** (given known inputs, the output has this specific property). Service is pure with respect to I/O — functions take Types and return Types. Tests exercise that purity: no external calls, no side effects.
+
+### Runtime
+
+Every job has an integration test covering **one happy path and one failure path**. Happy path: the job completes and produces the expected output. Failure path: the job encounters a retryable failure, the retry policy fires, and the job either succeeds or surfaces the failure correctly (no silent hangs, no partial output).
+
+### UI
+
+Every interactive element has a **stable test selector** (data attribute, not CSS class or nth-child) and at least one **click-target test** that asserts the element responds to interaction. Stable selectors use `data-testid` or equivalent; implementation-detail selectors (CSS class, DOM position) are not stable.
 
 ## Externally observable property
 
@@ -29,23 +45,23 @@ def test_convert_handles_csv_input(tmp_path):
     assert result.stderr == ""
 ```
 
-What counts as "externally observable" for a CLI:
+What counts as "externally observable":
 
 - Exit code (`returncode`).
-- Bytes on stdout (parseable by callers' shell scripts; this is a public contract).
-- Bytes on stderr (informational, but format consistency still matters).
+- Bytes on stdout (parseable by callers; this is a public contract).
+- Bytes on stderr (format consistency still matters).
 - Files written to disk under paths the CLI claims to write to.
-- Side effects on resources the CLI claims to manage (a database, a remote API — see the next section).
+- Side effects on resources the CLI claims to manage.
 
 What does *not* count as the sole acceptance criterion:
 
-- "The function returns the expected dict." Internal-API tests are useful but cannot be the sole proof of milestone correctness; the CLI surface must be exercised.
+- "The function returns the expected dict." Internal-API tests are useful but cannot be the sole proof.
 - "Mock was called with these arguments." Mocks prove the inside, not the outside.
 - "No exception was raised." Silent success is not proof.
 
 ## External integrations require recorded transcripts
 
-If the CLI calls a third-party API, the Acceptance Test records the HTTP exchange (via `vcrpy`, `respx`, or `pytest-recording`) and commits the recording to `tests/cassettes/`. Live-network tests do not count toward the verification floor. The recorded fixture is treated as part of the test and reviewed on PR like any other test code.
+If the system calls a third-party API, the Acceptance Test records the exchange (via `vcrpy`, `respx`, or equivalent) and commits the recording to `tests/cassettes/`. Live-network tests do not count toward the verification floor. The recorded fixture is treated as part of the test and reviewed like any other test code.
 
 ## Test layout
 
@@ -57,14 +73,14 @@ tests/
 └── conftest.py
 ```
 
-The Acceptance Test for a milestone almost always lives in `tests/integration/`. Unit tests are supplementary, not sufficient.
+The Acceptance Test for a milestone almost always lives in `tests/integration/`.
 
-## Flakes are bugs, not nuisances
+## Flakes are bugs
 
-A flaky test does not pass for milestone purposes. The fix is a follow-up ExecPlan to stabilize it. Re-running CI does not flip the milestone checkbox. If a test is flaky because it depends on real time, real network, real filesystem race conditions, or random data, the test itself is wrong; fix the test.
+A flaky test does not pass for milestone purposes. Re-running CI does not flip the milestone checkbox. If a test is flaky because it depends on real time, real network, real filesystem race conditions, or random data, the test itself is wrong; fix the test.
 
 ## The Verifier subagent
 
-When a Progress checkbox flips from `[ ]` to `[x]`, the Verifier subagent re-runs the named Acceptance Test in a clean checkout (using `uv run pytest <test-id>` against a fresh `uv sync`). On pass: writes "verified at SHA <sha>" to the Decision Log. On fail: reverts the checkbox flip and adds an entry to Surprises & Discoveries. See `.claude/skills/verifier/SKILL.md`.
+When a Progress checkbox flips from `[ ]` to `[x]`, the Verifier subagent re-runs the named Acceptance Test in a clean checkout. On pass: writes "verified at SHA \<sha\>" to the Decision Log. On fail: reverts the checkbox flip and adds an entry to Surprises & Discoveries. See `.claude/skills/verifier/SKILL.md`.
 
-Last reviewed: 2026-05-01.
+Last reviewed: 2026-05-07.
