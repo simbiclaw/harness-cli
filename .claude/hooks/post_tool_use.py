@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """PostToolUse hook.
 
-Detects when an Edit/Write to a file under docs/plans/active/ flips a
+Detects when an Edit/Write to a file under docs/exec-plans/active/ flips a
 checkbox from `[ ]` to `[x]`, and emits a reminder to commit immediately
 with the milestone reference.
 
@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-ACTIVE_PLANS_DIR = REPO_ROOT / "docs" / "plans" / "active"
+ACTIVE_PLANS_DIR = REPO_ROOT / "docs" / "exec-plans" / "active"
 
 
 def main() -> int:
@@ -46,10 +46,10 @@ def main() -> int:
 
     print(json.dumps({
         "message": (
-            f"Milestone checkbox flipped in docs/plans/active/{rel}. Per "
+            f"Milestone checkbox flipped in docs/exec-plans/active/{rel}. Per "
             f"docs/conventions/commit-hygiene.md, commit immediately with:\n\n"
             f"  <type>(<scope>): <verb-noun subject>\n\n"
-            f"  Plan: docs/plans/active/{rel}#milestone-N\n"
+            f"  Plan: docs/exec-plans/active/{rel}#milestone-N\n"
             f"  Decision: <one-line>\n"
         )
     }))

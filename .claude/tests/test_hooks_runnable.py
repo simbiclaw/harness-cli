@@ -4,7 +4,7 @@ Each hook follows the contract: read JSON event from stdin (or argv for
 commit-msg), exit 0 with valid JSON on stdout. This test pipes minimal
 mock events and asserts clean exit.
 
-See docs/plans/active/0001-bootstrap-harness.md milestone M3.
+See docs/exec-plans/active/0001-bootstrap-harness.md milestone M3.
 """
 
 from __future__ import annotations
@@ -69,7 +69,7 @@ def test_commit_msg_runs() -> None:
     body = """\
 docs(readme): update installation instructions
 
-Plan: docs/plans/active/0001-bootstrap-harness.md#milestone-3
+Plan: docs/exec-plans/active/0001-bootstrap-harness.md#milestone-3
 Decision: test commit-msg hook
 """
     with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:

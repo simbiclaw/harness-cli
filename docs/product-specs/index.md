@@ -1,10 +1,26 @@
-| Feature slug | User job | Spec file | Open questions |
-|---|---|---|---|
-| transcript-ingestion | When a call ends, the QA reviewer wants to feed the transcript into the system so that scoring can begin. | [transcript-ingestion.md](transcript-ingestion.md) | 1 |
-| qa-scoring | When reviewing agent performance, the QA supervisor wants an automated score against 27 rubrics so that manual sampling is no longer needed. | [qa-scoring.md](qa-scoring.md) | 2 |
-| atomic-claim-extraction | When analyzing a call, the system wants to deconstruct dialogue into self-contained facts so that downstream reasoning is grounded. | [atomic-claim-extraction.md](atomic-claim-extraction.md) | 1 |
-| intent-tree-construction | When building the knowledge base, the analyst wants to cluster atomic claims into a 2-3 level intent tree so that semantic drift is reduced. | [intent-tree-construction.md](intent-tree-construction.md) | 2 |
-| doc-to-graph | When onboarding a new procedure, the operations lead wants to convert Word/PDF manuals into computational graphs so that AI can reason over prerequisites and steps. | [doc-to-graph.md](doc-to-graph.md) | 2 |
-| fact-checking | When a subquestion is generated, the system wants to verify it against transcript evidence and domain knowledge so that verdicts are defensible. | [fact-checking.md](fact-checking.md) | 2 |
-| business-diagnosis | When product defects are buried in calls, the business analyst wants auto-triaged tickets with severity scores so that data-driven fixes happen faster. | [business-diagnosis.md](business-diagnosis.md) | 2 |
-| autonomous-service-agent | When a citizen navigates a complex government procedure, the customer wants an assistant that reasons over documentation and performs operations so that repeated calls are avoided. | [autonomous-service-agent.md](autonomous-service-agent.md) | 2 |
+# product-specs/index.md
+
+Per-feature elaboration of `PRODUCT_SENSE.md`. Two kinds of files live under this directory:
+
+**`shared/`** — specs for the foundational pipelines and libraries consumed by multiple apps. Touching any of these has multi-app blast radius; read the relevant file before modifying anything in the corresponding domain.
+
+- `shared/audio-intake.md` — VAD + diarisation + ASR → structural transcription. Consumed by Conversation Distillation.
+- `shared/conversation-distillation.md` — bottom-up: structural transcription → atomic claims → intents-tree.
+- `shared/document-ingestion.md` — top-down: operation manuals → compute-graph (Tensor-Operator DAG) with visual annotations.
+- `shared/calibration.md` — where bottom-up and top-down meet. Encodes the bottom-up-authoritative invariant.
+- `shared/expertise-library.md` — the seven expertise modules and their consumer matrix.
+
+**`<app>/`** — per-app feature elaboration. Stubs at bootstrap; Claude Code expands these as exec-plans are written for individual features.
+
+- `argus/fact-checking.md` (stub)
+- `argus/report-generation.md` (stub)
+- `argus/coaching-tasks.md` (stub)
+- `metis/ai-triage.md` (stub)
+- `metis/ticket-emission.md` (stub)
+- `metis/issue-kanban.md` (stub)
+- `hermes/procedural-reasoning.md` (stub)
+- `hermes/action-execution.md` (stub — contains the action-tier classification)
+
+Per-feature files all carry a `verification-status:` field at the top: `proposed | implemented | drifted | obsolete`. At bootstrap every per-app feature is `proposed`; the shared pipeline specs are `proposed` until M2–M6 of `0001-bootstrap-the-spine.md` flip them to `implemented`.
+
+Cross-link integrity: every per-feature file links back to the relevant `PRODUCT_SENSE.md` tiebreaker section. Files without that link are flagged by the doc-gardener.

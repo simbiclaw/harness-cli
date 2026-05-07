@@ -1,41 +1,78 @@
 # QUALITY_SCORE.md
 
-Graded table of domain x layer intersections that exist in code.
+Graded matrix of the platform's current state. Rows are every domain × layer cell from `ARCHITECTURE.md § 3` that has implementation surface. Columns are five empirical dimensions. Every cell carries a grade from `A | B | C | D | F` plus a one-sentence justification linking to evidence (a file path, a test name, a linter output, an explicit "no implementation yet" marker).
 
-| Domain x Layer | coverage | boundary-respect | boring-tech-adherence | doc-freshness | test-floor-met |
-|---|---|---|---|---|---|
-| CLI Runtime x cli | C — 2 smoke tests only; no real coverage | B — import-linter configured in `.importlinter` and `pyproject.toml`; only cli layer has code to enforce | A — uses typer from ledger (`src/argus/cli/main.py`) | C — design-docs exist but are all proposed, none implemented | D — smoke tests only; no contract tests for CLI parsing boundary |
-| CLI Runtime x types | C — empty `__init__.py`; no models to cover | B — import-linter enforces no imports from rightward layers | A — empty module; no tech debt introduced | C — design-docs propose types but none implemented | D — no instantiation tests because no models exist yet |
-| CLI Runtime x config | C — empty `__init__.py`; no config keys to cover | B — import-linter enforces no imports from rightward layers | A — empty module; no tech debt introduced | C — config contract documented in ARCHITECTURE.md but no code | D — no default/override/validation tests because no config exists yet |
-| CLI Runtime x io | C — empty `__init__.py`; no I/O functions to cover | B — import-linter enforces no imports from rightward layers | A — empty module; no tech debt introduced | C — I/O contract documented in ARCHITECTURE.md but no code | D — no mocked I/O tests because no I/O functions exist yet |
-| CLI Runtime x core | C — empty `__init__.py`; no pipeline stages to cover | B — import-linter enforces no imports from rightward layers | A — empty module; no tech debt introduced | C — core contracts documented in ARCHITECTURE.md but no code | D — no unit or integration tests because no stages exist yet |
-| QA Engine x core | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md |
-| QA Engine x types | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md |
-| Knowledge Base x core | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md |
-| Knowledge Base x types | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md |
-| Report Generation x core | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md |
-| Report Generation x types | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md | C — no src/ exists yet — planned scaffold described in ARCHITECTURE.md |
+This file does not describe how the system should be. It describes how it currently is. At bootstrap, the system is empty; every cell is `F` with the justification "no implementation yet — bootstrap state." This is correct, not pessimistic — the point of this file is to make the gap between intent (in `ARCHITECTURE.md`) and reality (in code) **visible and trackable**, not to render an opinion of how things ought to be.
 
-## D/F remediation
+The grading is regenerated by a grader subagent on a schedule. Do not hand-edit grades unless you have evidence in hand for each grade you change; hand-edits without evidence will be flagged by the doc-gardener and reverted.
 
-| Cell | Grade | Remediation |
+## Dimensions
+
+| Column | Definition | Source of evidence |
 |---|---|---|
-| CLI Runtime x cli — test-floor-met | D | TODO: ExecPlan `0002-cli-contract-tests.md` — add integration tests invoking `argus <command>` as subprocess and asserting exit code and stdout. |
-| CLI Runtime x types — test-floor-met | D | TODO: ExecPlan `0003-domain-models.md` — implement first Pydantic model in `src/argus/types/` and add instantiation test with valid and invalid data. |
-| CLI Runtime x config — test-floor-met | D | TODO: ExecPlan `0004-config-boundary.md` — implement ConfigProvider and add tests for default value, env override, and validation error. |
-| CLI Runtime x io — test-floor-met | D | TODO: ExecPlan `0005-io-boundary.md` — implement IOProvider stub and add mocked filesystem or HTTP test. |
-| CLI Runtime x core — test-floor-met | D | TODO: ExecPlan `0006-core-pipeline.md` — implement first pipeline stage and add unit test with mocked I/O plus integration test via CLI subprocess. |
+| **coverage** | Implementation completeness against the layer's responsibilities as named in `ARCHITECTURE.md § 5`. | Test inventory, code coverage report. |
+| **boundary-respect** | Whether the layer's imports respect the layered model and dependency matrix. | `no-backward-layer-import` and `forbidden-cross-domain-edges` lint outputs. |
+| **boring-tech-adherence** | Whether the layer uses the choices in the boring-tech ledger or has drifted to alternatives. | Direct code inspection; explicit ADR references for every deviation. |
+| **doc-freshness** | Whether the corresponding `product-specs/` and `design-docs/` files are current with implementation. | Doc-gardener output: drift detection between docs and rendered surfaces / Repo schemas. |
+| **test-floor-met** | Whether every Repo method and every Service function has the verification-floor test (failing-before, passing-after). | Test inventory cross-referenced with `docs/conventions/verification-floor.md`. |
 
-## Top five gaps
+## Matrix
 
-1. **Empty core/ layer has no implementation** — affects 5 cells (CLI Runtime x core, QA Engine x core, Knowledge Base x core, Report Generation x core, and their downstream test floors) — minimum action: implement core domain models and pipeline stages.
-2. **No contract tests for layer boundaries** — affects 4 cells (types, config, io, core test-floor-met) — minimum action: add import-linter CI gate (enforced) and boundary tests for each layer contract.
-3. **No real QA Engine code in core/** — affects 2 cells (QA Engine x core, QA Engine x types) — minimum action: implement atomizer and fact-checker modules.
-4. **Test floor not met for types layer** — affects 3 cells (CLI Runtime x types, QA Engine x types, Knowledge Base x types, Report Generation x types) — minimum action: add Pydantic model instantiation tests as soon as first model is implemented.
-5. **Design-docs are all proposed, none implemented** — affects 3 cells (doc-freshness across all domains) — minimum action: implement at least one feature end-to-end so design-docs transition from proposed to verified.
+`Last graded: bootstrap`. `Next regrade: 2026-05-20` (14 days from now). At bootstrap, no implementation exists; every cell carries the same grade and justification. The matrix is shown anyway because its **shape** is what subsequent regrades change — preserve the row set even when grades are uniform.
 
----
+| Domain × Layer | coverage | boundary-respect | boring-tech-adherence | doc-freshness | test-floor-met |
+|---|---|---|---|---|---|
+| **AudioIntake / Types** | F (no impl) | F (no impl) | F (no impl) | F (spec stub) | F (no tests) |
+| **AudioIntake / Service** | F (no impl) | F (no impl) | F (no impl) | F (spec stub) | F (no tests) |
+| **AudioIntake / Runtime** | F (no impl) | F (no impl) | F (no impl) | F (spec stub) | F (no tests) |
+| **DocIngestion / Types** | F (no impl) | F (no impl) | F (no impl) | F (spec stub) | F (no tests) |
+| **DocIngestion / Service** | F (no impl) | F (no impl) | F (no impl) | F (spec stub) | F (no tests) |
+| **DocIngestion / Runtime** | F (no impl) | F (no impl) | F (no impl) | F (spec stub) | F (no tests) |
+| **ConvDistillation / Types** | F (no impl) | F (no impl) | F (no impl) | F (spec stub) | F (no tests) |
+| **ConvDistillation / Service** | F (no impl) | F (no impl) | F (no impl) | F (spec stub) | F (no tests) |
+| **ConvDistillation / Runtime** | F (no impl) | F (no impl) | F (no impl) | F (spec stub) | F (no tests) |
+| **Calibration / Types** | F (no impl) | F (no impl) | F (no impl) | F (spec stub) | F (no tests) |
+| **Calibration / Service** | F (no impl) | F (no impl) | F (no impl) | F (spec stub) | F (no tests) |
+| **Calibration / Runtime** | F (no impl) | F (no impl) | F (no impl) | F (spec stub) | F (no tests) |
+| **Expertise / Types** | F (no impl) | F (no impl) | F (no impl) | F (spec stub) | F (no tests) |
+| **Expertise / Repo** | F (no impl) | F (no impl) | F (no impl) | F (spec stub) | F (no tests) |
+| **Argus / Service** | F (no impl) | F (no impl) | F (no impl) | F (spec stub) | F (no tests) |
+| **Argus / Runtime** | F (no impl) | F (no impl) | F (no impl) | F (spec stub) | F (no tests) |
+| **Argus / UI** | F (no impl) | F (no impl) | F (no impl) | F (design stub) | F (no tests) |
+| **Metis / Service** | F (no impl) | F (no impl) | F (no impl) | F (spec stub) | F (no tests) |
+| **Metis / Runtime** | F (no impl) | F (no impl) | F (no impl) | F (spec stub) | F (no tests) |
+| **Metis / UI** | F (no impl) | F (no impl) | F (no impl) | F (design stub) | F (no tests) |
+| **Hermes / Service** | F (no impl) | F (no impl) | F (no impl) | F (spec stub) | F (no tests) |
+| **Hermes / Runtime** | F (no impl) | F (no impl) | F (no impl) | F (spec stub) | F (no tests) |
+| **Hermes / UI** | F (no impl) | F (no impl) | F (no impl) | F (design stub) | F (no tests) |
+| **Providers** | F (no impl) | F (no impl) | F (no impl) | F (spec stub) | F (no tests) |
+| **Utils** | F (no impl) | F (no impl) | F (no impl) | F (no doc) | F (no tests) |
 
-Last graded: 2026-05-05
-Next regrade: 2026-05-19
-Graded by: harness-go/04-quality-score
+(Repo-layer rows for AudioIntake, DocIngestion, ConvDistillation, Calibration are omitted because those domains do not own persistent state — they pass shapes downstream and Calibration's output lives in Expertise's Repo. Argus/Metis/Hermes Repo rows are folded into their respective Service rows for now; if implementation reveals dedicated Repo work, the matrix grows rows accordingly.)
+
+## Top five gaps (ordered by leverage)
+
+1. **The lints that enforce the architecture do not exist.** Without `no-backward-layer-import`, `forbidden-cross-domain-edges`, `external-imports-only-in-providers`, and `parse-at-boundary`, every other architectural rule is aspiration. **Closes**: `boundary-respect` column for every row simultaneously. **Owner**: M3 of `0001-bootstrap-the-spine.md`.
+
+2. **The `verification-floor` convention does not exist.** Without `docs/conventions/verification-floor.md` defining what "test-floor-met" actually requires, the column has no scoring function. **Closes**: `test-floor-met` column for every row simultaneously. **Owner**: M2 of `0001-bootstrap-the-spine.md`.
+
+3. **Calibration's bottom-up-authority invariant has no test.** This is the single most important architectural invariant in the system (`PRODUCT_SENSE.md § Cross-product`, `ARCHITECTURE.md § 3 Three invariants`). It must have a structural test before any Calibration implementation lands, otherwise the invariant is vibes. **Closes**: Calibration row's `boundary-respect` and `test-floor-met` cells; protects all downstream apps. **Owner**: M4 of `0001-bootstrap-the-spine.md`.
+
+4. **Hermes action-tier types do not exist.** The Tier-A/B/C type structure in `ARCHITECTURE.md § 5 Service` cannot be enforced until the types are declared and the lint `hermes-action-tier-required` exists. Until then, every Hermes action is implicitly Tier-C, which is the worst-case failure mode. **Closes**: Hermes row entirely once the type and lint land. **Owner**: M5 of `0001-bootstrap-the-spine.md`.
+
+5. **The doc-gardener subagent does not exist.** Until it does, `doc-freshness` cannot be regraded automatically and the matrix above will go stale within a release cycle. The subagent specification lives in `docs/exec-plans/active/0001-bootstrap-the-spine.md` M6. **Closes**: `doc-freshness` column for every row, plus enables this very file to keep itself current. **Owner**: M6 of `0001-bootstrap-the-spine.md`.
+
+## Regrade policy
+
+`Next regrade` is set 14 days out. The grader subagent re-runs the column-by-column inspection on schedule, diffs against this file, and posts a PR comment summarising movement: which cells improved, which regressed, and which gaps from the top-five list closed.
+
+Hand-edits to grades are permitted only when the editor includes evidence inline (a test name, a lint output, an ADR reference). Hand-edits without evidence are reverted by the doc-gardener; this is enforced by lint `quality-grade-evidence-required`.
+
+`F` and `D` grades older than `Next regrade` without an active exec-plan in `docs/exec-plans/active/` whose Big Picture section names the failing cell are CI failures. This is the mechanism that keeps the matrix from accumulating ungovernable debt — every poor grade either improves or has a written plan to improve. (`F`-everywhere at bootstrap is exempted by `0001-bootstrap-the-spine.md` covering every cell as part of its Big Picture; once the bootstrap exec-plan completes, this exemption ends.)
+
+## Forbidden phrases
+
+Same set as the rest of the spine. Mechanical enforcement: `forbidden-phrases`.
+
+`Last graded: bootstrap`
+`Next regrade: 2026-05-20`

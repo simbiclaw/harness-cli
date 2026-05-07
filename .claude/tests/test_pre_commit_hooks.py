@@ -3,7 +3,7 @@
 Tests the commit-msg format hook with both valid and invalid messages
 by invoking pre-commit's run mode with a synthetic commit message file.
 
-See docs/plans/active/0001-bootstrap-harness.md milestone M4.
+See docs/exec-plans/active/0001-bootstrap-harness.md milestone M4.
 """
 
 from __future__ import annotations
@@ -58,7 +58,7 @@ def test_commit_msg_accepts_good_format() -> None:
     good_msg = """\
 feat(scaffold): add initial project structure
 
-Plan: docs/plans/active/0001-bootstrap-harness.md#milestone-4
+Plan: docs/exec-plans/active/0001-bootstrap-harness.md#milestone-4
 Decision: verify pre-commit hook
 """
     result = _run_pre_commit_commit_msg(good_msg)

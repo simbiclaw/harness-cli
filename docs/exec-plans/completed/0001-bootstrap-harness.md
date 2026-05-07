@@ -55,11 +55,11 @@ Acceptance Test: green CI run on the bootstrap PR.
 
 ### M6: Self-archive
 
-Move this ExecPlan from `docs/plans/active/0001-bootstrap-harness.md` to `docs/plans/completed/0001-bootstrap-harness.md`. Write the final entry in Outcomes & Retrospective below.
+Move this ExecPlan from `docs/exec-plans/active/0001-bootstrap-harness.md` to `docs/exec-plans/completed/0001-bootstrap-harness.md`. Write the final entry in Outcomes & Retrospective below.
 
 Acceptance Test: `.claude/tests/test_bootstrap_complete.py::test_bootstrap_archived` — asserts the bootstrap plan no longer lives under `active/` and does live under `completed/`.
 
-Notes: this milestone modifies the very plan file it is part of. Do this in two commits: first writes the Outcomes & Retrospective section; second moves the file. Both commits use `harness(plans):` type with `Plan: docs/plans/active/0001-bootstrap-harness.md#milestone-6` (the trailer references the path *as it was* when the work was done).
+Notes: this milestone modifies the very plan file it is part of. Do this in two commits: first writes the Outcomes & Retrospective section; second moves the file. Both commits use `harness(plans):` type with `Plan: docs/exec-plans/active/0001-bootstrap-harness.md#milestone-6` (the trailer references the path *as it was* when the work was done).
 
 ## Progress
 

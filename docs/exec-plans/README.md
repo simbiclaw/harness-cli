@@ -1,4 +1,4 @@
-# docs/plans/
+# docs/exec-plans/
 
 ExecPlans, partitioned by lifecycle. See `docs/PLANS.md` for the rubric every plan follows.
 

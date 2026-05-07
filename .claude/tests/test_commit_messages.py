@@ -17,7 +17,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 TRAILER_PLAN = re.compile(
-    r"^Plan:\s*(docs/plans/\S+\.md)(?:#\S+)?", re.MULTILINE
+    r"^Plan:\s*(docs/exec-plans/\S+\.md)(?:#\S+)?", re.MULTILINE
 )
 TRAILER_DECISION = re.compile(r"^Decision:\s*\S.*$", re.MULTILINE)
 SUBJECT_RE = re.compile(

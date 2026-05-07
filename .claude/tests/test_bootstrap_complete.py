@@ -1,9 +1,9 @@
 """Verify the bootstrap plan has been archived.
 
-Asserts the bootstrap plan no longer lives under docs/plans/active/
-and does live under docs/plans/completed/.
+Asserts the bootstrap plan no longer lives under docs/exec-plans/active/
+and does live under docs/exec-plans/completed/.
 
-See docs/plans/active/0001-bootstrap-harness.md milestone M6.
+See docs/exec-plans/active/0001-bootstrap-harness.md milestone M6.
 """
 
 from __future__ import annotations
@@ -11,8 +11,8 @@ from __future__ import annotations
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-ACTIVE = REPO_ROOT / "docs" / "plans" / "active"
-COMPLETED = REPO_ROOT / "docs" / "plans" / "completed"
+ACTIVE = REPO_ROOT / "docs" / "exec-plans" / "active"
+COMPLETED = REPO_ROOT / "docs" / "exec-plans" / "completed"
 
 
 def test_bootstrap_archived() -> None:

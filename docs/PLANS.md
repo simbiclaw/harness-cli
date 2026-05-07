@@ -12,7 +12,7 @@ ExecPlans are not specs handed down. The agent executing the plan also keeps it 
 
 ## File location and lifecycle
 
-A new ExecPlan lives at `docs/plans/active/NNNN-<slug>.md`, where `NNNN` is the next free four-digit number. When work ships, the file moves to `docs/plans/completed/`. If cancelled or absorbed, it moves to `docs/plans/archived/` with a final entry in Outcomes & Retrospective explaining why.
+A new ExecPlan lives at `docs/exec-plans/active/NNNN-<slug>.md`, where `NNNN` is the next free four-digit number. When work ships, the file moves to `docs/exec-plans/completed/`. If cancelled or absorbed, it moves to `docs/exec-plans/archived/` with a final entry in Outcomes & Retrospective explaining why.
 
 A plan is created when work is at least feature-sized: more than one commit, more than one logical step, or any work touching a Tier C path. One-line typo fixes do not need a plan. A new subcommand, a config schema change, a refactor across modules, anything user-visible: yes.
 
