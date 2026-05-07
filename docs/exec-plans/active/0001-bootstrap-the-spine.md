@@ -113,7 +113,7 @@ After M6, this exec-plan moves from `docs/exec-plans/active/` to `docs/exec-plan
 - [x] M2: Implement `forbidden-phrases` and the I-Don't-Know test floor
 - [x] M3: Implement the architectural-edge linters
 - [x] M4: Implement the calibration invariant tests
-- [ ] M5: Implement the Hermes action-tier enforcement
+- [x] M5: Implement the Hermes action-tier enforcement
 - [ ] M6: Doc-gardener subagent and tear-down
 
 ## Decision Log
