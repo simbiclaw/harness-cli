@@ -24,7 +24,7 @@ Deliberately out of scope (named so future plans don't confuse themselves):
 
 Subcommands or surface introduced: this plan is repo-internal; no end-user surface.
 
-Config surface added: `tools/lint/` directory with one configuration file per lint, plus a `tools/structural-tests/` directory for the tests that are not lints (e.g., `bottom-up-authority-invariant`, which constructs deliberately-contradictory inputs and runs the calibration function).
+Config surface added: `tools/lint/` directory with one configuration file per lint, plus a `tools/tests/` directory for the tests that are not lints (e.g., `bottom-up-authority-invariant`, which constructs deliberately-contradictory inputs and runs the calibration function).
 
 Files on user filesystem read or written: none beyond the repo itself.
 
@@ -85,7 +85,7 @@ The Hermes safety surface, per `docs/product-specs/hermes/action-execution.md`:
 
 This milestone also delivers the `ActionDescriptor` type and the three-method-set browser-automation Provider scaffold (no actual browser automation logic; just the typed boundaries that future Hermes implementation must respect).
 
-`Acceptance Test:` `tests/structural/test_hermes_action_tier.py::test_no_untagged_action_descriptor` and `::test_tier_c_unreachable_from_outside_allowlist`.
+`Acceptance Test:` `tests/test_hermes_action_tier.py::test_no_untagged_action_descriptor` and `::test_tier_c_unreachable_from_outside_allowlist`.
 
 ### M6. Doc-gardener subagent and tear-down
 
@@ -112,7 +112,7 @@ After M6, this exec-plan moves from `docs/exec-plans/active/` to `docs/exec-plan
 - [x] M1: Populate the conventions library  (created `<bootstrap>`)
 - [x] M2: Implement `forbidden-phrases` and the I-Don't-Know test floor
 - [x] M3: Implement the architectural-edge linters
-- [ ] M4: Implement the calibration invariant tests
+- [x] M4: Implement the calibration invariant tests
 - [ ] M5: Implement the Hermes action-tier enforcement
 - [ ] M6: Doc-gardener subagent and tear-down
 
