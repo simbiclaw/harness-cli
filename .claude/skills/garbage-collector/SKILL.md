@@ -32,7 +32,7 @@ Resolution = open ExecPlan to fix, convert to GitHub issue, or remove
 the comment.
 
 ### Dormant active ExecPlans
-Plans in `docs/plans/active/` with no Progress checkbox flips in 14 days
+Plans in `docs/exec-plans/active/` with no Progress checkbox flips in 14 days
 (check with `git log --follow -p <plan>` for `[ ]` → `[x]` diffs).
 Candidates for archival or revival.
 
@@ -47,7 +47,7 @@ test functions have empty bodies / only `pass`.
 ## Output
 
 For each cleanup theme with non-empty candidates, open ONE ExecPlan at
-`docs/plans/active/NNNN-gc-<theme>-<date>.md` following the PLANS.md
+`docs/exec-plans/active/NNNN-gc-<theme>-<date>.md` following the PLANS.md
 rubric. List the candidates as Milestones. **Do not delete anything.**
 
 ## What this skill must NOT do

@@ -11,7 +11,7 @@ description: Triggered when an ExecPlan progress checkbox flips from `[ ]`
 ## When to use this skill
 
 Automatically, by the PostToolUse hook on Edit/Write to a file under
-`docs/plans/active/`, when the diff includes a checkbox flip from `[ ]`
+`docs/exec-plans/active/`, when the diff includes a checkbox flip from `[ ]`
 to `[x]`.
 
 ## Process
@@ -34,7 +34,7 @@ Append to the ExecPlan's Decision Log:
 ### Milestone N verified
 Verified at SHA <git-rev-parse-HEAD> on <YYYY-MM-DD HH:MM TZ>.
 Acceptance Test: <test-id>
-Source: docs/plans/active/<plan>.md#milestone-N
+Source: docs/exec-plans/active/<plan>.md#milestone-N
 ```
 
 The Source path satisfies the i-don't-know-protocol structural test.

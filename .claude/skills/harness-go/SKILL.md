@@ -86,7 +86,7 @@ the codebase. ARCHITECTURE generation does not need the PRD's marketing prose.
 ```
 [ASSERT] docs/PRD/ exists and contains at least one .md file
 [ASSERT] CLAUDE.md exists and is readable
-[ASSERT] No active ExecPlan in docs/plans/active/ blocks these paths
+[ASSERT] No active ExecPlan in docs/exec-plans/active/ blocks these paths
          (check .claude/sensitive-paths.txt)
 ```
 

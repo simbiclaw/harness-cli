@@ -13,7 +13,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 PLANS_DIRS = [
-    REPO_ROOT / "docs" / "plans" / d for d in ("active", "completed", "archived")
+    REPO_ROOT / "docs" / "exec-plans" / d for d in ("active", "completed", "archived")
 ]
 
 DECISION_HEADER = re.compile(

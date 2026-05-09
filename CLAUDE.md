@@ -41,10 +41,17 @@ Do not "try harder to remember." Move the rule into code.
 
 ## Skills available
 
+- `.claude/skills/structural-transcription/` — convert support-call audio into structural transcription JSON.
 - `.claude/skills/dep-vetter/` — vet a new dependency against the four-check policy.
 - `.claude/skills/verifier/` — re-run a milestone's Acceptance Test on a checkbox flip.
 - `.claude/skills/garbage-collector/` — recurring scan for cruft (runs nightly).
 - `.claude/skills/doc-gardener/` — recurring scan for stale docs and broken cross-refs (runs weekly).
+- `.claude/skills/harness-go/` — bootstrap the knowledge spine from PRDs.
+- `.claude/skills/harness-go-sync/` — incremental spine regeneration after PRD changes.
+
+## Subagents available
+
+- `.claude/agents/conversation-distillation.md` — distill structural transcription corpora into atomic claims and intent trees.
 
 ## What the hooks block
 

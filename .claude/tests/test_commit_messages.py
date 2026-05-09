@@ -87,7 +87,7 @@ def test_commits_follow_format():
             if not plan_path.exists():
                 stem = Path(plan_path_str).name
                 alt_dirs = [
-                    REPO_ROOT / "docs" / "plans" / d
+                    REPO_ROOT / "docs" / "exec-plans" / d
                     for d in ("active", "completed", "archived")
                 ]
                 if not any((d / stem).exists() for d in alt_dirs):

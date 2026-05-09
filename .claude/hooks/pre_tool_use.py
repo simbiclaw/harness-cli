@@ -24,7 +24,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SENSITIVE_PATHS_FILE = REPO_ROOT / ".claude" / "sensitive-paths.txt"
-ACTIVE_PLANS_DIR = REPO_ROOT / "docs" / "plans" / "active"
+ACTIVE_PLANS_DIR = REPO_ROOT / "docs" / "exec-plans" / "active"
 
 
 def load_sensitive_patterns() -> list[str]:

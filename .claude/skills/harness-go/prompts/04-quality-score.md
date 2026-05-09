@@ -86,7 +86,7 @@ Graded by: harness-go/04-quality-score
 ## D/F gate rule
 
 Any `D` or `F` cell in the table must, within one commit of this file being
-written, have a corresponding ExecPlan in `docs/plans/active/` whose
+written, have a corresponding ExecPlan in `docs/exec-plans/active/` whose
 **Big Picture** section names the failing `domain × layer × dimension` cell.
 
 If no ExecPlan exists yet, write a placeholder:
