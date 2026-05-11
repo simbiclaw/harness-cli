@@ -1,15 +1,15 @@
 {
-  "generated_at": "2026-05-06T08:16:32Z",
+  "generated_at": "2026-05-09T08:00:00Z",
   "harness_go_commit": "3788510bec3406be7b4ddf9f7f9f34fa7b2386b8",
   "files": {
     "Argus.md": "sha256:a60624aa0044a1b973dbc7701864a4ad6dfddbf6ccf63625d574ea8c898a6bf3",
     "Audio-to-Tree(Bottom-up).md": "sha256:7c3904c05eb0ba119582105d2ea01afc3389713200549a307467468491e799fb",
     "Context-Engineering.md": "sha256:cedd4059c3835fd0d7511bb841348f8b1aaf5c9fffddfb0d138b2da5736701bb",
     "Doc-to-Graph(Top-down).md": "sha256:14a901cc193882448d9273c0f5440d9fdf7e3e27dd637b9d3dfb7082cb1ed951",
-    "Fact-Checking.md": "sha256:03a2c97da0d2a9f8bd33b6e551aadf91bcd6820593c60d91225daec01ad09eb2",
+    "Fact-Checking.md": "sha256:2d2909cf42557412c548c3b83c7bb4b564017814c763da275ce35ead78edc163",
     "Hermes.md": "sha256:d17a38a8bf36af125d5bbb69051cdab971b4632b6497d8777d0de414a7473751",
     "Metis.md": "sha256:26e4e2672b5c80cad3198ac0400e6772055deae41d86784c9095e322e1fc579d",
-    "Product Anatomy.md": "sha256:b516bbb8a504d8ece61d026287e40251513b5c1a5664c3431496453791992d99",
+    "anatomy.md": "sha256:6ab33cc32e36512bbd3beebc31eaf52ce4a7a64cb4ef2eb5007ce8fa5c885dea",
     "Requirment.md": "sha256:50bf0c30987ce0cd36d3f629a94a5a554f9a7b342b9f209b99a54793219be650"
   },
   "stage_affinity": {
@@ -18,12 +18,12 @@
       "Hermes.md",
       "Metis.md",
       "Requirment.md",
-      "Product Anatomy.md"
+      "anatomy.md"
     ],
     "02-design": [
       "Context-Engineering.md",
       "Audio-to-Tree(Bottom-up).md",
-      "Product Anatomy.md"
+      "anatomy.md"
     ],
     "03-architecture": [
       "Fact-Checking.md",

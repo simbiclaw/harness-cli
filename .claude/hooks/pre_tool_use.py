@@ -2,10 +2,12 @@
 """
 PreToolUse hook for Claude Code.
 
-Multiplexes three guards:
-  1. Sensitive-path guard (Harness 1: Tier C escalation).
-  2. Package-manager guard (Harness 1 + Harness 3: dep vetting).
-  3. Force-push guard (Harness 4: commit hygiene).
+Multiplexes five guards:
+  0. Single-checkbox-flip guard (Harness 4: one milestone flip per edit).
+  1. Uncommitted-flip guard (Harness 4: commit flip before writing code).
+  2. Sensitive-path guard (Harness 1: Tier C escalation).
+  3. Package-manager guard (Harness 1 + Harness 3: dep vetting).
+  4. Force-push guard (Harness 4: commit hygiene).
 
 Hook contract: read JSON event from stdin. Print JSON to stdout.
 Exit 0 with {"continue": true} to allow.
@@ -19,6 +21,7 @@ import fnmatch
 import json
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -26,6 +29,12 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SENSITIVE_PATHS_FILE = REPO_ROOT / ".claude" / "sensitive-paths.txt"
 ACTIVE_PLANS_DIR = REPO_ROOT / "docs" / "exec-plans" / "active"
 
+CHECKBOX_LINE = re.compile(r"^- \[x\]", re.MULTILINE)
+
+
+# ---------------------------------------------------------------------------
+# sensitive-path helpers
+# ---------------------------------------------------------------------------
 
 def load_sensitive_patterns() -> list[str]:
     if not SENSITIVE_PATHS_FILE.exists():
@@ -56,7 +65,76 @@ def has_resolved_steering_for(path: str) -> bool:
     return False
 
 
-# Match common Python and uv package-install patterns.
+# ---------------------------------------------------------------------------
+# checkbox-flip helpers
+# ---------------------------------------------------------------------------
+
+def is_active_plan(target: str) -> bool:
+    """Check whether *target* is a file under docs/exec-plans/active/."""
+    try:
+        Path(target).resolve().relative_to(ACTIVE_PLANS_DIR)
+        return True
+    except (ValueError, OSError):
+        return False
+
+
+def count_checked(text: str) -> int:
+    return len(CHECKBOX_LINE.findall(text))
+
+
+def simulate_after_edit(file_path: str, params: dict) -> str | None:
+    """Return what the file would look like after this edit, or None."""
+    path = Path(file_path)
+    if not path.exists():
+        return None
+    current = path.read_text()
+
+    if "old_string" in params:
+        old = params["old_string"]
+        new = params.get("new_string", "")
+        if params.get("replace_all"):
+            return current.replace(old, new)
+        else:
+            return current.replace(old, new, 1)
+    elif "content" in params:
+        return params["content"]
+    return None
+
+
+def count_new_flips(file_path: str, params: dict) -> int:
+    """How many NEW [x] checkboxes would this edit introduce?"""
+    after = simulate_after_edit(file_path, params)
+    if after is None:
+        return 0
+    path = Path(file_path)
+    before = path.read_text() if path.exists() else ""
+    delta = count_checked(after) - count_checked(before)
+    return max(delta, 0)
+
+
+def has_uncommitted_flip() -> bool:
+    """Return True if git diff shows a new [x] checkbox in any active plan."""
+    if not ACTIVE_PLANS_DIR.exists():
+        return False
+    try:
+        result = subprocess.run(
+            ["git", "diff", "--", "docs/exec-plans/active/"],
+            capture_output=True, text=True, cwd=REPO_ROOT, timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+    # A new [x] checkbox appears as an added line starting with "+- [x]"
+    for line in result.stdout.splitlines():
+        if line.startswith("+") and CHECKBOX_LINE.search(line):
+            return True
+    return False
+
+
+# ---------------------------------------------------------------------------
+# package-install helpers
+# ---------------------------------------------------------------------------
+
 PKG_MGR_PATTERNS = [
     re.compile(r"\buv\s+add\s+(--dev\s+)?([\w\-\.\[\]]+)"),
     re.compile(r"\buv\s+pip\s+install\s+([\w\-\.\[\]]+)"),
@@ -66,12 +144,10 @@ PKG_MGR_PATTERNS = [
 
 
 def parse_pkg_install(cmd: str) -> str | None:
-    """Return package name (without extras) if cmd is a package install."""
     for pat in PKG_MGR_PATTERNS:
         m = pat.search(cmd)
         if m:
             raw = m.groups()[-1]
-            # Strip extras like "package[extra]" -> "package"
             return raw.split("[", 1)[0]
     return None
 
@@ -87,19 +163,54 @@ def is_force_push(cmd: str) -> bool:
     return "--force" in cmd or " -f " in cmd or "--force-with-lease" in cmd
 
 
+# ---------------------------------------------------------------------------
+# main
+# ---------------------------------------------------------------------------
+
 def main() -> int:
     event = json.load(sys.stdin)
     tool = event.get("tool_name", "")
     params = event.get("tool_input", {})
 
-    # Guard 1: sensitive path on Edit/Write
     if tool in ("Edit", "Write", "MultiEdit", "Create"):
         target = params.get("file_path") or params.get("path") or ""
+
+        # ---- Guard 0: single checkbox flip ----
+        if is_active_plan(target):
+            flips = count_new_flips(target, params)
+            if flips > 1:
+                print(json.dumps({
+                    "continue": False,
+                    "reason": (
+                        f"This edit would flip {flips} milestone checkboxes "
+                        f"in one go, but at most 1 is allowed per commit "
+                        f"(docs/conventions/commit-hygiene.md). "
+                        f"Flip one checkbox, commit, then flip the next."
+                    ),
+                }))
+                return 0
+
+        # ---- Guard 1: uncommitted flip blocks code edits ----
+        if not is_active_plan(target):
+            if has_uncommitted_flip():
+                print(json.dumps({
+                    "continue": False,
+                    "reason": (
+                        "An active ExecPlan has an uncommitted milestone "
+                        "checkbox flip. Commit the flip first "
+                        "(docs/conventions/commit-hygiene.md: one flip "
+                        "per commit, commit before continuing), then "
+                        "resume editing code."
+                    ),
+                }))
+                return 0
+
+        # ---- Guard 2: sensitive path ----
         rel = ""
         if target:
             try:
                 rel = str(Path(target).resolve().relative_to(REPO_ROOT))
-            except ValueError:
+            except (ValueError, OSError):
                 rel = ""
         patterns = load_sensitive_patterns()
         if rel and path_is_sensitive(rel, patterns):
@@ -119,7 +230,7 @@ def main() -> int:
                 }))
                 return 0
 
-    # Guard 2 + 3: command guards on Bash
+    # ---- Guard 3 + 4: Bash command guards ----
     if tool == "Bash":
         cmd = params.get("command", "")
 

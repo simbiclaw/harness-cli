@@ -16,7 +16,11 @@ Read the most recent file in `docs/exec-plans/active/` end-to-end. Read its **Su
 - `docs/conventions/deps-and-secrets.md` — how new dependencies and secrets are handled.
 - `docs/conventions/commit-hygiene.md` — commit message format and discipline.
 - `docs/conventions/i-dont-know-protocol.md` — how to handle uncertainty in Decision Log entries.
-- `docs/conventions/architecture-layering.md` — the layered architecture for `src/` and how it is enforced.
+- `docs/conventions/layering.md` — the layered architecture for `src/` and how it is enforced.
+
+## Before writing an ExecPlan
+
+After producing a draft ExecPlan, consult `docs/conventions/ask-threshold.md` and scan every consequential decision in the plan against the Tier C checklist. Any decision that falls under Tier C (new top-level dependency, CLI surface change, config schema change, on-disk format change, stdout format change, >100 line deletion, sensitive-path edit) must go into the **Awaiting Steering** section with the question, the options, and a default-if-not-decided deadline. Do not decide Tier C questions yourself.
 
 ## The five harnesses, one sentence each
 
