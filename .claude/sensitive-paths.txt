@@ -20,3 +20,4 @@ pyproject.toml
 # Documentation that defines the methodology itself.
 CLAUDE.md
 docs/PLANS.md
+docs/adr/**
