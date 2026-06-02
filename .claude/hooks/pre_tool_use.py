@@ -167,7 +167,9 @@ def is_force_push(cmd: str) -> bool:
 # merge-into-harness guard helpers
 # ---------------------------------------------------------------------------
 
-MERGE_MAIN_RE = re.compile(r"\bgit\s+merge\s+.*\b(?:origin/)?main\b")
+# Match "git merge (origin/)main" only at command start or after shell separators,
+# avoiding matches inside JSON strings or other embedded contexts.
+MERGE_MAIN_RE = re.compile(r"(?:^|;|&&|\|\|)\s*git\s+merge\s+.*\b(?:origin/)?main\b")
 
 
 def is_merge_main_into_harness(cmd: str) -> bool:
