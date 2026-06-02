@@ -164,6 +164,34 @@ def is_force_push(cmd: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# harness-branch guard helpers
+# ---------------------------------------------------------------------------
+
+# Match git commands that add commits to the current branch.
+# commit, merge, and cherry-pick all create new commits.
+COMMIT_LIKE_RE = re.compile(
+    r"(?:^|;|&&|\|\|)\s*git\s+(commit|merge)\b"
+)
+
+
+def is_on_harness() -> bool:
+    """True if HEAD is the harness branch."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True, text=True, cwd=REPO_ROOT, timeout=5,
+        )
+        return result.stdout.strip() == "harness"
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
+def is_cherry_pick(cmd: str) -> bool:
+    """True if cmd is a git cherry-pick."""
+    return bool(re.search(r"(?:^|;|&&|\|\|)\s*git\s+cherry-pick\b", cmd))
+
+
+# ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
 
@@ -259,6 +287,20 @@ def main() -> int:
                     f"dep-vetter skill on '{package}' first. If approved, "
                     f"the skill writes the dep-vet file and this hook will "
                     f"allow the install."
+                ),
+            }))
+            return 0
+
+        # ---- Guard 5: block direct commits on harness ----
+        if is_on_harness() and COMMIT_LIKE_RE.search(cmd) and not is_cherry_pick(cmd):
+            print(json.dumps({
+                "continue": False,
+                "reason": (
+                    "Direct commits and merges on the harness branch are "
+                    "blocked. All changes must land on main first. Harness-type "
+                    "commits are cherry-picked from main to harness by "
+                    "automation. If you need to add harness commits to this "
+                    "branch, use git cherry-pick from main."
                 ),
             }))
             return 0

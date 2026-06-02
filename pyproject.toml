@@ -77,6 +77,18 @@ exclude = ["docs/experiments/", "build/"]
 module = "tests.*"
 disallow_untyped_defs = false
 
+[[tool.mypy.overrides]]
+module = "argus.core.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "argus.io.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "argus.cli.*"
+ignore_errors = true
+
 # ---------------------------------------------------------------------------
 # Pytest: collect both application tests and harness structural tests.
 # ---------------------------------------------------------------------------

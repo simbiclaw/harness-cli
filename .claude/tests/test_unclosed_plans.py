@@ -12,8 +12,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 ACTIVE_DIR = REPO_ROOT / "docs" / "exec-plans" / "active"
 
 CHECKED = re.compile(r"^- \[x\]", re.MULTILINE)
-UNCHECKED = re.compile(r"^- \[ \]")
-OUTCOMES_HEADER = re.compile(r"^##+\s+Outcomes & Retrospective", re.MULTILINE)
+UNCHECKED = re.compile(r"^- \[ \]", re.MULTILINE)
+OUTCOMES_HEADER = re.compile(r"^##+\s+\d+\.\s+Outcomes & Retrospective", re.MULTILINE)
 
 PLACEHOLDER = "(written at completion)"
 

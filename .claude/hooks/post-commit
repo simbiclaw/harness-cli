@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Post-commit hook: auto cherry-pick harness commits to local harness branch.
+#
+# After every commit, if the commit subject matches harness() or harness:,
+# cherry-pick it onto the local harness branch so it stays in sync with main.
+# The GitHub Actions workflow (harness-cherry-pick.yml) does the same on push.
+#
+# Install: cp .claude/hooks/post-commit .git/hooks/post-commit && chmod +x .git/hooks/post-commit
+set -euo pipefail
+
+subject=$(git log --format="%s" -1 HEAD)
+if ! echo "$subject" | grep -qE '^[a-z]+\s+harness[\(\:]'; then
+  exit 0
+fi
+
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+if [ "$current_branch" = "harness" ]; then
+  exit 0
+fi
+
+commit_sha=$(git rev-parse HEAD)
+
+# Stash uncommitted changes if any
+stashed=false
+if ! git diff-index --quiet HEAD --; then
+  git stash push -m "harness-cherry-pick auto-stash" --quiet
+  stashed=true
+fi
+
+# Cherry-pick onto harness
+if git checkout harness 2>/dev/null; then
+  if git cherry-pick "$commit_sha" 2>&1; then
+    echo "[harness-cherry-pick] $(git log --oneline -1 "$commit_sha") -> harness"
+  else
+    echo "[harness-cherry-pick] FAILED — skipping. Manual cherry-pick may be needed."
+    git cherry-pick --abort 2>/dev/null || git reset --hard HEAD
+  fi
+  git checkout "$current_branch" --quiet
+else
+  echo "[harness-cherry-pick] Could not checkout harness branch."
+fi
+
+# Restore stashed changes
+if [ "$stashed" = true ]; then
+  git stash pop --quiet 2>/dev/null || true
+fi

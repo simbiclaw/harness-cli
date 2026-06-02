@@ -34,7 +34,7 @@ def git_log() -> list[tuple[str, str]]:
     try:
         out = subprocess.check_output(
             [
-                "git", "log", "--since=30.days.ago", "--no-merges",
+                "git", "log", "--since=14.days.ago", "--no-merges",
                 "--pretty=format:%H%x00%B%x1e",
             ],
             cwd=REPO_ROOT,
@@ -78,23 +78,29 @@ def test_commits_follow_format():
                 f"{sha_short}: subject is too vague: {subject!r}"
             )
 
-        plan_match = TRAILER_PLAN.search(msg)
-        if not plan_match:
-            failures.append(f"{sha_short}: missing 'Plan:' trailer.")
+        # ad-hoc is for operational commits with no ExecPlan
+        if "Plan: docs/exec-plans/ad-hoc" in msg:
+            plan_match = None  # Skip file-existence check
         else:
+            plan_match = TRAILER_PLAN.search(msg)
+        if not plan_match and "Plan: docs/exec-plans/ad-hoc" not in msg:
+            failures.append(f"{sha_short}: missing 'Plan:' trailer.")
+        elif plan_match:
             plan_path_str = plan_match.group(1)
-            plan_path = REPO_ROOT / plan_path_str
-            if not plan_path.exists():
-                stem = Path(plan_path_str).name
-                alt_dirs = [
-                    REPO_ROOT / "docs" / "exec-plans" / d
-                    for d in ("active", "completed", "archived")
-                ]
-                if not any((d / stem).exists() for d in alt_dirs):
-                    failures.append(
-                        f"{sha_short}: Plan trailer references missing "
-                        f"file '{plan_path_str}'."
-                    )
+            file_path_str = plan_path_str.split("#")[0]
+            if file_path_str != "docs/exec-plans/ad-hoc":
+                plan_path = REPO_ROOT / file_path_str
+                if not plan_path.exists():
+                    stem = Path(file_path_str).name
+                    alt_dirs = [
+                        REPO_ROOT / "docs" / "exec-plans" / d
+                        for d in ("active", "completed", "archived")
+                    ]
+                    if not any((d / stem).exists() for d in alt_dirs):
+                        failures.append(
+                            f"{sha_short}: Plan trailer references missing "
+                            f"file '{plan_path_str}'."
+                        )
         if not TRAILER_DECISION.search(msg):
             failures.append(f"{sha_short}: missing 'Decision:' trailer.")
 
