@@ -57,6 +57,139 @@ MAX_SEGMENT_SEC_DEFAULT = 25.0  # ASR truncation guard
 
 
 # ---------------------------------------------------------------------------
+# CLI backend — wraps the `audio` CLI as an alternative to audio-server HTTP
+# ---------------------------------------------------------------------------
+
+
+class CLIAudioBackend:
+    """
+    Drop-in replacement for AudioServerClient that shells out to the
+    `speech` CLI instead of an HTTP server. Same interface: transcribe(),
+    vad(), diarize() accept numpy arrays and return the same types.
+    """
+
+    def __init__(
+        self,
+        audio_bin: str = "speech",
+        model: str | None = None,
+    ):
+        self.audio_bin = audio_bin
+        self.model = model
+
+    # ------------------------------------------------------------------ helpers
+
+    @staticmethod
+    def _samples_to_temp_wav(samples: np.ndarray, sample_rate: int) -> str:
+        import tempfile
+        import os
+
+        clipped = np.clip(samples, -1.0, 1.0).astype(np.float32, copy=False)
+        fd, path = tempfile.mkstemp(suffix=".wav")
+        os.close(fd)
+        try:
+            sf.write(path, clipped, sample_rate, format="WAV", subtype="PCM_16")
+        except Exception:
+            try:
+                os.unlink(path)
+            except OSError:
+                pass
+            raise
+        return path
+
+    @staticmethod
+    def _parse_vad_line(line: str) -> tuple[float, float] | None:
+        """Parse '[2.46s - 2.95s] (0.49s)' → (2.46, 2.95)."""
+        import re
+
+        m = re.match(r"\[\s*([\d.]+)s\s*-\s*([\d.]+)s\]", line)
+        if m:
+            return float(m.group(1)), float(m.group(2))
+        return None
+
+    @staticmethod
+    def _parse_diarize_line(line: str) -> tuple[int, float, float] | None:
+        """Parse 'Speaker 0: [2.44s - 2.99s] (0.54s)' → (0, 2.44, 2.99)."""
+        import re
+
+        m = re.match(
+            r"Speaker\s+(\d+):\s*\[\s*([\d.]+)s\s*-\s*([\d.]+)s\]", line
+        )
+        if m:
+            return int(m.group(1)), float(m.group(2)), float(m.group(3))
+        return None
+
+    def _run(self, args: list[str]) -> str:
+        """Run `speech` CLI with given args, return combined stdout+stderr."""
+        import subprocess
+
+        cmd = [self.audio_bin] + args
+        if self.model and args[0] == "transcribe":
+            cmd += ["--model", self.model]
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=600,
+        )
+        # Model loading goes to stdout; diagnostics to stderr. Combine.
+        combined = proc.stdout + "\n" + proc.stderr
+        if proc.returncode != 0:
+            raise RuntimeError(
+                f"speech {' '.join(args)} failed (rc={proc.returncode}): "
+                f"{combined[:500]}"
+            )
+        return combined
+
+    # ------------------------------------------------------------------ ASR
+
+    def transcribe(self, samples: np.ndarray, sample_rate: int) -> str:
+        path = self._samples_to_temp_wav(samples, sample_rate)
+        try:
+            output = self._run(["transcribe", path])
+            for line in output.splitlines():
+                line = line.strip()
+                if line.startswith("Result:"):
+                    return line.removeprefix("Result:").strip()
+            return ""
+        finally:
+            Path(path).unlink(missing_ok=True)
+
+    # ------------------------------------------------------------------ VAD
+
+    def vad(self, samples: np.ndarray, sample_rate: int) -> list[Segment]:
+        path = self._samples_to_temp_wav(samples, sample_rate)
+        try:
+            output = self._run(["vad", path])
+            segments: list[Segment] = []
+            for line in output.splitlines():
+                parsed = self._parse_vad_line(line.strip())
+                if parsed:
+                    segments.append(Segment(start_sec=parsed[0], end_sec=parsed[1]))
+            return segments
+        finally:
+            Path(path).unlink(missing_ok=True)
+
+    # ------------------------------------------------------------------ diarize
+
+    def diarize(self, samples: np.ndarray, sample_rate: int) -> list[DiarizedSegment]:
+        path = self._samples_to_temp_wav(samples, sample_rate)
+        try:
+            output = self._run(["diarize", path])
+            segments: list[DiarizedSegment] = []
+            for line in output.splitlines():
+                parsed = self._parse_diarize_line(line.strip())
+                if parsed:
+                    segments.append(DiarizedSegment(
+                        speaker_id=parsed[0],
+                        start_sec=parsed[1],
+                        end_sec=parsed[2],
+                    ))
+            return segments
+        finally:
+            Path(path).unlink(missing_ok=True)
+
+
+# ---------------------------------------------------------------------------
 # Audio loading / channel inspection
 # ---------------------------------------------------------------------------
 
@@ -85,14 +218,15 @@ def load_audio(path: Path, target_sample_rate: int = TARGET_SAMPLE_RATE) -> Load
     try:
         samples, sr = sf.read(str(path), dtype="float32", always_2d=False)
     except RuntimeError as e:
-        # soundfile rejects MP3/M4A on some builds. ffmpeg is the universal
-        # decoder. We import lazily because the user may not need it.
-        if path.suffix.lower() in {".mp3", ".m4a", ".aac", ".opus", ".ogg"}:
+        # soundfile (libsndfile) only handles PCM WAV and a handful of
+        # compressed formats. ffmpeg is the universal fallback decoder for
+        # everything else — MSG723, ADPCM, μ-law, MP3, M4A, Opus, etc.
+        try:
             samples, sr = _decode_via_ffmpeg(path)
-        else:
+        except Exception as ffmpeg_err:
             raise RuntimeError(
-                f"Failed to read {path}: {e}. Install soundfile with full "
-                "codec support or convert to WAV."
+                f"Failed to read {path} with both soundfile and ffmpeg. "
+                f"soundfile: {e}. ffmpeg: {ffmpeg_err}"
             ) from e
 
     if sr != target_sample_rate:
@@ -633,8 +767,12 @@ def parse_args() -> argparse.Namespace:
                    help="Path to audio file (WAV/FLAC always; MP3/M4A/Opus if ffmpeg installed)")
     p.add_argument("--output", "-o", required=True, type=Path,
                    help="Path to write the structural transcription JSON")
+    p.add_argument("--backend", choices=["http", "cli"], default="cli",
+                   help="Backend: 'http' (audio-server) or 'cli' (speech CLI). Default: cli.")
+    p.add_argument("--model",
+                   help="ASR model path or HuggingFace ID (CLI backend only)")
     p.add_argument("--server", default="http://localhost:8080",
-                   help="audio-server base URL (default: http://localhost:8080)")
+                   help="audio-server base URL (HTTP backend only, default: http://localhost:8080)")
     p.add_argument("--channel-mode",
                    choices=["auto", "mono-mix", "per-channel"],
                    default="auto",
@@ -676,16 +814,21 @@ def main() -> int:
     audio_id = args.audio_id or compute_audio_id(args.input)
     print(f"[pipeline] audio_id={audio_id}", file=sys.stderr)
 
-    client = AudioServerClient(args.server)
-    print(f"[pipeline] waiting for audio-server at {args.server}", file=sys.stderr)
-    if not wait_for_server(client, deadline_sec=args.server_deadline_sec):
-        print(
-            f"[pipeline] ERROR: audio-server at {args.server} not reachable "
-            f"after {args.server_deadline_sec}s. Run scripts/start_server.sh "
-            "or scripts/check_server.py for diagnostics.",
-            file=sys.stderr,
-        )
-        return 2
+    if args.backend == "cli":
+        client = CLIAudioBackend(model=args.model)
+        print(f"[pipeline] using CLI backend (speech {args.model or 'default model'})",
+              file=sys.stderr)
+    else:
+        client = AudioServerClient(args.server)
+        print(f"[pipeline] waiting for audio-server at {args.server}", file=sys.stderr)
+        if not wait_for_server(client, deadline_sec=args.server_deadline_sec):
+            print(
+                f"[pipeline] ERROR: audio-server at {args.server} not reachable "
+                f"after {args.server_deadline_sec}s. Run scripts/start_server.sh "
+                "or scripts/check_server.py for diagnostics.",
+                file=sys.stderr,
+            )
+            return 2
 
     t0 = time.monotonic()
     asr_executor = cf.ThreadPoolExecutor(max_workers=args.asr_concurrency)

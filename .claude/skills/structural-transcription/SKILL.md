@@ -46,6 +46,27 @@ If any prerequisite is missing, run `python scripts/check_server.py` first — i
 
 The orchestrator is `scripts/pipeline.py`. The agent's job is to invoke it correctly, inspect the output, and adjust knobs when results disappoint — not to reimplement the pipeline.
 
+### Batch processing: parallel scheduling is mandatory
+
+When processing **more than one** audio file, run them in **parallel** — each invocation as a background process, then `wait`. The pipeline is I/O-bound (ASR model inference runs on a separate GPU/Neural Engine process), so parallel invocations maximize total system throughput without competing for the same compute unit.
+
+```bash
+# Correct: parallel scheduling
+for f in file1.wav file2.wav file3.wav; do
+  python scripts/pipeline.py --input "$f" --output "${f}.structural.json" ... &
+done
+wait
+```
+
+```bash
+# Wrong: serial scheduling — wastes total wall-clock time
+for f in file1.wav file2.wav file3.wav; do
+  python scripts/pipeline.py --input "$f" --output "${f}.structural.json" ...
+done
+```
+
+Do NOT batch with subagents for parallelism. Each subagent runs in an isolated sandbox that may lack the model cache, dependencies, or environment variables (HF_HOME). Subagents are for **qualitatively different** work (e.g., one agent debugs diarization while another debugs ASR), not for splitting identical work across files. Use Bash `&` + `wait` for file-level parallelism.
+
 ### Standard invocation
 
 ```bash

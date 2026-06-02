@@ -17,7 +17,7 @@ Example:
 
 ```
 Rationale: chose UUID v7 because it preserves time-ordering for index efficiency.
-Source: https://datatracker.ietf.org/doc/rfc9562/
+Source: https://datatracker.ietf.org/doc/html/rfc9562
 ```
 
 ### Empirical
