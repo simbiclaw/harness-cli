@@ -164,18 +164,18 @@ def is_force_push(cmd: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# merge-into-harness guard helpers
+# harness-branch guard helpers
 # ---------------------------------------------------------------------------
 
-# Match "git merge (origin/)main" only at command start or after shell separators,
-# avoiding matches inside JSON strings or other embedded contexts.
-MERGE_MAIN_RE = re.compile(r"(?:^|;|&&|\|\|)\s*git\s+merge\s+.*\b(?:origin/)?main\b")
+# Match git commands that add commits to the current branch.
+# commit, merge, and cherry-pick all create new commits.
+COMMIT_LIKE_RE = re.compile(
+    r"(?:^|;|&&|\|\|)\s*git\s+(commit|merge)\b"
+)
 
 
-def is_merge_main_into_harness(cmd: str) -> bool:
-    """True if cmd is a git merge targeting (origin/)main while on harness."""
-    if not MERGE_MAIN_RE.search(cmd):
-        return False
+def is_on_harness() -> bool:
+    """True if HEAD is the harness branch."""
     try:
         result = subprocess.run(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
@@ -186,23 +186,9 @@ def is_merge_main_into_harness(cmd: str) -> bool:
         return False
 
 
-def main_has_non_harness_commits() -> bool:
-    """True if main has non-harness commits not yet on harness."""
-    try:
-        result = subprocess.run(
-            ["git", "log", "--oneline", "harness..main"],
-            capture_output=True, text=True, cwd=REPO_ROOT, timeout=5,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return False  # fail open — can't determine, let it through
-
-    for line in result.stdout.strip().splitlines():
-        if not line:
-            continue
-        # Harness commits have subject prefix "harness(" or "harness:"
-        if not re.match(r"^\w+\s+harness[\(\:]", line):
-            return True
-    return False
+def is_cherry_pick(cmd: str) -> bool:
+    """True if cmd is a git cherry-pick."""
+    return bool(re.search(r"(?:^|;|&&|\|\|)\s*git\s+cherry-pick\b", cmd))
 
 
 # ---------------------------------------------------------------------------
@@ -305,20 +291,19 @@ def main() -> int:
             }))
             return 0
 
-        # ---- Guard 5: block merge main→harness when non-harness commits exist ----
-        if is_merge_main_into_harness(cmd):
-            if main_has_non_harness_commits():
-                print(json.dumps({
-                    "continue": False,
-                    "reason": (
-                        "Merge from main into harness blocked: main has "
-                        "non-harness commits that are not on harness. "
-                        "Cherry-pick only harness-type commits, or ensure "
-                        "all commits on main follow the harness commit type "
-                        "convention before merging."
-                    ),
-                }))
-                return 0
+        # ---- Guard 5: block direct commits on harness ----
+        if is_on_harness() and COMMIT_LIKE_RE.search(cmd) and not is_cherry_pick(cmd):
+            print(json.dumps({
+                "continue": False,
+                "reason": (
+                    "Direct commits and merges on the harness branch are "
+                    "blocked. All changes must land on main first. Harness-type "
+                    "commits are cherry-picked from main to harness by "
+                    "automation. If you need to add harness commits to this "
+                    "branch, use git cherry-pick from main."
+                ),
+            }))
+            return 0
 
     # Default allow.
     print(json.dumps({"continue": True}))
