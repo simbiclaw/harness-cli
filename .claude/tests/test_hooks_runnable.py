@@ -16,6 +16,7 @@ import tempfile
 from pathlib import Path
 
 HOOKS_DIR = Path(__file__).resolve().parent.parent / "hooks"
+CLAUDE_DIR = Path(__file__).resolve().parent.parent
 
 
 def run_hook(hook: str, stdin: str | None = None, args: list[str] | None = None) -> subprocess.CompletedProcess:
@@ -24,7 +25,7 @@ def run_hook(hook: str, stdin: str | None = None, args: list[str] | None = None)
 
 
 def test_settings_json_is_valid() -> None:
-    raw = (HOOKS_DIR / "settings.json").read_text()
+    raw = (CLAUDE_DIR / "settings.json").read_text()
     doc = json.loads(raw)
     assert "hooks" in doc
 

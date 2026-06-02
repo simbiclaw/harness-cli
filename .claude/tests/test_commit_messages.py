@@ -17,7 +17,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 TRAILER_PLAN = re.compile(
-    r"^Plan:\s*(docs/exec-plans/\S+\.md)(?:#\S+)?", re.MULTILINE
+    r"^Plan:\s*(docs/exec-plans/\S+)", re.MULTILINE
 )
 TRAILER_DECISION = re.compile(r"^Decision:\s*\S.*$", re.MULTILINE)
 SUBJECT_RE = re.compile(
@@ -83,18 +83,20 @@ def test_commits_follow_format():
             failures.append(f"{sha_short}: missing 'Plan:' trailer.")
         else:
             plan_path_str = plan_match.group(1)
-            plan_path = REPO_ROOT / plan_path_str
-            if not plan_path.exists():
-                stem = Path(plan_path_str).name
-                alt_dirs = [
-                    REPO_ROOT / "docs" / "exec-plans" / d
-                    for d in ("active", "completed", "archived")
-                ]
-                if not any((d / stem).exists() for d in alt_dirs):
-                    failures.append(
-                        f"{sha_short}: Plan trailer references missing "
-                        f"file '{plan_path_str}'."
-                    )
+            # ad-hoc is for operational commits with no ExecPlan
+            if plan_path_str != "docs/exec-plans/ad-hoc":
+                plan_path = REPO_ROOT / plan_path_str
+                if not plan_path.exists():
+                    stem = Path(plan_path_str).name
+                    alt_dirs = [
+                        REPO_ROOT / "docs" / "exec-plans" / d
+                        for d in ("active", "completed", "archived")
+                    ]
+                    if not any((d / stem).exists() for d in alt_dirs):
+                        failures.append(
+                            f"{sha_short}: Plan trailer references missing "
+                            f"file '{plan_path_str}'."
+                        )
         if not TRAILER_DECISION.search(msg):
             failures.append(f"{sha_short}: missing 'Decision:' trailer.")
 
