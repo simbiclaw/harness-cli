@@ -34,7 +34,7 @@ def git_log() -> list[tuple[str, str]]:
     try:
         out = subprocess.check_output(
             [
-                "git", "log", "--since=30.days.ago", "--no-merges",
+                "git", "log", "--since=14.days.ago", "--no-merges",
                 "--pretty=format:%H%x00%B%x1e",
             ],
             cwd=REPO_ROOT,
