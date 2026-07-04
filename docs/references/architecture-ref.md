@@ -3,8 +3,6 @@
 This document describes the high-level architecture of rust-analyzer.
 If you want to familiarize yourself with the code base, you are just in the right place!
 
-See also the [guide](./guide.md), which walks through a particular snapshot of rust-analyzer code base.
-
 Yet another resource is this playlist with videos about various parts of the analyzer:
 
 https://www.youtube.com/playlist?list=PL85XCvVPmGQho7MZkdW-wtPtuJcFpzycE
@@ -85,7 +83,7 @@ For example, you can extract the set of names defined in a file (for typo correc
 ### `crates/syntax`
 
 Rust syntax tree structure and parser.
-See [RFC](https://github.com/rust-lang/rfcs/pull/2256) and [./syntax.md](./syntax.md) for some design notes.
+See [RFC](https://github.com/rust-lang/rfcs/pull/2256) for design notes.
 
 - [rowan](https://github.com/rust-analyzer/rowan) library is used for constructing syntax trees.
 - `ast` provides a type safe API on top of the raw `rowan` tree.

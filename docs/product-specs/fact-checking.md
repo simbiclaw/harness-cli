@@ -14,6 +14,7 @@ For any claim, the system returns a verdict (pass/fail/partial/NEI/NA/human_revi
 
 - Scoring accuracy vs. throughput — accuracy wins. The hypothesis pair design and NLI scoring must not be approximated.
 - Automation vs. human oversight — human oversight wins. ASR-suspect and low-confidence claims route to human_review.
+- `PRODUCT_SENSE.md` — cross-product principles and failure tolerances.
 
 ## Open questions
 

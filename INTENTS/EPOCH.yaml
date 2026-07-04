@@ -1,0 +1,7 @@
+# EPOCH — current git SHA of the INTENTS tree
+# Consumers pin this SHA in argus.intents_sha.
+# Generated at build time by the transformation pipeline.
+epoch: "0000000000000000000000000000000000000000"
+generated_at: "2026-07-04T00:00:00Z"
+producer: "audio2tree"
+note: "Placeholder SHA — replace with actual git SHA on first tree commit."

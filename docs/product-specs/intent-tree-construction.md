@@ -14,6 +14,7 @@ The system produces a stable 2-3 level intent tree (L1 business category, L2 pro
 
 - Scoring accuracy vs. throughput — accuracy wins. The intent tree must correctly map claims to nodes; speed of clustering is secondary to semantic correctness.
 - Shared infrastructure vs. product-specific UX — product-specific UX wins. The tree structure must serve the specific RegTech domains (CA, e-seals, corporate registration) rather than a generic taxonomy.
+- `PRODUCT_SENSE.md` — cross-product principles and failure tolerances.
 
 ## Open questions
 

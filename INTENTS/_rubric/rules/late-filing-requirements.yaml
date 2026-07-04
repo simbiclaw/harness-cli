@@ -1,0 +1,32 @@
+# _rubric/rules/late-filing-requirements.yaml
+# Rules & Criteria for annual report late-filing scenarios.
+# Versioned rubric — changes are gated by human review.
+
+rule_id: "AR-LF-001"
+rule_name: "Evidence of system failure during late filing"
+description: >
+  When a customer claims they attempted to file on time but the system prevented it,
+  the agent must collect specific evidence before accepting the late filing.
+version: "1.0.0"
+last_updated: "2026-07-04"
+
+criteria:
+  - id: "AR-LF-001-a"
+    description: "Customer stated a specific date and time of attempted filing."
+    required_evidence: ["transcript_turn"]
+    fail_condition: "No date/time mentioned in the call."
+
+  - id: "AR-LF-001-b"
+    description: "Agent verified the system status at the claimed time."
+    required_evidence: ["transcript_turn", "system_status_check"]
+    fail_condition: "Agent did not check system status for the claimed date."
+
+  - id: "AR-LF-001-c"
+    description: "Agent collected the error message or screenshot from the customer."
+    required_evidence: ["transcript_turn"]
+    fail_condition: "No error description collected."
+
+  - id: "AR-LF-001-d"
+    description: "Agent confirmed alternative filing methods were unavailable."
+    required_evidence: ["transcript_turn"]
+    fail_condition: "Alternative methods not explored."

@@ -1,0 +1,22 @@
+# late-filing-evidence — L3 Case Node
+# Anchored to: annual-report-submission domain
+# Anchor level: L3 (case)
+
+case_id: "late-filing-evidence"
+domain: "annual-report-submission"
+anchor_level: "l3"
+description: >
+  Customer claims they attempted to file an annual report on time but the
+  online system prevented it. Agent must collect evidence of the system
+  failure before accepting the late filing.
+
+intentMapping:
+  - operator_id: "verify-system-status"
+    confidence: "high"
+  - operator_id: "explain-deadline"
+    confidence: "medium"
+
+metadata:
+  first_observed: "2024-Q1"
+  call_volume: "medium"
+  regulatory_risk: "high"

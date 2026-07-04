@@ -14,6 +14,7 @@ The system surfaces auto-created Jira tickets for issues mentioned in >= 3 disti
 
 - Automation vs. human oversight — human oversight wins. Tickets require human validation before routing to engineering.
 - Shared infrastructure vs. product-specific UX — product-specific UX wins. The triage UI and severity scoring must match the business analyst's workflow, not the QA reviewer's.
+- `PRODUCT_SENSE.md` — cross-product principles and failure tolerances.
 
 ## Open questions
 

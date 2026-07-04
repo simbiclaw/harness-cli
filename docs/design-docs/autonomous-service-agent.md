@@ -1,8 +1,10 @@
 ---
 feature-slug: autonomous-service-agent
 verification-status: proposed
-last-verified: ~
+last-reviewed: 2026-07-04
 ---
+**Corresponding product-spec:** [docs/product-specs/autonomous-service-agent.md](../docs/product-specs/autonomous-service-agent.md)
+
 
 # autonomous-service-agent Design Doc
 
