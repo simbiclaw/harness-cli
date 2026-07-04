@@ -1,6 +1,6 @@
 ---
 verification-status: proposed
-last-reviewed: bootstrap
+last-reviewed: 2026-07-04
 domain: Metis
 layer: Service
 ---

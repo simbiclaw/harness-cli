@@ -120,7 +120,7 @@ docs/
 
 In-repository knowledge store layout.
 
-Design documentation is catalogued and indexed, including verification status and a set of core beliefs that define agent-first operating principles. [Architecture documentation (read document)⁠](architecture.md) provides a top-level map of domains and package layering. A quality document grades each product domain and architectural layer, tracking gaps over time.
+Design documentation is catalogued and indexed, including verification status and a set of core beliefs that define agent-first operating principles. [Architecture documentation](../ARCHITECTURE.md) provides a top-level map of domains and package layering. A quality document grades each product domain and architectural layer, tracking gaps over time.
 
 Plans are treated as first-class artifacts. Ephemeral lightweight plans are used for small changes, while complex work is captured in [execution plans(read document)](PLANS-md-from-openai.md) with progress and decision logs that are checked into the repository. Active plans, completed plans, and known technical debt are all versioned and co-located, allowing agents to operate without relying on external context.
 

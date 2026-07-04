@@ -1,7 +1,7 @@
 ---
 feature-slug: qa-scoring
 verification-status: proposed
-last-verified: ~
+last-reviewed: 2026-07-04
 ---
 
 # qa-scoring Design Doc

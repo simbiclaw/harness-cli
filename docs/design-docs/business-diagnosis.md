@@ -1,7 +1,7 @@
 ---
 feature-slug: business-diagnosis
 verification-status: proposed
-last-verified: ~
+last-reviewed: 2026-07-04
 ---
 
 # business-diagnosis Design Doc

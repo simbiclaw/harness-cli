@@ -130,6 +130,8 @@ After M6, this exec-plan moves from `docs/exec-plans/active/` to `docs/exec-plan
 
 **Revisit**: M3.
 
+**Resolution (2026-07-04, doc-gardener revisit):** Resolved to Python. The project uses Python with Typer, pytest, mypy, ruff, Pydantic, and import-linter. All 8 lints in `tools/lint/` are implemented in Python. The structural tests in `.claude/tests/` and `tests/` use pytest. The CLI scaffold in `src/argus/` is Python. This decision was implicitly resolved during M3–M6 of this plan; this entry records the resolution for audit purposes.
+
 ## Surprises & Discoveries
 
 (empty at bootstrap)

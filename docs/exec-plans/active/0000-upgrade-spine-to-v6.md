@@ -117,6 +117,8 @@ Regrade any `QUALITY_SCORE.md` rows the new specs move (the acoustic/phrase recl
 
 **Rationale:** `Source: CLAUDE.md § The promotion rule` — a rule becomes a structural test/hook/CI gate only after it has demonstrated need (typically two violations). The refined-design checks are named as `Aspiration:` in the specs; promoting them is separate, evidence-driven work. Landing the documents first is the correct order. `Confidence: low` on whether `argus-eval-purity` should be fast-tracked given its safety weight; `Revisit:` after M3.
 
+**Resolution (2026-07-04, doc-gardener revisit):** M3 shipped. `argus-eval-purity` was not fast-tracked — it remains in the `Aspiration:` column per the plan's deliberate "no new lints" scope. The decision stands: when `src/argus/core` holds a real `score` implementation, promote `argus-eval-purity` under the standard promotion rule (two violations → structural test). No further action until then.
+
 ## Surprises & Discoveries
 
 ### The v1 doc-vs-linter divergence is closed by M1, not deferred
