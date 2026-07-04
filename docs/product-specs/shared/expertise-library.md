@@ -1,88 +1,94 @@
 ---
 verification-status: proposed
-last-reviewed: bootstrap
-consumed-by: Argus, Metis, Hermes
+last-reviewed: 2026-07-04
+consumed-by: Argus (Metis and Hermes via interface reference)
 ---
 
 # Expertise Library (shared)
 
-The seven expertise modules consumed by the three apps. Each module has its own update cadence, ownership, and consumer set. Bundling them would force false uniformity; this spec keeps them differentiated.
+The expertise content consumed by Argus during fact-checking. The library is a **runtime artefact** — the on-disk INTENTS tree read by the INTENTS Provider (`argus.io`) at a pinned git SHA. It is not a code domain. See ADR-0004 for the dissolution of the v1 Expertise Library domain and ADR-0001 for the epistemic classification.
 
-The library is **read-only at runtime**. All three apps consume; none of them write at runtime. Updates to the expertise modules happen via separate offline pipelines — deliberately, to prevent runtime feedback loops from inflating the library's authority.
+The library is **read-only at runtime**. Argus reads; no application writes. Updates to expertise content happen through the transformation layer's build pipeline (`audio2tree`, `doc2graph`), with human approval gates, and are committed to the INTENTS tree as git history.
+
+## Epistemic classes
+
+The expertise modules are classified into three epistemic classes, named by *how the knowledge is obtained and what kind of evidence supports it*. See ADR-0001 for the full rationale.
+
+| Class | Epistemic basis | Modules | Consumer rule |
+|---|---|---|---|
+| **Versioned rubric** | Authored and versioned by domain experts; the yardstick against which facts are measured. Changes are gated (human review). | Rules & Criteria, Acoustic Feature (indicator framework), Phrase & Keyword (lexicon) | Pinned by rubric version; `score()` reads the rubric at the version declared in config |
+| **Descriptive facts** | Authored and versioned by domain experts; describe what exists, not what to measure. Changes are gated. | Product Introduction, Operation Manual, Dynamic Knowledge Base | Read at the pinned INTENTS SHA; `score()` reads facts as context, not yardstick |
+| **Accumulated history** | Grows at runtime from scored calls; each entry is anchored to a specific L3 case node in the INTENTS tree. Changes are additive (new precedents append; overrides supersede with attribution). | Best Practice Cookbook, Error Case Library | Read at the pinned INTENTS SHA; consumed by `adjust()`, never by `score()` |
+
+**Audio Transcription** is not a library module — it is a per-call input artefact produced by the transformation layer and consumed as `facts` by `score()`. It belongs to no epistemic class.
+
+### The reclassification
+
+Acoustic Feature and Phrase & Keyword move from "descriptive facts" (v1 framing) to **versioned rubric**. The reasoning:
+
+- The **acoustic indicator framework** (pitch range thresholds, pause-duration buckets, intensity floors, voice-quality metrics) is a measurement instrument — it defines *what to measure and how to interpret the measurement*. Per-call acoustic measurements (this call's mean pitch, this call's pause distribution) remain facts in the call record. The framework is the yardstick; the per-call measurements are the thing measured.
+- The **phrase & keyword lexicon** (sensitive-word lists, negative-phrase patterns, recommended-phrase alternatives, ASR biasing terms) is a list of *what to look for* — it defines the target set. Per-call phrase matches ("word X appeared 3 times at turns 5, 12, 47") remain facts in the call record. The lexicon is the yardstick; the per-call matches are the thing measured.
+
+This is the measurement-versus-yardstick distinction: facts are measurements taken during a specific call; rubric is the framework that gives those measurements meaning. Confusing the two would mean changing the yardstick changes history — but changing the yardstick should change *future scoring*, not past facts.
 
 ## Consumer matrix
 
-| Module | Argus | Metis | Hermes | Update cadence |
+| Module | Argus | Epistemic class | INTENTS location | Update cadence |
 |---|---|---|---|---|
-| Rules & Criteria | ✓ | — | ✓ | low (rules ship in policy releases) |
-| Acoustic Feature | ✓ | — | — | low (model versions) |
-| Product Introduction | ✓ | ✓ | ✓ | medium (product changes) |
-| Operation Manual | ✓ | — | ✓ | medium (manual updates → triggers `document-ingestion.md`) |
-| Dynamic Knowledge Base | ✓ | — | ✓ | high (FAQ, current policies) |
-| Best Practice Cookbook | ✓ | — | ✓ | medium (curated examples) |
-| Error Case Library | ✓ | — | ✓ | high (self-learning loop from reviewer overrides) |
-| Phrase & Keyword Library | ✓ | — | ✓ | medium (sensitive/negative word lists; ASR lexicon biasing) |
-| Audio Transcription | ✓ | ✓ | ✓ | per-call (output of `audio-intake.md`) |
+| Rules & Criteria | ✓ | Versioned rubric | `_rubric/rules/` | low (rules ship in policy releases) |
+| Acoustic Feature (framework) | ✓ | Versioned rubric | `_rubric/acoustic/` | low (model versions) |
+| Phrase & Keyword (lexicon) | ✓ | Versioned rubric | `_rubric/phrase-keyword/` | medium (sensitive/negative word lists; ASR lexicon biasing) |
+| Product Introduction | ✓ | Descriptive facts | `<domain>/<case>/kb.*.yaml` | medium (product changes) |
+| Operation Manual | ✓ | Descriptive facts | `<domain>/<case>/kb.*.yaml` | medium (manual updates) |
+| Dynamic Knowledge Base | ✓ | Descriptive facts | `<domain>/<case>/kb.*.yaml` | high (FAQ, current policies) |
+| Best Practice Cookbook | ✓ | Accumulated history | `<domain>/<case>/cookbook.*.yaml` | medium (curated examples) |
+| Error Case Library | ✓ | Accumulated history | `<domain>/<case>/errors.*.yaml` | high (self-learning loop from reviewer overrides) |
+| Audio Transcription | ✓ | N/A — per-call artefact | N/A | per-call (output of `audio-intake.md`) |
 
-(The PRD's expertise table is reproduced verbatim above with the addition of update cadence; none of the consumer assignments are invented.)
+Metis and Hermes are not domains in this repo; they consume Argus findings via interface references, not expertise modules directly. The v1 consumer matrix's Metis and Hermes columns are removed.
 
-Notes:
-- **Metis is intentionally thin in this matrix.** Metis primarily operates on the calibrated graph, the intents-tree, and the per-call atomic claims; it consumes Product Introduction for context when surfacing tickets but does not need the rule sets or operational manuals at runtime. This thinness is reflected in the dependency matrix in `ARCHITECTURE.md § 3` (Metis's `IExpertiseReader` access is marked "selective").
-- **Hermes consumes Operation Manual indirectly** via the calibrated graph that derives from it; the entry in this matrix records the original-source dependency, not a direct read at runtime.
+## Category readers
 
-## Module shapes (interfaces)
-
-Each module exposes a typed reader. All readers are declared in `ExpertiseLibrary/Types`, in line with the `ARCHITECTURE.md § 3` interface-single-declaration rule.
+The v1 design exposed each module through a dedicated typed reader interface (seven readers plus a facade). In the v6 design, there are **three category readers** — one per epistemic class — implemented as methods on the INTENTS Provider (`argus.io`):
 
 ```
-IRulesAndCriteriaReader     → grading rules and scoring criteria
-IAcousticFeatureReader      → reference acoustic patterns for QA
-IProductIntroductionReader  → product features, specs, scenarios
-IDynamicKnowledgeBaseReader → real-time-updated policy, FAQ
-IBestPracticeCookbookReader → curated effective methods
-IErrorCaseLibraryReader     → patterns from past errors (self-learning)
-IPhraseKeywordReader        → sensitive/negative/recommended phrase lists
+RubricReader    → reads the _rubric/ shelf at the pinned rubric version
+                  Returns: RulesAndCriteria, AcousticFramework, PhraseLexicon
+FactsReader     → reads anchored kb.*.yaml files at the pinned INTENTS SHA
+                  Returns: list[FactRecord] (product intro, manual, knowledge base)
+HistoryReader   → reads anchored cookbook.*.yaml and errors.*.yaml at the pinned INTENTS SHA
+                  Returns: list[HistoryRecord] (best practices, error cases)
 ```
 
-The `IExpertiseReader` referenced in `ARCHITECTURE.md § 3` is a fac̀ade type that exposes the seven readers as a single bounded surface; consumers depending on `IExpertiseReader` rather than the individual readers carry intent ("this consumer reads expertise broadly"); consumers depending on a specific reader carry stronger intent ("this consumer needs only rules-and-criteria"). Both are permitted.
+The three readers map to the three epistemic classes, not the nine modules. The granularity of the v1 interfaces was an artefact of the flat module list; the v6 design groups by epistemic class because that is what `score()` and `adjust()` actually consume. See ADR-0004.
 
 ## Update mechanisms
 
-Each module's update path is documented separately because each has different consequences:
+Each epistemic class has a different update path because each has different consequences:
 
-**Rules & Criteria**: human-authored. Updates ship as policy releases; the lint `rules-version-pinned` ensures every Argus run records the rules-version it scored against, preventing retroactive blame for scores produced under a prior policy.
+**Versioned rubric** (Rules & Criteria, Acoustic Framework, Phrase Lexicon): human-authored, gated. Updates ship as versioned releases; the rubric version is pinned in Argus config. Changing the rubric version changes future scoring only — past verdicts cite the rubric version they were scored against.
 
-**Acoustic Feature**: model-derived. Updates ship as model versions; reproducibility requires recording the model version per use.
+**Descriptive facts** (Product Introduction, Operation Manual, Dynamic Knowledge Base): human-authored, gated. Updates are committed to the INTENTS tree. The INTENTS SHA is pinned in Argus config; a SHA bump picks up new facts. Facts do not change scoring logic — they change the context `score()` evaluates against.
 
-**Product Introduction**: human-authored. Updates ship with product releases.
-
-**Operation Manual**: human-authored, often by external operations teams. Updates trigger `document-ingestion.md` regeneration of the compute-graph, which triggers `calibration.md` recalibration.
-
-**Dynamic Knowledge Base**: human-authored, frequent. Updates do not require recalibration of the compute-graph; they update at the consumer's read-time. Cache invalidation is per-reader.
-
-**Best Practice Cookbook**: curated, additive. New entries do not invalidate prior decisions.
-
-**Error Case Library** (self-learning): updated automatically from reviewer overrides in Argus. **This is the only expertise module with a runtime-fed update path, and the path is explicitly offline-batched, not real-time**. Reviewer overrides accumulate; a periodic offline job (initial cadence: nightly) processes the accumulated overrides into new error-case entries; a human approves the proposed update before it ships. The approval gate prevents a runtime feedback loop where a single reviewer's override propagates into the library and influences future Argus verdicts within the same session.
-
-**Phrase & Keyword Library**: human-authored, with periodic review of high-frequency terms emerging from `conversation-distillation.md` claims (a candidate-list pipeline surfaces new domain terms; humans approve before they enter the lexicon for ASR biasing).
+**Accumulated history** (Best Practice Cookbook, Error Case Library): additive, with human approval gate. New best-practice entries and error-case entries append to the tree; overrides supersede with `superseded-by` attribution. The Error Case Library's runtime-fed update path (reviewer overrides → batched → human-approved → committed to tree) is preserved from v1. The approval gate prevents a runtime feedback loop.
 
 ## Failure modes and tolerances
 
-**Module read fails at runtime**: every consumer must handle reader failure gracefully. For Argus: fail closed (do not score; mark the call `requires-review`). For Metis: degrade (surface ticket without expertise context). For Hermes: refuse to act (Tier-B and Tier-C cannot proceed without expertise context; Tier-A may proceed read-only).
+**Tree read fails at runtime**: Argus fails closed — do not score; mark the call `requires-review`. The INTENTS Provider returns typed null-or-result; no exceptions for control flow.
 
-**Module versions skew across consumers**: Argus reads rules-version 12 while Hermes reads operation-manual-version 11 derived from a graph calibrated against rules-version 11. Detected by version-tracking metadata on every reader call; surfaced as a system alert. The mitigation is offline coordination, not runtime sync.
+**Rubric version not found**: the Provider returns an error shape. Argus refuses to score — scoring without a pinned rubric version is forbidden.
+
+**History not found for a case**: `adjust()` receives an empty history list. This is not an error — new cases have no history by definition. The raw score stands unadjusted.
 
 ## Forbidden behaviours
 
-No runtime writes. No silent merging of conflicting expertise versions. No stripping of version metadata from reader returns (every read carries the version of the source it came from; downstream uses that for evidence-citing in audit trails).
+No runtime writes. No silent merging of conflicting expertise versions. No stripping of version metadata from reader returns (every read carries the version of the source it came from; downstream uses that for evidence-citing in audit trails). No scoring without a pinned rubric version.
 
 ## Tiebreaker references
 
-- `PRODUCT_SENSE.md § Argus` — failure tolerance "score without traceable evidence is a release blocker" depends on Rules & Criteria evidence-citing.
-- `PRODUCT_SENSE.md § Hermes` — refuse-to-act on missing expertise context.
-- `PRODUCT_SENSE.md § Cross-product` — read-only-at-runtime.
-
-## Open questions
-
-> **Question**: What is the ownership model for each module? Who is responsible for keeping Rules & Criteria current? Who curates the Best Practice Cookbook?
-> **Default if not decided**: human ownership per module to be assigned in an ADR before the modules are populated beyond bootstrap stubs. Until then, every module has a placeholder `OWNER: TBD` field.
+- ADR-0001 — epistemic classification and two-stage `score`→`adjust` contract.
+- ADR-0002 — INTENTS path-as-ontology and git-SHA epoch.
+- ADR-0004 — Expertise Library dissolution; nine interfaces collapse to one Provider with three category readers.
+- `PRODUCT_SENSE.md § Argus` — failure tolerance "score without traceable evidence is a release blocker."
+- `docs/product-specs/argus/fact-checking.md` — the two-stage evaluation contract.
+- `docs/product-specs/shared/intents-semantic-layer.md` — the INTENTS tree layout and naming grammar.
