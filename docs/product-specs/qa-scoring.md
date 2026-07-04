@@ -14,6 +14,7 @@ A transcript ingested via the CLI produces a `QAReport` with an overall score, p
 
 - Scoring accuracy vs. throughput — accuracy wins. The scoring formula (weighted average with NA exclusion) and veto semantics must not be approximated or cached in a way that changes the final grade.
 - Automation vs. human oversight — human oversight wins. The pipeline accepts an optional `human_review_callback`; if any verdicts require human review, they are sent to the callback before aggregation.
+- `PRODUCT_SENSE.md` — cross-product principles and failure tolerances.
 
 ## Open questions
 

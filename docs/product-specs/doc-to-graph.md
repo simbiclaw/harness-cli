@@ -14,6 +14,7 @@ A manual uploaded as Word/PDF is converted into a directed graph of Tensors (sta
 
 - Scoring accuracy vs. throughput — accuracy wins. Incorrect graph edges cause downstream reasoning failures; manual verification of critical paths is required.
 - Automation vs. human oversight — human oversight wins. New computational graphs for high-risk procedures must be reviewed before activation.
+- `PRODUCT_SENSE.md` — cross-product principles and failure tolerances.
 
 ## Open questions
 

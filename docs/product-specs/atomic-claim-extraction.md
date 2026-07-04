@@ -13,6 +13,7 @@ The Atomizer stage (Stage 2) produces `client_atoms` and `agent_atoms` as lists 
 ## Tiebreaker citations
 
 - Scoring accuracy vs. throughput — accuracy wins. Parallel LLM calls are used, but the output must be complete and decontextualized; partial or vague atoms break downstream fact-checking.
+- `PRODUCT_SENSE.md` — cross-product principles and failure tolerances.
 
 ## Open questions
 

@@ -14,6 +14,7 @@ Given a user intent, the system reconstructs the workflow from scattered documen
 
 - Automation vs. human oversight — human oversight wins. Every autonomous action requires explicit user confirmation.
 - Shared infrastructure vs. product-specific UX — product-specific UX wins. The procedural reasoning must match the specific service domain, not a generic flow.
+- `PRODUCT_SENSE.md` — cross-product principles and failure tolerances.
 
 ## Open questions
 

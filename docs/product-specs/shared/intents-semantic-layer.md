@@ -105,3 +105,4 @@ Slugs are permanent. Renaming a slug is a breaking change — it changes every p
 - ADR-0004 — Expertise Library dissolution; the tree is the library.
 - `docs/product-specs/shared/calibration.md` — bottom-up authority and the coverage/content axes.
 - `docs/product-specs/shared/expertise-library.md` — the three category readers.
+- `PRODUCT_SENSE.md` — cross-product principles and failure tolerances.

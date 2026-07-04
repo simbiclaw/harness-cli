@@ -3,6 +3,8 @@ feature-slug: qa-scoring
 verification-status: proposed
 last-reviewed: 2026-07-04
 ---
+**Corresponding product-spec:** [docs/product-specs/qa-scoring.md](../docs/product-specs/qa-scoring.md)
+
 
 # qa-scoring Design Doc
 

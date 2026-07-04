@@ -13,6 +13,7 @@ The CLI accepts a file path (`-t`) or batch directory (`-b`) and produces a `Cle
 ## Tiebreaker citations
 
 - Scoring accuracy vs. throughput — accuracy wins. The ingestion stage must not drop or misattribute turns to chase speed.
+- `PRODUCT_SENSE.md` — cross-product principles and failure tolerances.
 
 ## Open questions
 
