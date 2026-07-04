@@ -88,7 +88,7 @@ Regrade any `QUALITY_SCORE.md` rows the new specs move (the acoustic/phrase recl
 
 - [x] M1: Rescope ARCHITECTURE.md to Argus + reconcile with .importlinter  (done 2026-07-04)
 - [x] M2: Land the four ADRs  (done 2026-07-04)
-- [ ] M3: Reclassify Acoustic + Phrase to rubric
+- [x] M3: Reclassify Acoustic + Phrase to rubric  (done 2026-07-04)
 - [ ] M4: Land the two-stage Argus contract
 - [ ] M5: Land the INTENTS spec + calibration two-axes amendment
 - [ ] M6: Land the worked INTENTS tree
