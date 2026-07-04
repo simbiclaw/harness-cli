@@ -92,7 +92,7 @@ Regrade any `QUALITY_SCORE.md` rows the new specs move (the acoustic/phrase recl
 - [x] M4: Land the two-stage Argus contract  (done 2026-07-04)
 - [x] M5: Land the INTENTS spec + calibration two-axes amendment  (done 2026-07-04)
 - [x] M6: Land the worked INTENTS tree  (done 2026-07-04)
-- [ ] M7: Regrade and reconcile
+- [x] M7: Regrade and reconcile  (done 2026-07-04)
 
 ## Decision Log
 
