@@ -47,7 +47,7 @@ Evidence for grade changes from bootstrap (all-F):
 
 4. **No `utils-purity` lint exists.** Util modules could contain I/O or Provider access without detection. **Closes**: `boundary-respect` for providers+utils. **Owner**: future ExecPlan.
 
-5. **The doc-gardener subagent schedule is past due.** `Next regrade: 2026-05-20` was missed; the doc-gardener needs to run to establish the new cadence. **Closes**: `doc-freshness` auto-regrading. **Owner**: doc-gardener skill (`.claude/skills/doc-gardener/`).
+5. ~~**The doc-gardener subagent schedule is past due.** `Next regrade: 2026-05-20` was missed; the doc-gardener needs to run to establish the new cadence.~~ **Resolved**: doc-gardener ran 2026-07-04 (`0002-doc-garden-2026-07-04.md`). Next regrade: 2026-07-18. **Closes**: `doc-freshness` auto-regrading. **Owner**: doc-gardener skill (`.claude/skills/doc-gardener/`).
 
 Gaps closed since bootstrap:
 - ~~Lints that enforce the architecture do not exist~~ → 8 lints in `tools/lint/`, import-linter, CI gate — **closed** (0001-bootstrap M3).
@@ -59,7 +59,7 @@ Gaps closed since bootstrap:
 
 `Next regrade` is set 14 days out. The grader subagent re-runs the column-by-column inspection on schedule, diffs against this file, and posts a PR comment summarising movement.
 
-Hand-edits to grades are permitted only when the editor includes evidence inline (a test name, a lint output, an ADR reference). Hand-edits without evidence are reverted by the doc-gardener; enforced by lint `quality-grade-evidence-required`.
+Hand-edits to grades are permitted only when the editor includes evidence inline (a test name, a lint output, an ADR reference). Hand-edits without evidence are reverted by the doc-gardener; enforced by lint `quality-grade-evidence`.
 
 `F` and `D` grades older than `Next regrade` without an active exec-plan in `docs/exec-plans/active/` whose Big Picture section names the failing cell are CI failures. (`F`-everywhere at bootstrap was exempted by `0001-bootstrap-the-spine.md`; the v6 upgrade `0000-upgrade-spine-to-v6.md` names the remaining cells.)
 
