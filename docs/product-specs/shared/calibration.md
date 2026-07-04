@@ -1,34 +1,61 @@
 ---
 verification-status: proposed
-last-reviewed: bootstrap
-consumed-by: Argus, Metis, Hermes, ExpertiseLibrary
+last-reviewed: 2026-07-04
+consumed-by: Argus (Metis and Hermes via interface reference)
 ---
 
-# Knowledge Calibration (shared)
+# Calibration — Bottom-Up Authority and Two-Axis Validation
 
-Where the bottom-up intents-tree (from `conversation-distillation.md`) and the top-down compute-graph (from `document-ingestion.md`) meet, reconcile, and produce the **calibrated graph** that Argus, Metis, and Hermes consume.
+Calibration is the process that ensures the INTENTS tree (from support-call audio, via `audio2tree`) and the compute graph (from operation manuals, via `doc2graph`) produce a single, coherent knowledge artefact. It is performed at **build time** by the transformation layer, not at runtime by Argus. See ADR-0003 for the dissolution of Knowledge Calibration as a runtime domain.
 
-This domain encodes the single most important architectural commitment in the system: **the bottom-up intents-tree is authoritative**. When the two inputs disagree, the intents-tree wins; the compute-graph is updated to match. The reason is stated in `PRODUCT_SENSE.md § Cross-product` — support calls are the behaviour corpus from human agents performing real work; operation manuals are documentation, which is always partial and frequently stale. Documentation calibrates against reality, not the other way around.
+The single most important architectural commitment remains: **the bottom-up intents-tree is authoritative**. When the two inputs disagree, the intents-tree wins; the compute-graph is updated to match. Support calls are the behaviour corpus from human agents performing real work; operation manuals are documentation, which is always partial and frequently stale. Documentation calibrates against reality, not the other way around.
 
-## User job
+## Where calibration happens
 
-Produce a single calibrated knowledge artefact that downstream apps can use without choosing between conflicting sources. The user is the platform itself; the indirect users are Argus reviewers (who need fact-checking against a single source), Metis analysts (who need to surface the divergences as documentation gaps), and Hermes citizens (who need procedural steps that match what real people actually do).
+Calibration is a **build-time operation** performed by the transformation layer (not this repo — see `docs/references/platform-architecture.md`). The output is the INTENTS tree itself: a committed, git-versioned, already-reconciled artefact. Argus reads the tree at a pinned SHA; there is no runtime reconciliation step. The tree *is* the calibrated output.
 
-## Acceptance behaviour
+This is why the v1 Knowledge Calibration domain dissolves (ADR-0003): the consumer never sees two conflicting sources. The build pipeline resolves conflicts before commit.
 
-Given an `IIntentTreeSource` and an `IComputeGraphSource`, the system produces a `CalibratedGraph` with the following observable properties:
+## Two axes of calibration
 
-**Mappings preserved.** Every level-3 intent node in the intents-tree that corresponds to one or more operators in the compute-graph carries an `intentMapping` linking the two. A reviewer can take a level-3 intent ("Requirements for evidence of system failure during late filing") and traverse to the matching operators.
+Calibration operates on two independent axes. They are separated because they have different detection mechanisms, different severities, and different consumers.
 
-**Divergences logged.** When an intent node has no corresponding operator (the customer voice describes a procedure the manual does not document), the intent is flagged `manual-gap`. When an operator has no corresponding intent (the manual describes a procedure no customer ever asks about), the operator is flagged `unused-by-customers`. Neither flag is a defect — they are signals fed to Metis.
+### Coverage axis: what exists vs. what is documented
 
-**Contradictions resolved bottom-up.** When an intent node and a compute-graph operator both exist for the same business step but disagree on prerequisites, terminal state, or platform, the intent's claims set is treated as authoritative. The operator is updated to reflect the claims. The pre-update operator is preserved in graph history with a `superseded-by-calibration` annotation. A reviewer can audit the change.
+**Question**: does every intent have a matching operator, and does every operator have a matching intent?
 
-**Generation-stable.** Each `CalibratedGraph` carries a `generationId` that increases monotonically. Downstream Argus / Metis / Hermes cache against this ID; a new generation invalidates downstream caches. The intent-tree's stability constraint (`conversation-distillation.md`) propagates: when the intents-tree preserves IDs across regenerations, the calibrated graph preserves the corresponding calibrated-operator IDs.
+| Condition | Flag | Meaning | Consumer |
+|---|---|---|---|
+| Intent with no operator | `manual-gap` | Customers describe a procedure the manual doesn't document | Metis (documentation gap ticket) |
+| Operator with no intent | `unused-by-customers` | The manual describes a procedure no customer ever asks about | Metis (cleanup candidate); not an error |
+
+Detection: structural — walk the intent tree's L3 nodes and the compute graph's operator set; for each intent, check if `intentMapping` resolves; for each operator, check if any intent maps to it.
+
+Threshold: `manual-gap` on >50% of intents is a mass-divergence alert. Do not publish; surface for human review. This guards against ASR/extraction regressions.
+
+### Content axis: when both exist, do they agree?
+
+**Question**: when an intent and an operator describe the same business step, do they agree on prerequisites, terminal state, and platform details?
+
+| Condition | Action |
+|---|---|
+| Agreement | No flag; operator carries `calibratedFromIntent` reference |
+| Disagreement | Intent claims are authoritative. Operator is updated; pre-update operator preserved with `superseded-by-calibration` annotation |
+
+Detection: semantic — for each `intentMapping`, compare the intent's claims against the operator's fields (prerequisites, outputs, terminal state). This is the bottom-up-authority rule in operation.
+
+### The INTENTS representation
+
+The calibrated output is the INTENTS tree. Every divergence, gap, and resolution is recorded in the tree:
+
+- **`manual-gap`** — annotated on the L3 case node's `context.yaml`; the intent is preserved but flagged
+- **`unused-by-customers`** — annotated on the operator's definition in the compute graph; surfaced to Metis, not to Argus
+- **`superseded-by-calibration`** — the pre-update operator is preserved in the compute graph's history; the updated operator carries a `calibratedFromIntent` reference to the L3 node that drove the change
+- **`intentMapping`** — L3 case nodes carry `intentMapping` linking to operator IDs; this is the primary traversal path from tree to graph
 
 ## The bottom-up authority invariant
 
-This is the contract that all three downstream apps depend on. It is encoded at four levels:
+This contract is encoded at four levels:
 
 **1. Type-level.** The calibration function's signature is asymmetric:
 
@@ -38,89 +65,64 @@ calibrate(intentTree: IntentTree, computeGraph: ComputeGraph): CalibratedGraph
 
 There is no symmetric `reconcile(a, b)` form. The function name, parameter order, and return type all encode that the intent tree is the dominant operand. Type aliases that flatten this asymmetry are forbidden by lint `calibration-asymmetric-signature`.
 
-**2. Logic-level.** When the two inputs disagree on a fact, the resolution rule reads the intent-tree's claims and updates the operator; never the inverse. There is no code path in this domain where an operator's prior content overrides intent-tree claims.
+**2. Logic-level.** When the two inputs disagree, the resolution rule reads the intent-tree's claims and updates the operator; never the inverse. There is no code path where an operator's prior content overrides intent-tree claims.
 
-**3. Test-level.** A structural test (`bottom-up-authority-invariant`) constructs a deliberately contradictory pair of inputs and asserts the resolution direction. The test fails CI on regression. This test is among the highest-priority deliverables in `0001-bootstrap-the-spine.md` (M4).
+**3. Test-level.** `tests/test_calibration_invariants.py::test_bottom_up_authority` constructs contradictory inputs and asserts resolution direction.
 
-**4. Architectural-level.** `ARCHITECTURE.md § 3` dependency matrix has no edge from this domain to `ConversationDistillation` (no write-back to the intent tree). The forbidden-edges lint enforces.
+**4. Architectural-level.** `ARCHITECTURE.md § 3` — the dependency matrix encodes the authority direction. The intents tree is the authoritative source; the compute graph is a build-time input, not a peer at read time.
 
-## Pipeline shape
+## Pipeline shape (build time)
 
 ```
 IIntentTreeSource  ─┐
-                    ├→ Mapping (intent ↔ operator)
+                    ├→ Coverage-axis check (gap/unused flags)
 IComputeGraphSource ┘     │
-                          ├→ Divergence detection (gap/unused flags)
+                          ├→ Content-axis check (agreement/disagreement per mapping)
                           │
                           ├→ Contradiction resolution (intent-authoritative)
                           │
-                          └→ CalibratedGraph published
+                          └→ INTENTS tree committed (tree IS the calibrated output)
 ```
 
-## Interfaces produced
+## Interfaces
 
-`ICalibratedGraphReader` — declared in `KnowledgeCalibration/Types`, consumed by Argus, Metis, Hermes, and the Expertise Library Repo.
+The v1 `ICalibratedGraphReader` is replaced by the INTENTS Provider (`argus.io`). There is no separate calibrated graph to read — the tree is the graph. The Provider exposes typed reads:
 
-```
-CalibratedGraph = {
-  generationId: string,                // monotonic
-  generatedAt: Timestamp,
-  intentTreeRef: { generationId: string },
-  computeGraphRef: { graphId: string },
-  calibratedOperators: CalibratedOperator[],
-  intentMappings: IntentMapping[],
-  manualGaps: ManualGap[],             // intents with no operator
-  unusedOperators: UnusedOperator[],   // operators with no intent
-}
-CalibratedOperator = {
-  baseOperatorId: OperatorId,
-  calibratedFromIntent: IntentNodeId | null,
-  prerequisites: TensorId[],           // possibly updated from base
-  outputs: TensorId[],                 // possibly updated from base
-  visualAnchor: VisualAnchorId | null,
-  supersededOperator: OperatorId | null,
-}
-IntentMapping = {
-  intentNodeId: IntentNodeId,
-  operatorIds: OperatorId[],           // empty → manual-gap
-  confidence: 'high' | 'medium' | 'low',
-}
-ManualGap = {
-  intentNodeId: IntentNodeId,
-  claimSampleIds: ClaimId[],           // representative claims
-  description: string,
-}
-UnusedOperator = {
-  operatorId: OperatorId,
-  description: string,
-}
-```
+- `read_rubric(sha, module, version)` → `RubricModule`
+- `read_facts(sha, domain, case)` → `list[FactRecord]`
+- `read_history(sha, domain, case)` → `list[HistoryRecord]`
 
-There is no `ICalibratedGraphWriter` exposed to anything other than this domain itself. Downstream apps cannot write back. Hermes specifically cannot extend the graph at runtime — see `hermes/action-execution.md` for the refuse-and-log behaviour.
+See ADR-0004 for the interface collapse from nine v1 readers to one Provider with three category reads.
 
-## Failure modes and tolerances
+## Acceptance behaviour
 
-**Mapping ambiguity**: an intent node maps to multiple plausible operators with similar confidence. Surface all candidates with `confidence: 'medium'` rather than picking; let downstream consumers handle the multiplicity (Argus may show both rules; Hermes refuses to act on `medium`-confidence mappings without user disambiguation).
+Given an `IIntentTreeSource` and an `IComputeGraphSource`, the build pipeline produces an INTENTS tree commit with:
 
-**Calibration produces a circular operator graph**: a graph where prerequisites form a cycle. Detected as a structural property of the output. Fail the calibration; emit the prior `CalibratedGraph` as the published artefact and log the regression. Cycles indicate a contradiction the bottom-up rule cannot resolve cleanly (the intent claims X requires Y *and* Y requires X), which is a signal for human review, not a state to ship.
+- **Mappings preserved** — every L3 intent node carries `intentMapping` linking to operators
+- **Divergences logged** — `manual-gap` and `unused-by-customers` flags on affected nodes
+- **Contradictions resolved bottom-up** — intent claims authoritative; pre-update operator preserved with `superseded-by-calibration`
+- **Generation-stable** — each tree commit carries the SHA as the generation identifier; downstream consumers pin against it
 
-**Mass divergence**: a calibration cycle that produces `manual-gap` flags on more than 50% of intent nodes (configurable threshold). Surface as a system-level alert; do not publish the new generation. This is a heuristic guard against ASR / extraction regressions cascading into bad calibration.
+## Failure modes
+
+**Mapping ambiguity**: an intent node maps to multiple plausible operators. Surface all candidates with `confidence: 'medium'`; downstream consumers handle multiplicity (Argus may show both rules; Hermes refuses to act on medium-confidence mappings without disambiguation).
+
+**Circular operator graph**: prerequisites form a cycle. Fail calibration; keep the prior tree generation; log the regression. Cycles indicate a contradiction the bottom-up rule cannot resolve cleanly.
+
+**Mass divergence**: `manual-gap` on >50% of intents. Alert; do not publish. Heuristic guard against ASR/extraction regressions.
 
 ## Forbidden behaviours
 
-No write to the intent tree. No write to the compute graph (the *source* compute graph; the calibrated operators are this domain's own output). No publishing of a calibrated graph that violates the bottom-up rule (the lint and test prevent this; the line here documents the intent for human readers).
-
-No silent fallback to the old generation. If a new generation fails to publish, the failure is surfaced; downstream apps continue using the prior generation but the failure is logged and feeds Metis.
+No runtime writes to the INTENTS tree. No silent fallback to prior generation without surfacing the failure. No publishing of a tree that violates the bottom-up rule.
 
 ## Tiebreaker references
 
-- `PRODUCT_SENSE.md § Cross-product` — bottom-up authority. This file is the implementation contract for that rule.
-- `ARCHITECTURE.md § 3 Three invariants` — the dependency matrix encoding.
+- `PRODUCT_SENSE.md § Cross-product` — bottom-up authority.
+- ADR-0003 — calibration dissolution; build-time resolution.
+- ADR-0002 — INTENTS path-as-ontology; the tree is the calibrated output.
+- `ARCHITECTURE.md § 3` — dependency matrix encoding.
 
 ## Open questions
 
 > **Question**: What confidence threshold separates `high` / `medium` / `low` mapping confidence?
-> **Default if not decided**: derived empirically from the bootstrap corpus during M4 of the first Calibration exec-plan; treat as `Confidence: low` until then.
-
-> **Question**: When a calibration update changes an operator's prerequisites, does Hermes immediately use the updated operator, or wait for an explicit human review of the change?
-> **Default if not decided**: Hermes uses the new generation immediately for Tier-A (read-only) actions; for Tier-B (confirmed) actions, the user-facing confirmation surfaces the change ("This step's prerequisites were updated based on customer behaviour — review and confirm"); Tier-C is empty initially per `PRODUCT_SENSE.md § Hermes`.
+> **Default if not decided**: derived empirically from the bootstrap corpus; treat as `Confidence: low` until then.
