@@ -138,4 +138,33 @@ The following are Tier C under `docs/conventions/ask-threshold.md` (on-disk form
 
 ## Outcomes & Retrospective
 
-*Empty — written at completion.*
+All seven milestones shipped in one session (2026-07-04). All three Awaiting Steering questions resolved before execution. The upgrade is a pure documentation-and-architecture change — zero `src/argus/` edits, zero enforcement-layer changes.
+
+**What shipped:**
+- ARCHITECTURE.md rescoped from 10-domain/6-layer platform architecture to 5-domain/5-layer Argus-only, mapped one-to-one onto `.importlinter` layers (`types→config→io→core→cli`). The doc-vs-linter divergence that existed since bootstrap is now closed.
+- `docs/references/platform-architecture.md` — three-tier reference (transformation → semantic → consumer), non-enforced.
+- Four foundational ADRs in `docs/adr/`: epistemic classes + two-stage contract (0001), path-as-ontology (0002), calibration dissolution (0003), expertise-library as runtime artefact (0004).
+- `docs/product-specs/shared/expertise-library.md` — reclassified: Acoustic Feature and Phrase & Keyword moved to versioned rubric; three epistemic classes; nine reader interfaces collapsed to three category readers.
+- `docs/product-specs/argus/fact-checking.md` — replaced single-function stub with two-stage `score(facts, rubric)` → `adjust(raw, history)` contract; `FactCheckVerdict` carries `raw`, `adjusted`, `applied_precedents[]`.
+- `docs/product-specs/shared/intents-semantic-layer.md` — new spec: path-as-ontology layout, anchor levels (rubric/scope/L3), naming grammar, git-SHA epoch, configurable location.
+- `docs/product-specs/shared/calibration.md` — amended with coverage-axis / content-axis split; repositioned as build-time operation (per ADR-0003).
+- `INTENTS/` tree — 14 files across `_meta/`, `_rubric/` (rules, 12 acoustic indicators, phrase lexicon), and `annual-report-submission/` domain (L2 capsule Bone/Flesh, L3 case with anchored facts and history).
+- `docs/QUALITY_SCORE.md` — regraded for v6 domain set; doc-freshness and boundary-respect cells upgraded where the upgrade improved them; closed gaps noted.
+- 7 new acceptance tests, all passing.
+- Q1 resolved to "configurable" — INTENTS path default is repo root, overridable via `argus.config.intents_path`.
+
+**What was deliberately not done (per plan scope):**
+- No new lints. The `forbidden-cross-domain-edges` lint still checks the v1 10-domain matrix — updating it is deferred.
+- No `references/node_contract.md` — owned by the human.
+- No `src/argus/` implementation. The v6 spine defines the contract; the code doesn't exist yet.
+- No population of `INTENTS/` beyond the single worked domain.
+- No dep-vet records for pre-existing dependencies.
+
+**What took longer than expected:**
+- ARCHITECTURE.md rewrite required careful balancing: removing Metis/Hermes/Calibration/Expertise-Library as domains while preserving interface references, updating enforcement tables to reflect reality, and ensuring `.importlinter` references remained accurate.
+- The INTENTS tree required creating a full worked example (L2 Bone/Flesh, L3 case, rubric shelf) from the abstract design — the design was specified but the concrete content was authored during execution.
+
+**What went well:**
+- Writing acceptance tests first caught several issues (domain name matching, reader name patterns, ui_binding_ref resolution) before they became debugging problems.
+- The pre-existing enforcement layer (`.importlinter`, structural tests, lints) acted as a safety net — no regressions.
+- The three-tier platform reference doc cleanly separated "what this repo enforces" from "what the platform looks like" — this avoided scope creep.
