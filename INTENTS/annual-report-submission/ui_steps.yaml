@@ -1,0 +1,64 @@
+# ui_steps.yaml — L2 Capsule Flesh
+# ui_step definitions for the annual-report-submission domain.
+# Each ui_step referenced by a ui_binding_ref in index.md must exist here.
+
+ui_steps:
+  - ui_step: "collect-filing-date"
+    description: "Ask the customer for the specific date and time they attempted to file."
+    tier: "A"
+    kind: "read"
+    expected_output: "ISO 8601 datetime string (YYYY-MM-DDTHH:MM)"
+
+  - ui_step: "check-system-status"
+    description: "Check Companies House service status for the claimed filing date."
+    tier: "A"
+    kind: "read"
+    expected_output: "status: available | degraded | unavailable, with timestamp"
+
+  - ui_step: "collect-error-evidence"
+    description: "Ask the customer to describe the error message or share a screenshot."
+    tier: "A"
+    kind: "read"
+    expected_output: "error description string or screenshot reference"
+
+  - ui_step: "confirm-alternative-methods"
+    description: "Check whether alternative filing methods (paper, phone, agent-assisted) were available."
+    tier: "A"
+    kind: "read"
+    expected_output: "alternative_methods: list of available methods with status"
+
+  - ui_step: "identify-company-type"
+    description: "Identify the customer's company type (private limited, public limited, etc.)."
+    tier: "A"
+    kind: "read"
+    expected_output: "company_type: string"
+
+  - ui_step: "calculate-deadline"
+    description: "Calculate the filing deadline based on company type and accounting reference date."
+    tier: "A"
+    kind: "read"
+    expected_output: "deadline: ISO 8601 date"
+
+  - ui_step: "confirm-filing-status"
+    description: "Check whether the company has filed or is overdue."
+    tier: "A"
+    kind: "read"
+    expected_output: "filing_status: filed | overdue | not_yet_due"
+
+  - ui_step: "verify-penalty-details"
+    description: "Look up the penalty details for the customer's company."
+    tier: "B"
+    kind: "confirmed"
+    expected_output: "penalty: {amount, date_issued, reason, appeal_deadline}"
+
+  - ui_step: "collect-grounds-for-appeal"
+    description: "Ask the customer for their grounds for appealing the penalty."
+    tier: "A"
+    kind: "read"
+    expected_output: "grounds: string describing the appeal reason"
+
+  - ui_step: "submit-appeal"
+    description: "Submit the penalty appeal on behalf of the customer."
+    tier: "B"
+    kind: "confirmed"
+    expected_output: "appeal_reference: string"

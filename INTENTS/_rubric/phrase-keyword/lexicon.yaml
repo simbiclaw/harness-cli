@@ -1,0 +1,48 @@
+# _rubric/phrase-keyword/lexicon.yaml
+# Phrase & Keyword lexicon — target word/phrase lists for ASR biasing and QA scoring.
+# Versioned rubric — the yardstick, not the per-call match.
+
+version: "1.0.0"
+last_updated: "2026-07-04"
+language: "en"
+domain: "annual-report-submission"
+
+# Sensitive words — presence triggers mandatory agent acknowledgement
+sensitive:
+  - "penalty"
+  - "fine"
+  - "prosecution"
+  - "liable"
+  - "enforcement action"
+  - "statutory deadline"
+  - "revocation"
+
+# Negative phrases — presence triggers requires-review flag
+negative:
+  - "can't help you"
+  - "not our problem"
+  - "you should have"
+  - "it's too late"
+  - "nothing we can do"
+  - "against policy"
+  - "computer says no"
+
+# Recommended phrases — presence indicates good practice
+recommended:
+  - "let me check that for you"
+  - "I understand your concern"
+  - "here's what we can do"
+  - "let me escalate this"
+  - "I'll follow up with you"
+  - "thank you for letting us know"
+
+# ASR biasing terms — domain-specific terms for transcription accuracy
+asr_bias:
+  - "annual report"
+  - "Companies House"
+  - "confirmation statement"
+  - "late filing penalty"
+  - "registrar of companies"
+  - "statutory accounts"
+  - "filing deadline"
+  - "extension request"

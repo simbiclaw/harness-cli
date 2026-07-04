@@ -1,0 +1,27 @@
+# errors.incomplete-evidence.yaml — Error case precedent
+# Type: errors (accumulated history)
+# Anchor level: L3 (case node)
+
+precedent_id: "ERR-001"
+type: "errors"
+domain: "annual-report-submission"
+case: "late-filing-evidence"
+anchor_level: "l3"
+established: "2026-07-04"
+established_by: "reviewer-override"
+source_call_ids: ["CALL-2024-01-22-0107", "CALL-2024-05-11-0033"]
+
+title: "Incomplete evidence — agent accepted late filing without system check"
+
+error_pattern: >
+  Agent accepted the customer's claim of system failure without verifying
+  the system status for the claimed date. The late filing was processed
+  without evidence that the system was actually unavailable.
+
+correction: >
+  Require system status check before accepting late filing.
+  Adjust rule 'AR-LF-001-b' from 'pass' to 'fail' when the agent
+  has not verified system status for the claimed filing date.
+
+severity: "high"
+applied_in_calls: 12

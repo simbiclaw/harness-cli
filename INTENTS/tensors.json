@@ -1,0 +1,6 @@
+{
+  "description": "Pre-computed cross-tree embeddings for semantic search. Generated at build time by the transformation layer.",
+  "model": "placeholder",
+  "dimensions": 768,
+  "entries": []
+}
