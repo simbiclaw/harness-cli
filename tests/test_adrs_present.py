@@ -23,12 +23,8 @@ REQUIRED_ADRS = [
 def test_four_foundational_adrs_exist_and_are_wellformed() -> None:
     """M2 Acceptance Test: all four ADRs exist, each has Status and Decision,
     and docs/adr/ is not empty."""
-    assert ADR_DIR.exists(), (
-        f"docs/adr/ directory must exist"
-    )
-    assert ADR_DIR.is_dir(), (
-        f"docs/adr/ must be a directory"
-    )
+    assert ADR_DIR.exists(), "docs/adr/ directory must exist"
+    assert ADR_DIR.is_dir(), "docs/adr/ must be a directory"
 
     adr_files = list(ADR_DIR.glob("*.md"))
     assert adr_files, "docs/adr/ must not be empty"
@@ -51,7 +47,7 @@ def test_four_foundational_adrs_exist_and_are_wellformed() -> None:
         if "## Decision" not in text:
             failures.append(f"{filename}: missing '## Decision' section")
 
-    assert not failures, "\n  ".join([""] + failures)
+    assert not failures, "\n  ".join(["", *failures])
 
     # Also assert no unexpected ADRs (exactly these four)
     adr_names = {p.name for p in adr_files}

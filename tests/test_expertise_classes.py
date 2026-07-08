@@ -28,16 +28,18 @@ def test_acoustic_and_phrase_are_rubric() -> None:
         "Versioned-rubric",
     ]
     has_rubric_class = any(m in text for m in rubric_markers)
-    assert has_rubric_class, (
-        "expertise-library.md must define a 'Versioned rubric' epistemic class"
-    )
+    assert has_rubric_class, "expertise-library.md must define a 'Versioned rubric' epistemic class"
 
     # 2. Acoustic Feature must appear in the rubric class, not in facts
     #    We check by looking for the module name in proximity to the class label.
     #    The spec should place "Acoustic Feature" under the rubric section,
     #    not under a "Descriptive facts" or plain "Facts" section.
-    desc_fact_markers = ["descriptive facts", "Descriptive facts",
-                         "descriptive-facts", "Descriptive-facts"]
+    desc_fact_markers = [
+        "descriptive facts",
+        "Descriptive facts",
+        "descriptive-facts",
+        "Descriptive-facts",
+    ]
 
     # Find where Acoustic Feature appears and check which section it's in
     lines = text.splitlines()
@@ -80,12 +82,14 @@ def test_acoustic_and_phrase_are_rubric() -> None:
     reader_indicators = [
         ("rubric", ["rubricreader", "rubric reader", "rubric provider", "versioned rubric reader"]),
         ("facts", ["factsreader", "facts reader", "fact reader", "descriptive facts reader"]),
-        ("history", ["historyreader", "history reader", "history provider", "accumulated history reader"]),
+        (
+            "history",
+            ["historyreader", "history reader", "history provider", "accumulated history reader"],
+        ),
     ]
 
     # Remove spaces for camelCase matching
     text_no_spaces = text.lower().replace(" ", "")
-    text_lower = text.lower()
     for category, patterns in reader_indicators:
         found = any(p.lower().replace(" ", "") in text_no_spaces for p in patterns)
         assert found, (

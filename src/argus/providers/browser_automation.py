@@ -43,7 +43,7 @@ class BrowserAutomationProvider:
     def submit_payment(self, amount: float, currency: str) -> str:
         raise NotImplementedError
 
-    def modify_account_settings(self, account_id: str, changes: dict) -> None:
+    def modify_account_settings(self, account_id: str, changes: dict[str, object]) -> None:
         raise NotImplementedError
 
     def execute_autonomous_workflow(self, descriptor: ActionDescriptor) -> str:

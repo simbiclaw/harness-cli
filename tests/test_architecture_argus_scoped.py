@@ -4,11 +4,12 @@ Asserts ARCHITECTURE.md is scoped to Argus-only with five domains mapped
 onto the five layers .importlinter enforces.
 """
 
+# ruff: noqa: S607  # subprocess calls in tests use known-safe paths
+
 from __future__ import annotations
 
 import re
 import subprocess
-import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -44,9 +45,7 @@ def _parse_importlinter_layers() -> list[str]:
 def _parse_domain_table(text: str) -> list[dict]:
     """Parse the domain inventory markdown table, returning list of {name, why, consumed_by}."""
     # Find the domain inventory section (## 1. Domain inventory)
-    section_match = re.search(
-        r"## 1\. Domain inventory.*?(?=## 2\.|\Z)", text, re.DOTALL
-    )
+    section_match = re.search(r"## 1\. Domain inventory.*?(?=## 2\.|\Z)", text, re.DOTALL)
     if not section_match:
         return []
 
@@ -63,12 +62,14 @@ def _parse_domain_table(text: str) -> list[dict]:
             if len(cells) >= 4:
                 # Extract domain name from bold markup
                 name = cells[1].replace("**", "").strip()
-                domains.append({
-                    "number": cells[0].strip(),
-                    "name": name,
-                    "why": cells[2].strip(),
-                    "consumed_by": cells[3].strip(),
-                })
+                domains.append(
+                    {
+                        "number": cells[0].strip(),
+                        "name": name,
+                        "why": cells[2].strip(),
+                        "consumed_by": cells[3].strip(),
+                    }
+                )
         elif in_table and not line.startswith("|"):
             break
 
@@ -139,9 +140,7 @@ def test_five_domains_map_to_importlinter_layers() -> None:
     #    The layered model section should name types, config, io, core, cli
     for layer in expected_layers:
         # Look for the layer name in the layered model context
-        assert layer.lower() in arch_text.lower(), (
-            f"ARCHITECTURE.md must mention layer '{layer}'"
-        )
+        assert layer.lower() in arch_text.lower(), f"ARCHITECTURE.md must mention layer '{layer}'"
 
     # 6. Run lint-imports — must pass unchanged
     result = subprocess.run(

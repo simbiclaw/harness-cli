@@ -23,38 +23,27 @@ def test_semantic_layer_spec_coherent() -> None:
     """M5 Acceptance Test: the INTENTS spec names the _rubric/ shelf with three
     modules, states anchor level = scope, places history at L3, and
     ARCHITECTURE.md references ADR-0002."""
-    assert INTENTS_SPEC.exists(), (
-        "intents-semantic-layer.md must exist"
-    )
+    assert INTENTS_SPEC.exists(), "intents-semantic-layer.md must exist"
 
     spec = INTENTS_SPEC.read_text()
     spec_c = _canonical(spec)
 
     # Names the _rubric/ shelf with three modules
-    assert "_rubric" in spec, (
-        "intents-semantic-layer.md must name the _rubric/ shelf"
-    )
+    assert "_rubric" in spec, "intents-semantic-layer.md must name the _rubric/ shelf"
     rubric_modules = ["rules", "acoustic", "phrase"]
     for mod in rubric_modules:
-        assert mod in spec_c, (
-            f"intents-semantic-layer.md must reference the '{mod}' rubric module"
-        )
+        assert mod in spec_c, f"intents-semantic-layer.md must reference the '{mod}' rubric module"
 
     # States anchor level = scope (facts are anchored by scope/domain)
     anchor_indicators = ["anchor level", "anchorlevel", "scope"]
     has_anchor = any(indicator in spec_c for indicator in anchor_indicators)
-    assert has_anchor, (
-        "intents-semantic-layer.md must describe the anchor level (scope)"
-    )
+    assert has_anchor, "intents-semantic-layer.md must describe the anchor level (scope)"
 
     # Places history at L3 (case level)
-    history_at_l3 = (
-        ("l3" in spec_c or "level 3" in spec_c or "level3" in spec_c)
-        and ("history" in spec_c or "cookbook" in spec_c or "errors" in spec_c)
+    history_at_l3 = ("l3" in spec_c or "level 3" in spec_c or "level3" in spec_c) and (
+        "history" in spec_c or "cookbook" in spec_c or "errors" in spec_c
     )
-    assert history_at_l3, (
-        "intents-semantic-layer.md must place history at L3 (case level)"
-    )
+    assert history_at_l3, "intents-semantic-layer.md must place history at L3 (case level)"
 
     # ARCHITECTURE.md references ADR-0002
     arch_text = ARCHITECTURE.read_text()

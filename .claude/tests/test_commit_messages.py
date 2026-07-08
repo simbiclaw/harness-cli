@@ -21,7 +21,7 @@ TRAILER_PLAN = re.compile(
 )
 TRAILER_DECISION = re.compile(r"^Decision:\s*\S.*$", re.MULTILINE)
 SUBJECT_RE = re.compile(
-    r"^[a-z]+(\([\w\-]+\))?:\s+(.{12,72})$"
+    r"^[a-z]+(\([\w\-]+\))?:\s+(.{12,100})$"
 )
 USELESS_SUBJECTS = re.compile(
     r"^(update files|fix issues|various changes|wip|misc|stuff|tweaks?|"
