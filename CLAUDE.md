@@ -76,6 +76,63 @@ When a hook blocks you, the error message includes the exact remediation. Do wha
 
 When a structural test fails, the error message names the file, line, and required fix.
 
+## Argus eval pipeline — operating invariants
+
+These are the non-negotiable rules derived from the process-derivation pipeline spec (`docs/PRD/process-derivation-pipeline-spec-v5.html`). Every edit to `src/argus/` must preserve them. The spec is the contract; the bullet list below is the operating summary — when in doubt, the spec governs.
+
+### Seven invariants (§1)
+
+| Tag | Name | Rule |
+|---|---|---|
+| **I1** | Quarantine | Model nondeterminism exists only in S2 (the proposer, `io/`). S3 (ground), S4a (score), S4b (adjust), and S5 (route) are pure functions of their inputs. A module in `core/` that imports the model client is an architecture violation. |
+| **I2** | Anchor-or-quarantine | Every finding references a real transcript span (exact-quote verified) and a real INTENTS node at the pinned git-SHA epoch, or it is moved to the `ungrounded` bucket and routed to a human. Findings are never silently dropped. |
+| **I3** | Shipped score = pure re-derivation | `raw = score(facts, rubric)`, then `adjusted = adjust(raw, history)`. Both are pure functions. `score` never receives history. The model MAY propose a score (quarantined, D7) — a proposed score enters neither stage and is never the shipped number. Same grounded findings + same rubric version + same anchored precedents ⇒ identical `raw` and `adjusted`. |
+| **I4** | Pinned referents | Each evaluation pins the `INTENTS/` tree at a single git-SHA epoch (`EPOCH.yaml`). Re-running against the same epoch reproduces the same grounding outcomes. |
+| **I5** | Replayability | The stored FindingGraph + `intents_sha` + rubric version re-derive the identical EvaluationResult forever. The `replay_hash` is a function of grounded inputs + anchored precedents only — never of `proposed_score`. |
+| **I6** | Independence-weighted corroboration | Multi-anchor confidence is a pure, independence-weighted function of the signals. Redundant signals (same model-judged text) contribute zero — no number of correlated re-reads manufactures confidence. Corroboration is orthogonal to the §6 agreement gate: it may clear a per-finding `finding_thin` deferral but never a criterion's `criterion_below_tau` deferral (D4). |
+| **I7** | Ground evidence, not numbers | S3 grounds the violation, span, and criterion a finding rests on — never a bare score (a digit has no span). A model-proposed score is grounded only by grounding its evidence; the pure stages re-derive the number. No code path passes a model-proposed score through S3 into the verdict (D8). Proposed-vs-derived divergence is logged as a drift probe, never as a result. |
+
+### Layer fences
+
+These are load-bearing — they keep the model quarantined and the pure stages pure.
+
+| Fence | Rule |
+|---|---|
+| `core ✗ model_client` | No module in `src/argus/core/` imports `anthropic` or any LLM client. This is what keeps v6's "core is pure" claim true. The model touches only S2, which lives in `io/`. |
+| `grounding ✗ proposer` | The grounding gate (S3, `core/grounding.py`) never imports the proposer. |
+| `grounding ✗ matching_model` | The exemplar/case match that produces a correlated signal happens in the proposer (S2), never in the gate (S3). The gate only verifies that the proposer's signals resolve and co-locate (D3). |
+| `aggregate ✗ model_client` | The corroboration aggregator (`core/corroboration.py`) is pure — no model, no clock, no RNG. |
+
+### Corroboration weights and debt
+
+- Independent signals (acoustic measurement, lexical/lookup/ordered-match): weight **1.0**
+- Correlated signals (Error Case, Best Practice — model-judged match to confirmed referent): weight **W_C = 0.4 PROVISIONAL** — log the debt; the correct value is `1 − corr(matcher_error, proposer_error)` measured on a human-labeled sample
+- Redundant signals (another model-judged text criterion on the same span): weight **0.0** — soft⊕soft = 0 (D5)
+- Corroboration changes **routing** (clears `finding_thin`), never the **deduction** (a violation's deduction is the rubric's weight for its anchor, regardless of how many instruments saw it)
+
+### Deferred-verdict rules
+
+- `defer_reason: "finding_thin"` — the finding's single-channel evidence is insufficient; an independent corroborating anchor can clear this
+- `defer_reason: "criterion_below_tau"` — the criterion itself is untrusted (κ < τ); **no amount of corroboration clears this** (D4 — the two axes are orthogonal)
+- `defer_reason: "ungrounded"` — the finding anchors to nothing real (I2); always routes to human
+- Auto-final requires **both** axes clear: coverage gate (no ungrounded, no deferred) AND criterion health gate (every cited criterion `trusted`). Neither substitutes for the other (D10)
+
+### Hard prohibitions
+
+- **No write path into INTENTS/.** Argus is a consumer — zero code in `src/argus/` opens an INTENTS file for writing (D15, S1 fixture). Corrections re-enter via upstream write-time epoch commits (S6, ADR-0003).
+- **No Argus-vs-Argus voting.** Agreement is Argus-vs-human, never N model samples voting (§6.4). Soft⊕soft corroboration (D5) is the same prohibition in a different costume.
+- **No per-call residue gate.** Per-call residue is not buildable — the checks cannot report what they missed (D10). Coverage is computable per call; escape rate is estimable over a stream. Do not confuse them.
+- **Resample variance never touches routing.** Model self-disagreement measures difficulty, not residue (D12/C4). Log it for triage priority; never wire it to auto-final.
+- **No precedent in the raw lane.** `score()` never receives history. The runtime purity assert (§5) rejects any raw-lane verdict citing a precedent — belt and suspenders with the signature.
+
+### v6 conformance
+
+- The `IntentsNode` schema accommodates BOTH current v1-format rubric entries AND enriched authoring-schema entries the companion 9003 will compile. Judgment-layer fields (`corroborators`, `agreement`, `applicability_gate`, `severity_map`, `gap_type`, `escape_tier`, `data_dependency`) are Optional with `default=None`.
+- Q1 default: nine v6 modules → three category readers (rubric, facts, history). Flag count refs with `# Q1` until `expertise-library.md` reconciles 8-vs-9.
+- The companion 9003 (`soft-criteria-authoring-spec-v4.html`) must land enriched `_rubric/` nodes before the judgment-layer gates (M5) activate. Until then, every soft criterion correctly returns `deferred`.
+
+`Source: docs/PRD/process-derivation-pipeline-spec-v5.html` · `docs/adr/0001`…`0004` · `docs/exec-plans/active/9002-implement-argus-eval-pipeline.md`
+
 ## Bash: Write Scripts to Files, Not Inline
 
 Several Bash patterns trigger circuit-breaker permission prompts that cannot be pre-approved:
@@ -144,4 +201,4 @@ The test: Every changed line should trace directly to the user's request.
 
 ---
 
-Last reviewed: 2026-06-02.
+Last reviewed: 2026-07-08.
