@@ -58,21 +58,14 @@ def test_worked_example_parses_and_owns() -> None:
     for path in sorted(INTENTS.rglob("*")):
         if path.is_file() and path.suffix in PARSABLE_EXTS:
             all_files.append(path)
-            if path.suffix in (".yaml", ".yml"):
-                result = _parse_yaml(path)
-            else:
-                result = _parse_json(path)
+            result = _parse_yaml(path) if path.suffix in (".yaml", ".yml") else _parse_json(path)
             if result is None:
                 parse_failures.append(str(path.relative_to(REPO_ROOT)))
 
-    assert not parse_failures, (
-        f"Files that failed to parse:\n  " + "\n  ".join(parse_failures)
-    )
+    assert not parse_failures, "Files that failed to parse:\n  " + "\n  ".join(parse_failures)
 
     # 2. Ownership: every file matches exactly one producer glob
-    assert ownership_path.exists(), (
-        "INTENTS/_meta/ownership.yaml must exist"
-    )
+    assert ownership_path.exists(), "INTENTS/_meta/ownership.yaml must exist"
     ownership = _parse_yaml(ownership_path)
     assert ownership is not None, "_meta/ownership.yaml must parse"
     assert isinstance(ownership, dict), "_meta/ownership.yaml must be a dict"
@@ -82,6 +75,7 @@ def test_worked_example_parses_and_owns() -> None:
 
     # Build (glob_pattern → producer_name) mapping
     import fnmatch
+
     globs: list[tuple[str, str]] = []
     for entry in producers:
         name = entry.get("name", "unknown")
@@ -95,13 +89,9 @@ def test_worked_example_parses_and_owns() -> None:
         if len(matching) == 0:
             ownership_failures.append(f"{rel}: orphaned (no producer claims it)")
         elif len(matching) > 1:
-            ownership_failures.append(
-                f"{rel}: multi-owned by {matching}"
-            )
+            ownership_failures.append(f"{rel}: multi-owned by {matching}")
 
-    assert not ownership_failures, (
-        f"Ownership failures:\n  " + "\n  ".join(ownership_failures)
-    )
+    assert not ownership_failures, "Ownership failures:\n  " + "\n  ".join(ownership_failures)
 
     # 3. Bone ui_binding_refs resolve to Flesh ui_steps
     #    Find all index.md files (L2 capsule Bones), extract ui_binding_refs,
@@ -143,6 +133,4 @@ def test_worked_example_parses_and_owns() -> None:
                     f"ui_binding_ref '{ref}' not found in domain tree"
                 )
 
-    assert not binding_failures, (
-        f"Unresolved ui_binding_refs:\n  " + "\n  ".join(binding_failures)
-    )
+    assert not binding_failures, "Unresolved ui_binding_refs:\n  " + "\n  ".join(binding_failures)

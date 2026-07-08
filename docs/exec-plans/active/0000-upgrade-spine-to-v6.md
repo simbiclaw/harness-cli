@@ -1,10 +1,10 @@
 # 0000 — Upgrade the spine to the refined design (v1 → v6)
 
-## Purpose
+## 1. Purpose
 
 The knowledge spine in this repository (`ARCHITECTURE.md`, `docs/product-specs/`, `docs/design-docs/`, the four top-level docs) is the *first-generation* spine — the artefacts `0001-bootstrap-the-spine` landed and enforced. Since then the design was refined through a sequence of steering decisions that the repository has not yet absorbed, and one of those decisions reframes the repository itself: **this codebase is Argus-specific.** The other apps (Metis, Hermes) and the pipelines that produce the semantic layer (audio2tree, doc2graph, Navigator) are separate layers, not this repo's code. The refinements this plan absorbs are: the Argus-only rescope and the domain reduction that follows from it; an epistemic classification of the nine expertise modules; a two-stage Argus evaluation contract; a path-as-ontology semantic layer (`INTENTS/`) that is a *runtime artifact* Argus reads, not a build-time domain; the reclassification of Acoustic Feature and Phrase & Keyword from descriptive facts to versioned rubric; the anchoring of history judgements to the intent tree; and the dissolution of Knowledge Calibration as a domain (the filesystem now does that job at write time). This plan rescopes the architecture to Argus, records the architectural decisions as ADRs (the repo currently has none), upgrades the specs, and lands a worked `INTENTS/` example — without disturbing the enforcement layer `0001` already built.
 
-## Big Picture
+## 2. Big Picture
 
 This is a documentation-and-architecture upgrade, not application code. Nothing in `src/argus/` changes behaviourally; no subcommand, config surface, or on-disk CLI format is touched. The work rescopes the system of record (`docs/` and `ARCHITECTURE.md`) to what this repo actually is, and adds a new top-level `INTENTS/` tree that is reference data Argus reads, not code.
 
@@ -26,7 +26,7 @@ In scope: rescoping `ARCHITECTURE.md` to Argus-only (platform-reference split ou
 
 Deliberately out of scope, and named so a later plan does not assume otherwise: no new lints (the refined design *names* checks like `argus-eval-purity` and the `intents-*` family; promoting them from `Aspiration:` to code is separate, evidence-driven work under the promotion rule). No population of `INTENTS/` beyond the single worked example. No `references/node_contract.md` (the tree-interior schema gate, owned by the human). No elaboration of `.importlinter` into per-domain sub-contracts — that is option (B) in the rescope ADR, deferred until `src/argus/` actually holds the domains; enforcing structure over near-empty packages now would violate the same discipline that starts QUALITY_SCORE at F.
 
-## Milestones
+## 3. Milestones
 
 ### M1 — Rescope ARCHITECTURE.md to Argus, reconcile with .importlinter
 
@@ -84,7 +84,7 @@ Regrade any `QUALITY_SCORE.md` rows the new specs move (the acoustic/phrase recl
 
 `Acceptance Test:` `tests/test_upgrade_consistency.py::test_no_v1_residue` — greps the tree for stale-classification residue (Acoustic/Phrase framed as facts; any `_facts/` or `_history/` shelf reference outside an explicitly-superseded ADR block) and asserts none remains. Plus: the pre-existing harness suite passes unchanged.
 
-## Progress
+## 4. Progress
 
 - [x] M1: Rescope ARCHITECTURE.md to Argus + reconcile with .importlinter  (done 2026-07-04)
 - [x] M2: Land the four ADRs  (done 2026-07-04)
@@ -94,7 +94,7 @@ Regrade any `QUALITY_SCORE.md` rows the new specs move (the acoustic/phrase recl
 - [x] M6: Land the worked INTENTS tree  (done 2026-07-04)
 - [x] M7: Regrade and reconcile  (done 2026-07-04)
 
-## Decision Log
+## 5. Decision Log
 
 ### Decision: upgrade the spine in place rather than re-bootstrap
 
@@ -119,7 +119,11 @@ Regrade any `QUALITY_SCORE.md` rows the new specs move (the acoustic/phrase recl
 
 **Resolution (2026-07-04, doc-gardener revisit):** M3 shipped. `argus-eval-purity` was not fast-tracked — it remains in the `Aspiration:` column per the plan's deliberate "no new lints" scope. The decision stands: when `src/argus/core` holds a real `score` implementation, promote `argus-eval-purity` under the standard promotion rule (two violations → structural test). No further action until then.
 
-## Surprises & Discoveries
+### Decision: pre-existing dependencies (anthropic, pydantic, pytest-asyncio, python-dotenv, rich) adopted from bootstrap
+
+**Rationale:** `Source: docs/exec-plans/completed/0001-bootstrap-the-spine.md` — these five packages were introduced by the bootstrap plan as direct dependencies. anthropic for LLM SDK access, pydantic for data validation, pytest-asyncio for async test support, python-dotenv for env-var loading, and rich for terminal formatting. Dep-vet records were created retroactively (2026-07-04) as part of CI gate repair. All five pass the four-check policy (age, downloads, activity, license).
+
+## 6. Surprises & Discoveries
 
 ### The v1 doc-vs-linter divergence is closed by M1, not deferred
 
@@ -127,7 +131,7 @@ The original framing of this plan treated the `ARCHITECTURE.md` (10 domains / 6 
 
 *No other surprises yet — this section grows during execution. The Verifier records milestone-flip failures here.*
 
-## Awaiting Steering
+## 7. Awaiting Steering
 
 The following are Tier C under `docs/conventions/ask-threshold.md` (on-disk format changes / new top-level structure). Defaults act if not resolved by the named milestone.
 
@@ -138,7 +142,7 @@ The following are Tier C under `docs/conventions/ask-threshold.md` (on-disk form
 
 > **Awaiting Steering: resolved — Q3.** Proceed as planned: rescope to five Argus domains (`types`, `config`, `providers`+`utils`, `core`, `cli`), dissolve Knowledge Calibration and Expertise Library as domains, record dissolutions as ADR-0003 and ADR-0004.
 
-## Outcomes & Retrospective
+## 8. Outcomes & Retrospective
 
 All seven milestones shipped in one session (2026-07-04). All three Awaiting Steering questions resolved before execution. The upgrade is a pure documentation-and-architecture change — zero `src/argus/` edits, zero enforcement-layer changes.
 

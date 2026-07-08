@@ -5,10 +5,11 @@ facts outside explicitly-superseded ADR blocks). Also confirms the pre-existing
 harness suite passes.
 """
 
+# ruff: noqa: S603, S607  # subprocess calls in tests use known-safe paths
+
 from __future__ import annotations
 
 import subprocess
-import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -19,14 +20,6 @@ def test_no_v1_residue() -> None:
     outside explicitly-superseded ADR blocks."""
     docs_dir = REPO_ROOT / "docs"
     failures: list[str] = []
-
-    # Patterns that indicate stale v1 classification:
-    # Acoustic Feature or Phrase & Keyword described as "facts" or "fact module"
-    # outside ADR-0001 (which explicitly describes the reclassification)
-    stale_patterns = [
-        ("acoustic feature", "fact"),
-        ("phrase", "keyword", "fact"),
-    ]
 
     for path in sorted(docs_dir.rglob("*.md")):
         # Skip ADRs that explicitly describe the reclassification
@@ -40,8 +33,10 @@ def test_no_v1_residue() -> None:
             continue
         # Skip the expertise-library, calibration, and intents specs
         # which DEFINE the v6 reclassification (not stale v1 residue)
-        if any(s in str(path) for s in ["expertise-library", "calibration",
-                                          "intents-semantic-layer", "fact-checking"]):
+        if any(
+            s in str(path)
+            for s in ["expertise-library", "calibration", "intents-semantic-layer", "fact-checking"]
+        ):
             continue
 
         text = path.read_text().lower()
@@ -50,36 +45,47 @@ def test_no_v1_residue() -> None:
         # Check for "acoustic feature" near "fact" (within 100 chars)
         if "acoustic feature" in text:
             idx = text.find("acoustic feature")
-            context = text[max(0, idx - 20):idx + 120]
-            if " fact" in context and "acoustic feature" in context:
-                # Only flag if it's claiming it IS a fact, not describing reclassification
-                if "reclassif" not in context and "moved" not in context:
-                    failures.append(
-                        f"{rel}: 'acoustic feature' near 'fact' may be stale v1 framing"
-                    )
+            context = text[max(0, idx - 20) : idx + 120]
+            if (
+                " fact" in context
+                and "acoustic feature" in context
+                and "reclassif" not in context
+                and "moved" not in context
+            ):
+                failures.append(f"{rel}: 'acoustic feature' near 'fact' may be stale v1 framing")
 
         # Check for "phrase" + "keyword" near "fact"
         if "phrase" in text and "keyword" in text and " fact" in text:
             # Heuristic: check if they appear within reasonable proximity
             pk_idx = text.find("phrase")
             if pk_idx >= 0:
-                context = text[max(0, pk_idx - 50):pk_idx + 150]
-                if "keyword" in context and " fact" in context:
-                    if "reclassif" not in context.lower() and "moved" not in context.lower():
-                        failures.append(
-                            f"{rel}: 'phrase & keyword' near 'fact' may be stale v1 framing"
-                        )
+                context = text[max(0, pk_idx - 50) : pk_idx + 150]
+                if (
+                    "keyword" in context
+                    and " fact" in context
+                    and "reclassif" not in context.lower()
+                    and "moved" not in context.lower()
+                ):
+                    failures.append(
+                        f"{rel}: 'phrase & keyword' near 'fact' may be stale v1 framing"
+                    )
 
-    assert not failures, (
-        f"Stale v1 classification residue found:\n  " + "\n  ".join(failures)
-    )
+    assert not failures, "Stale v1 classification residue found:\n  " + "\n  ".join(failures)
 
 
 def test_full_harness_passes() -> None:
     """The pre-existing harness suite passes unchanged after the upgrade."""
-    result = subprocess.run(
-        ["uv", "run", "pytest", ".claude/tests/", "tools/lint/tests/", "tests/",
-         "-q", "--no-header"],
+    subprocess.run(
+        [
+            "uv",
+            "run",
+            "pytest",
+            ".claude/tests/",
+            "tools/lint/tests/",
+            "tests/",
+            "-q",
+            "--no-header",
+        ],
         cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,

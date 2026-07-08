@@ -48,12 +48,8 @@ def test_two_stage_score_then_adjust() -> None:
 
     # 3. The verdict must carry raw, adjusted, and applied_precedents fields
     text_lower = text.lower()
-    assert "raw" in text_lower, (
-        "fact-checking.md must reference the 'raw' verdict field"
-    )
-    assert "adjusted" in text_lower, (
-        "fact-checking.md must reference the 'adjusted' verdict field"
-    )
+    assert "raw" in text_lower, "fact-checking.md must reference the 'raw' verdict field"
+    assert "adjusted" in text_lower, "fact-checking.md must reference the 'adjusted' verdict field"
     assert "applied_precedents" in c, (
         "fact-checking.md must reference 'applied_precedents' on the verdict"
     )
