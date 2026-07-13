@@ -22,14 +22,15 @@ Read the most recent file in `docs/exec-plans/active/` end-to-end. Read its **Su
 
 After producing a draft ExecPlan, consult `docs/conventions/ask-threshold.md` and scan every consequential decision in the plan against the Tier C checklist. Any decision that falls under Tier C (new top-level dependency, CLI surface change, config schema change, on-disk format change, stdout format change, >100 line deletion, sensitive-path edit) must go into the **Awaiting Steering** section with the question, the options, and a default-if-not-decided deadline. Do not decide Tier C questions yourself.
 
-## The five harnesses, one sentence each
+## The harnesses, one sentence each
 
 1. **Ask before assuming** — three explicit tiers; default to the most cautious. See `ask-threshold.md`.
 2. **Verification floor** — every milestone has a runnable Acceptance Test exercising an externally observable property. See `verification-floor.md`.
 3. **Deps and secrets** — new dependencies are vetted by the dep-vetter skill before adoption; secrets never enter the repo. See `deps-and-secrets.md`.
 4. **Commit hygiene** — every commit references its ExecPlan and milestone, with a Decision trailer. See `commit-hygiene.md`.
 5. **"I don't know" protocol** — Decision Log entries cite evidence, run experiments, or flag uncertainty explicitly. Forbidden phrases enforced by structural test. See `i-dont-know-protocol.md`.
-6. All the harnesses in this repository are inspired by and derived from this source material [harness-engineering (read document)](docs/references/harness-engineering-llm.md), when you struggle with a harness-related task, re-read this file for new angles, and try combining previous near-misses.
+6. **Adversarial verification** — two independent subagents: A implements, B falsifies. Test-first, one test per milestone minimum, E2E with real data after all M's complete. B's prompt is "prove this doesn't work"; A and B never prompt each other. See `verification-floor.md`.
+7. All the harnesses in this repository are inspired by and derived from this source material [harness-engineering (read document)](docs/references/harness-engineering-llm.md), when you struggle with a harness-related task, re-read this file for new angles, and try combining previous near-misses.
 
 
 ## The promotion rule
