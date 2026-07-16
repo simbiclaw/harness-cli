@@ -87,14 +87,27 @@ _rubric/
 ├── evidence/                            # 从属 — measurement instruments, NOT rules
 │   ├── acoustic/
 │   │   └── indicators.yaml              # 12 indicators (f0_mean…voice_quality_sustained)
-│   └── phrase/
-│       ├── recommended.yaml             # polite / positive phrases
-│       ├── sensitive.yaml               # sensitive / negative phrases
-│       ├── negative.yaml                # negative expression patterns
-│       ├── filler.yaml                  # filler words / colloquialisms
-│       └── marketing/
-│           ├── triggers.yaml            # 营销触发.md → trigger_keywords (P31)
-│           └── scripts.yaml             # 营销话术.md → 18 standard scripts (P33)
+│   └── phrase-keyword/                  # NOTE: deviates from Patch 1 recommendation (phrase/)
+│       ├── customer-emotion/            # ~90 terms across 7 files
+│       │   ├── escalation-threat.yaml   # 投诉, 曝光, 315, 举报, 消协...
+│       │   ├── deception-perception.yaml# 坑人, 被骗, 忽悠, 套路...
+│       │   ├── price-dissatisfaction.yaml# 太贵, 不划算, 乱收费...
+│       │   ├── product-disparagement.yaml# 垃圾, 烂, 差劲, 不好用...
+│       │   ├── resignation.yaml         # 无语, 郁闷, 算了, 失望...
+│       │   ├── repeated-frustration.yaml# 又来了, 第X次, 反复, 每次...
+│       │   └── confusion-markers.yaml   # 我不太明白, 什么意思, 没听懂...
+│       ├── agent-attitude/              # ~60 terms across 3 files
+│       │   ├── politeness.yaml          # 请, 您好, 谢谢, 您/你 ratio
+│       │   ├── dismissive.yaml          # 不知道, 等会回复, 不归我管...
+│       │   └── confrontational.yaml     # 你又没问, 我不是说了吗...
+│       ├── agent-competence/            # ~22 terms across 2 files
+│       │   ├── knowledge-gaps.yaml      # 不清楚, 可能, 大概, 好像...
+│       │   └── procedural-errors.yaml   # 应该先..., 忘了..., 搞错了...
+│       ├── interaction-patterns/        # ~18 patterns across 3 files
+│       │   ├── turn-taking.yaml         # 抢话/冷场 thresholds
+│       │   ├── objection-handling.yaml  # 否定词+解决方案 配对
+│       │   └── confirmation.yaml        # 复述确认, 语义相似度 >0.7
+│       └── marketing-scripts.yaml       # 18 standard scripts (P33)
 │
 ├── gates/                               # B-C output — per-dimension hard_fail_rules
 │   ├── procedural_accuracy.yaml
@@ -123,7 +136,7 @@ Evidence files can be shared-referenced by multiple rules_criteria nodes; they a
 
 ```
 acoustic/indicators.yaml                       # 12 AuthoredNode — now EvidenceEntry in evidence/acoustic/
-phrase-keyword/lexicon.yaml                     # 4 AuthoredNode — now split into evidence/phrase/{name}.yaml
+phrase-keyword/lexicon.yaml                     # 4 AuthoredNode — now split into evidence/phrase-keyword/{category}/
 rules/late-filing-requirements.yaml             # v1-format residue — superseded by compiler output
 procedural_accuracy/item-01.yaml … item-27.yaml # flat under _rubric/ — moved to rules_criteria/
 empathy_and_tone/item-08.yaml … item-26.yaml
@@ -140,14 +153,13 @@ rules_criteria/                                 # D1: per-dimension batch-load
   problem_resolution/item-15.yaml … item-25.yaml    (8 files, items 15,16,17,18,19,23,24,25)
   proactive_value/item-20.yaml … item-21.yaml       (2 files)
 evidence/                                       # D2: pure data, not AuthoredNode
-  acoustic/indicators.yaml                          (12 EvidenceEntry: f0_mean … voice_quality_sustained)
-  phrase/
-    recommended.yaml                                (polite/positive phrases)
-    sensitive.yaml                                  (sensitive/negative phrases)
-    negative.yaml                                   (negative expression patterns)
-    filler.yaml                                     (filler words)
-    marketing/triggers.yaml                         (营销触发 P31)
-    marketing/scripts.yaml                          (营销话术 P33)
+  acoustic/indicators.yaml                          # NOTE: expertise-decision-log.md uses framework format
+  phrase-keyword/                                   # NOTE: deviates from Patch 1 (phrase/)
+    customer-emotion/                               # ~90 terms across 7 files
+    agent-attitude/                                 # ~60 terms across 3 files
+    agent-competence/                               # ~22 terms across 2 files
+    interaction-patterns/                           # ~18 patterns across 3 files
+    marketing-scripts.yaml                          # 18 standard scripts (P33)
 gates/                                          # D3: per-dimension, detached from nodes
   procedural_accuracy.yaml
   empathy_and_tone.yaml
@@ -238,7 +250,7 @@ hard_fail_rule:
 
 2. **Node enrichment:** The 14 rules_criteria items that need acoustic/phrase evidence should declare explicit references to evidence nodes in their `corroborators[]`, and reference acoustic/phrase thresholds in their `trigger.spec`.
 
-3. **A2-ac / A2-ph output path:** 12 acoustic indicators written to `_rubric/evidence/acoustic/indicators.yaml` (no longer 12 standalone AuthoredNodes under `_rubric/acoustic/`). 4 phrase lexicons written as separate files under `_rubric/evidence/phrase/`.
+3. **A2-ac / A2-ph output path:** 12 acoustic indicators written to `_rubric/evidence/acoustic/indicators.yaml` (no longer 12 standalone AuthoredNodes under `_rubric/acoustic/`). 4 phrase lexicons written as subdirectories under `_rubric/evidence/phrase-keyword/` (customer-emotion/, agent-attitude/, agent-competence/, interaction-patterns/).
 
 4. **B-C output path:** Per-dimension hard_fail_rules from `_add_hard_fail_rules` written to `_rubric/gates/`, no longer attached to individual rules_criteria nodes.
 
@@ -304,7 +316,7 @@ Eight architecture decisions from a spec interview between human and Claude Code
 | # | Decision | Rationale | Architectural consequence |
 |---|----------|-----------|--------------------------|
 | **D1** | Runtime loads rules_criteria by dimension in batch | 9002 evaluator loads all nodes under a dimension directory at once, parses once, holds in memory | Output organized as `rules_criteria/{dimension}/item-XX.yaml`; flat list rejected |
-| **D2** | Evidence entries are pure data (dict/list), not AuthoredNode | Acoustic indicators and phrase lexicons are measurement instruments providing thresholds/baselines — they don't need trigger/agreement/gate fields that rules carry | New `EvidenceEntry` type: `{name, type, values}` where values is `{threshold, unit, description}` for acoustic or `[word_list]` for phrase. Runtime loads via separate evidence loader |
+| **D2** | Evidence entries are pure data (dict/list), not AuthoredNode | Acoustic indicators and phrase lexicons are measurement instruments providing thresholds/baselines — they don't need trigger/agreement/gate fields that rules carry | New `EvidenceEntry` type: `{name, type, values}` where values is `{threshold, unit, description}` for acoustic or `[word_list]` for phrase. Runtime loads via separate evidence loader.<br><br>**NOTE:** Final format aligned with `expertise-decision-log.md` — acoustic uses framework format (version + indicators[]), phrase-keyword uses subdir classification (customer-emotion/, agent-attitude/, etc.) |
 | **D3** | Gates strictly separated per-dimension, never attached to individual rules_criteria nodes | Per-dimension hard_fail_rule is a routing decision (escalate to human QA), not a per-item score. Attaching it to one node per dimension (the current `break` pattern) is fragile and semantically wrong | `hard_fail_rule` field removed from `AuthoredNode`. Gate files at `gates/{dimension}.yaml`. Runtime loads gates independently for routing decisions |
 | **D4** | trigger.spec inlines acoustic/phrase thresholds directly | Nodes should be self-contained for runtime evaluation. The evaluator should not need to chase external references to evaluate a trigger | trigger.spec writes concrete values: `"speaking_rate ∈ [120, 220] wpm AND intensity_std < 15 dB"`. evidence/ directory exists as human-readable documentation reference, not as a runtime dependency |
 
@@ -398,15 +410,13 @@ INTENTS/_rubric/
 │
 ├── evidence/                            # D2: pure data, D4: human-readable doc
 │   ├── acoustic/
-│   │   └── indicators.yaml              # D2: {name: {threshold, unit, description}}
-│   └── phrase/
-│       ├── recommended.yaml
-│       ├── sensitive.yaml
-│       ├── negative.yaml
-│       ├── filler.yaml
-│       └── marketing/
-│           ├── triggers.yaml
-│           └── scripts.yaml
+│   │   └── indicators.yaml              # NOTE: aligned with expertise-decision-log.md (framework format)
+│   └── phrase-keyword/                  # NOTE: deviates from Patch 1 (phrase/)
+│       ├── customer-emotion/            # ~90 terms across 7 files
+│       ├── agent-attitude/              # ~60 terms across 3 files
+│       ├── agent-competence/            # ~22 terms across 2 files
+│       ├── interaction-patterns/        # ~18 patterns across 3 files
+│       └── marketing-scripts.yaml       # 18 standard scripts (P33)
 │
 ├── gates/                               # D3: per-dimension, detached from nodes
 │   ├── procedural_accuracy.yaml
