@@ -549,15 +549,115 @@ reference_sources:
 
 ---
 
-## #8 Error Case Library — PENDING
+## #8 Error Case Library — REFERENCE
 
 **Epistemic class:** Accumulated history
-**INTENTS location:** `<domain>/<case>/errors.<slug>.yaml`
+**INTENTS location:**
+- L1 (domain-global): `<domain>/errors.<slug>.yaml`
+- L2 (case-specific): `<domain>/<case>/errors.<slug>.yaml`
+**Decision date:** 2026-07-16
 
-### Pending questions
+### What it is
 
-1. Same as #7: indirect (via severity_map) or direct reference?
-2. Does the Calibration Manifest (independent channel per spec §0.5) draw from Error Case Library?
+Accumulated error cases from historical reviews — documented failures, misses, and escape patterns that evaded detection. Each entry represents a validated failure mode that Items can reference for signal calibration and gap identification. Human-reviewed and approved before entering the INTENTS tree.
+
+### Hierarchy (L1 + L2)
+
+| Level | Scope | Location | Example |
+|:-----:|:------|:---------|:--------|
+| **L1** | Domain-global | `<domain>/errors.<slug>.yaml` | `数字证书客服热线/errors.common-misses.yaml` |
+| **L2** | Case-specific | `<domain>/<case>/errors.<slug>.yaml` | `数字证书客服热线/证书续期/errors.renewal-escapes.yaml` |
+
+**L1-L2 Association**: Three inheritance mechanisms:
+- `parent`: L2 error case declares L1 parent for base inheritance
+- `extends`: L2 error case adds to parent's content (additive)
+- `overrides`: L2 error case replaces parent's content (replacement)
+
+L2 error cases must declare at least one: `parent`, `extends`, or `overrides`.
+
+### File format
+
+```yaml
+# errors.<slug>.yaml — Error Case Library
+# Type: errors (accumulated history)
+
+errors_id: "incomplete-evidence"
+level: "L2"                              # L1 (global) or L2 (case-specific)
+domain: "annual-report-submission"
+case: "late-filing-evidence"              # null if L1
+anchor_level: "case"
+last_updated: "2026-07-04"
+source: "Human reviewer annotation #QA-2026-038"
+parent: "errors.common-documentation-misses"  # L1 parent error case (optional)
+extends:                                   # Add to parent content (optional)
+  - section: "screenshot_missing"
+overrides:                                 # Replace parent content (optional)
+  - section: "timestamp_format"
+
+content:                                 # prose 文字描述 — unstructured prose (Markdown-like)
+  zh_CN: |                               # 默认：仅中文
+    ## 证据不完整逃逸案例
+
+    **案例编号**: ESC-2026-0315
+    **通话日期**: 2026年3月15日
+
+    ### 问题描述
+    坐席在处理客户系统故障申诉时，未收集完整证据：
+
+    1. **未截图**: 未引导客户提供错误页面截图
+    2. **无时间戳**: 未记录故障发生具体时间
+    3. **缺少凭证**: 未保存客户提供的工单号
+
+    ### 后果
+    - 客户后续投诉无法核实
+    - 申诉被上级驳回，客户满意度降至1/5
+    - 产生二次投诉处理成本
+
+    ### 检测缺口
+    - Item 17 (主动引导): 未覆盖"证据收集完整性"检查
+    - Item 19 (业务知识): 未关联"系统故障处理规范"
+
+    ### 建议修复
+    - 在 Item 17 信号中增加 "evidence_completeness_check"
+    - 在 Cookbook 中补充 "系统故障证据收集最佳实践"
+```
+
+### Multilingual support
+
+**Default: Chinese only.** `content.zh_CN` is required.
+
+**Optional: English.** `content.en_GB` may be added when domain requires bilingual support. Absence of `en_GB` implies Chinese-only error case.
+
+### Consumption pattern
+
+**Direct reference.** Items declare explicit `errors_ref` in Item YAML. Compiler reads error cases at compile time for signal calibration and gap identification.
+
+```yaml
+# Item YAML reference pattern (L2 case-specific)
+reference_sources:
+  errors:
+    - errors_id: "incomplete-evidence"
+      level: "L2"
+      case: "late-filing-evidence"
+      intents_path: "annual-report-submission/late-filing-evidence/errors.incomplete-evidence.yaml"
+      pinned_sha: "<git SHA at compile time>"
+      apply_to_signals: ["F2_documentation_incomplete", "F7_evidence_missing"]
+      escape_tier: "coverage_gap"           # This error reveals a coverage gap
+```
+
+### Analysis
+
+| Criterion | Assessment | Direction |
+|:---|:---|:--:|
+| Update frequency | **High** — continuous learning from reviewer overrides | Reference |
+| Sharing scope | **Multiple Items** — error patterns can reveal gaps across Items | **Reference** |
+| Content nature | **"what failure looks like"** — referent patterns for gap identification | **Reference** |
+
+### Decision
+
+**Reference.** Error Case Library is consumed via direct `errors_ref` in Item YAML. Compiler reads error case content at compile time to identify coverage gaps and calibrate signals. Evaluator loads referenced error cases at runtime.
+
+**Steering:** Same format as #7 Best Practice Cookbook — direct reference, L1+L2 hierarchy with parent/extends/overrides inheritance, prose content. Error cases and best practices are dual sides of accumulated history: one documents failures to avoid, the other documents excellence to emulate. Both inform signal calibration through concrete examples rather than abstract severity levels.
 
 ---
 
@@ -583,7 +683,7 @@ Not subject to embed-vs-reference. It is the raw input to evaluation, not refere
 | 5 | Operation Manual | **Reference** | `<L1>/<L2>/<L3>/index.md` |
 | 6 | Dynamic Knowledge Base | **Reference** | `<domain>/dkb.<slug>.yaml` (L1) or `<domain>/<case>/dkb.<slug>.yaml` (L2) |
 | 7 | Best Practice Cookbook | **Reference** | `<domain>/cookbook.<slug>.yaml` (L1) or `<domain>/<case>/cookbook.<slug>.yaml` (L2) |
-| 8 | Error Case Library | PENDING | — |
+| 8 | Error Case Library | **REFERENCE** | `<domain>/errors.<slug>.yaml` (L1) or `<domain>/<case>/errors.<slug>.yaml` (L2) |
 | 9 | Audio Transcription | N/A | — |
 
 ---
