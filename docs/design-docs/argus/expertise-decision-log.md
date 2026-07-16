@@ -293,12 +293,55 @@ Item YAML inline             ← Layer 2: EMBED (item-specific vocabulary)
 ## #4 Product Introduction — REFERENCE
 
 **Epistemic class:** Descriptive facts
-**INTENTS location:** `<L1>/产品知识/<L3>/index.md`
+**INTENTS location:** `<L1>/product-intro.md` (single self-contained file at L1 level)
 **Decision date:** 2026-07-16
 
 ### What it is
 
 Authoritative product knowledge: what products exist, their features, pricing, applicable scenarios. Evaluators consult this to verify agent claims. Examples from CA hotline domain: 子证书功能与场景, 移动证书优势, 印章定制费用, VIP服务 tiers and pricing.
+
+### File format
+
+Self-contained Markdown file at L1 level:
+
+```markdown
+# product-intro.md — Product Introduction
+# Type: product-intro (descriptive facts)
+
+## 个人数字证书
+
+### 功能与场景
+个人数字证书用于网上身份认证、电子签名等场景...
+
+### 费用
+- 标准版：200元/年
+- VIP版：500元/年（含优先技术支持）
+
+## 企业数字证书
+
+### 功能与场景
+企业数字证书用于...
+```
+
+### Multilingual support
+
+**Default: Chinese only.** File content in Chinese.
+
+**Optional: English.** May provide `product-intro.en.md` when domain requires bilingual support.
+
+### Consumption pattern
+
+**Direct reference.** Item YAML declares the INTENTS path; evaluator loads at runtime via INTENTS Provider at pinned SHA.
+
+```yaml
+# Item 19 (业务知识) YAML
+reference_sources:
+  product_intro:
+    intents_path: "数字证书客服热线/product-intro.md"
+    pinned_sha: "<git SHA at compile time>"
+```
+
+Compiler does NOT read Product Introduction during compilation. It only records the INTENTS path reference in Item YAML.
 
 ### Analysis
 
@@ -310,17 +353,9 @@ Authoritative product knowledge: what products exist, their features, pricing, a
 
 ### Decision
 
-**Reference.** Produced by doc2graph from raw product documentation. Stored in INTENTS tree per Context-Engineering §5. Item YAML declares the INTENTS path; evaluator loads at runtime via INTENTS Provider at pinned SHA.
+**Reference.** Produced by doc2graph from raw product documentation. Stored as single self-contained Markdown file at L1 level. Item YAML declares the INTENTS path; evaluator loads at runtime.
 
-```yaml
-# Item 19 (业务知识) YAML
-reference_sources:
-  product_intro:
-    intents_path: "数字证书客服热线/产品知识/"
-    pinned_sha: "<git SHA at compile time>"
-```
-
-Compiler does NOT read Product Introduction during compilation. It only records the INTENTS path reference in Item YAML.
+**Steering:** Single L1-level file sufficient for product knowledge — product structure is typically domain-global, not case-specific. Markdown prose format aligns with other descriptive facts (DKB, Cookbook, Errors).
 
 ---
 
@@ -718,7 +753,7 @@ Example: If input audio is `customer-service-20260716-001.wav`, CallRecord is `c
 | 3 | Phrase & Keyword — Layer 1 | **Reference** | `_rubric/evidence/phrase-keyword/` |
 | 3 | Phrase & Keyword — Layer 2 embed | **Embed** | Item YAML inline |
 | 3 | Phrase & Keyword — Layer 2 corpus | **Reference** | `_rubric/evidence/phrase-keyword/marketing-scripts.yaml` |
-| 4 | Product Introduction | **Reference** | PENDING |
+| 4 | Product Introduction | **Reference** | `<L1>/product-intro.md` |
 | 5 | Operation Manual | **Reference** | `<L1>/<L2>/<L3>/index.md` |
 | 6 | Dynamic Knowledge Base | **Reference** | `<domain>/dkb.<slug>.yaml` (L1) or `<domain>/<case>/dkb.<slug>.yaml` (L2) |
 | 7 | Best Practice Cookbook | **Reference** | `<domain>/cookbook.<slug>.yaml` (L1) or `<domain>/<case>/cookbook.<slug>.yaml` (L2) |
