@@ -30,8 +30,8 @@ call log (transcript + acoustic)
         ▼
 ┌───────────────────────────┐
 │  Measurement Profiles     │  ← _rubric/profiles/
-│  + Phrase & Keyword       │     _rubric/phrase-keyword/
-│  + Acoustic Feature       │     _rubric/acoustic/
+│  + Phrase & Keyword       │     _rubric/evidence/phrase-keyword/
+│  + Acoustic Feature       │     _rubric/evidence/acoustic/
 │                           │     INTENTS tree, pinned git SHA
 │  Same data, two consumers │
 └───────┬───────────────────┘
@@ -59,7 +59,7 @@ call log (transcript + acoustic)
         │ 反馈回路 (asymmetric — audio2tree suggests, humans decide)
         ▼
   ┌──────────────────────────────────────────────┐
-  │ 词库更新      → _rubric/phrase-keyword/ 新术语│
+  │ 词库更新      → _rubric/evidence/phrase-keyword/ 新术语│
   │ Item 重编译   → 9003 compiler 重新运行        │
   │ 新建 Item     → rubric 扩展                   │
   │ 人工复审      → coverage_gap 标记通话进入QA队列│
@@ -158,8 +158,8 @@ This IS the compiler's output. It is not embedded or referenced — it is produc
 ## #2 Acoustic Feature — REFERENCE
 
 **Epistemic class:** Versioned rubric
-**INTENTS location:** `_rubric/acoustic/`
-**Decision date:** 2026-07-15
+**INTENTS location:** `_rubric/evidence/acoustic/`
+**Decision date:** 2026-07-16
 
 ### What it is
 
@@ -178,7 +178,7 @@ This IS the compiler's output. It is not embedded or referenced — it is produc
 **Reference.** Indicators and fingerprint profiles live as standalone files:
 
 ```
-_rubric/acoustic/
+_rubric/evidence/acoustic/
   indicators.yaml          # 12 indicators: thresholds, units, descriptions
   emotion-profiles.yaml    # anger, anxiety, confusion, resignation fingerprints
   attitude-profiles.yaml   # impatience, indifference, volatility fingerprints
@@ -186,8 +186,8 @@ _rubric/acoustic/
 
 Item YAML references by path:
 ```yaml
-acoustic_framework_ref: "_rubric/acoustic/indicators.yaml"
-emotion_profile_ref: "_rubric/acoustic/emotion-profiles.yaml#anger"
+acoustic_framework_ref: "_rubric/evidence/acoustic/indicators.yaml"
+emotion_profile_ref: "_rubric/evidence/acoustic/emotion-profiles.yaml#anger"
 ```
 
 Evaluator's RubricReader loads once, caches, all Items share.
@@ -197,8 +197,8 @@ Evaluator's RubricReader loads once, caches, all Items share.
 ## #3 Phrase & Keyword — TWO-LAYER: REFERENCE (Layer 1) + EMBED (Layer 2)
 
 **Epistemic class:** Versioned rubric
-**INTENTS location:** `_rubric/phrase-keyword/` (Layer 1) or inline in Item YAML (Layer 2)
-**Decision date:** 2026-07-15 (Layer 1/2 split) · 2026-07-16 (marketing scripts correctly classified)
+**INTENTS location:** `_rubric/evidence/phrase-keyword/` (Layer 1) or inline in Item YAML (Layer 2)
+**Decision date:** 2026-07-16 (Layer 1/2 split) · 2026-07-16 (marketing scripts correctly classified)
 
 ### What it is
 
@@ -207,7 +207,7 @@ Three kinds of lexical/linguistic reference data:
 **Layer 1 — Shared lexicons (REFERENCE).** Multi-Item shared vocabulary organized by measurement dimension:
 
 ```
-_rubric/phrase-keyword/
+_rubric/evidence/phrase-keyword/
   customer-emotion/                    # ~90 terms across 7 files
     escalation-threat.yaml             #   投诉, 曝光, 315, 举报, 消协...
     deception-perception.yaml          #   坑人, 被骗, 忽悠, 套路...
@@ -274,12 +274,12 @@ Each entry carries usage metadata: `intensity`, `acoustic_corroboration`, `co_oc
 | Sharing scope | Items 20, 21 (Item 20 uses trigger→script mapping) | Reference |
 | Content nature | "what to score against" — referent data | **Reference** |
 
-**Decision:** Reference. Stored as `_rubric/phrase-keyword/marketing-scripts.yaml`. Excluded scripts: S1, S13, S14 (agent identity intros), S7 non-marketing portion (work hours announcement), S8 (platform registration — separate trigger T08).
+**Decision:** Reference. Stored as `_rubric/evidence/phrase-keyword/marketing-scripts.yaml`. Excluded scripts: S1, S13, S14 (agent identity intros), S7 non-marketing portion (work hours announcement), S8 (platform registration — separate trigger T08).
 
 ### Combined embed-vs-reference for #3
 
 ```
-_rubric/phrase-keyword/
+_rubric/evidence/phrase-keyword/
   customer-emotion/          ← Layer 1: REFERENCE (7 files)
   agent-attitude/            ← Layer 1: REFERENCE (3 files)
   agent-competence/          ← Layer 1: REFERENCE (2 files)
@@ -327,7 +327,7 @@ Compiler does NOT read Product Introduction during compilation. It only records 
 ## #5 Operation Manual — REFERENCE
 
 **Epistemic class:** Descriptive facts
-**INTENTS location:** `<L1>/操作规范/<L3>/index.md`
+**INTENTS location:** `<L1>/<L2>/<L3>/index.md`
 **Decision date:** 2026-07-16
 
 ### What it is
@@ -356,16 +356,90 @@ reference_sources:
 
 ---
 
-## #6 Dynamic Knowledge Base — PENDING
+## #6 Dynamic Knowledge Base — REFERENCE
 
 **Epistemic class:** Descriptive facts
-**INTENTS location:** `<L1>/<L2>/<L3>/index.md` (per Context-Engineering)
+**INTENTS location:** 
+- L1 (domain-global): `<domain>/dkb.<slug>.yaml`
+- L2 (case-specific): `<domain>/<case>/dkb.<slug>.yaml`
+**Decision date:** 2026-07-16
 
-### Pending questions
+### What it is
 
-1. What is the scope of DKB content for the CA hotline domain? (FAQ entries, policy updates, known issues?)
-2. Does DKB content change frequently enough to require runtime loading vs. compile-time embedding?
-3. Which Items consume DKB content?
+Real-time updated knowledge base with highest priority and authority. Reflects real-world operational realities — policy changes, system outages, FAQ updates, known issues, filing deadlines, penalty structures. Sourced from actual customer service incidents and official announcements. Content overrides/overrules similar referent data in other expertise types.
+
+### Hierarchy (L1 + L2)
+
+| Level | Scope | Location | Example |
+|:-----:|:------|:---------|:--------|
+| **L1** | Domain-global | `<domain>/dkb.<slug>.yaml` | `数字证书客服热线/dkb.service-hours.yaml` |
+| **L2** | Case-specific | `<domain>/<case>/dkb.<slug>.yaml` | `数字证书客服热线/证书续期/dkb.renewal-fees.yaml` |
+
+**L1-L2 Association**: L1 global DKBs may reference or override L2 case-specific DKBs via `extends` or `overrides` fields. L2 DKBs can declare `parent: <L1-dkb-id>` for inheritance.
+
+### File format
+
+```yaml
+# dkb.<slug>.yaml — Dynamic Knowledge Base
+# Type: dkb (dynamic knowledge base)
+
+dkb_id: "renewal-fees"
+level: "L2"                              # L1 (global) or L2 (case-specific)
+domain: "数字证书客服热线"
+case: "证书续期"                          # null if L1
+anchor_level: "case"
+last_updated: "2026-07-16"
+source: "Product team official announcement"
+parent: "dkb.base-pricing"               # L1 parent DKB (optional)
+
+content:                                 # prose 文字描述 — unstructured prose (Markdown-like)
+  zh_CN: |                               # 默认：仅中文
+    ## 证书续期费用
+
+    自2026年8月1日起，证书续期费用调整如下：
+
+    - **标准费用**: 200元/年
+    - **VIP客户**: 享受8折优惠
+
+    费用包含数字证书签发、技术支持及一年期服务保障。
+```
+
+### Multilingual support
+
+**Default: Chinese only.** `content.zh_CN` is required.
+
+**Optional: English.** `content.en_GB` may be added when domain requires bilingual support. Absence of `en_GB` implies Chinese-only DKB.
+
+### Analysis
+
+| Criterion | Assessment | Direction |
+|:---|:---|:--:|
+| Update frequency | **High** — real-time updates based on operational realities | **Reference** |
+| Sharing scope | **Multiple Items** — both L1 (domain-global) and L2 (case-specific) | **Reference** |
+| Content nature | **Authoritative referent data** — highest priority, overrides similar content | **Reference** |
+
+### Decision
+
+**Reference.** DKB is consumed via `FactsReader` at the pinned INTENTS SHA. Item YAML declares the INTENTS path (L1 or L2); evaluator loads at runtime. Compiler does NOT read DKB content.
+
+```yaml
+# Item YAML reference pattern (L1 global)
+reference_sources:
+  dynamic_kb:
+    level: "L1"
+    intents_path: "数字证书客服热线/dkb.service-hours.yaml"
+    pinned_sha: "<git SHA at compile time>"
+
+# Item YAML reference pattern (L2 case-specific)
+reference_sources:
+  dynamic_kb:
+    level: "L2"
+    case: "证书续期"
+    intents_path: "数字证书客服热线/证书续期/dkb.renewal-fees.yaml"
+    pinned_sha: "<git SHA at compile time>"
+```
+
+**Steering:** DKB reflects real-world operational realities, real-time updated, L1+L2 hierarchy with association, highest authority — Reference is required.
 
 ---
 
@@ -407,13 +481,13 @@ Not subject to embed-vs-reference. It is the raw input to evaluation, not refere
 | # | Expertise | Strategy | INTENTS Location |
 |:--|:---|:--:|:---|
 | 1 | Rules & Criteria | N/A (output) | `_rubric/rules_criteria/` |
-| 2 | Acoustic Feature | **Reference** | `_rubric/acoustic/` |
-| 3 | Phrase & Keyword — Layer 1 | **Reference** | `_rubric/phrase-keyword/` |
+| 2 | Acoustic Feature | **Reference** | `_rubric/evidence/acoustic/` |
+| 3 | Phrase & Keyword — Layer 1 | **Reference** | `_rubric/evidence/phrase-keyword/` |
 | 3 | Phrase & Keyword — Layer 2 embed | **Embed** | Item YAML inline |
-| 3 | Phrase & Keyword — Layer 2 corpus | **Reference** | `_rubric/phrase-keyword/marketing-scripts.yaml` |
-| 4 | Product Introduction | **Reference** | `<L1>/产品知识/<L3>/index.md` |
-| 5 | Operation Manual | **Reference** | `<L1>/操作规范/<L3>/index.md` |
-| 6 | Dynamic Knowledge Base | PENDING | — |
+| 3 | Phrase & Keyword — Layer 2 corpus | **Reference** | `_rubric/evidence/phrase-keyword/marketing-scripts.yaml` |
+| 4 | Product Introduction | **Reference** | PENDING |
+| 5 | Operation Manual | **Reference** | `<L1>/<L2>/<L3>/index.md` |
+| 6 | Dynamic Knowledge Base | **Reference** | `<domain>/dkb.<slug>.yaml` (L1) or `<domain>/<case>/dkb.<slug>.yaml` (L2) |
 | 7 | Best Practice Cookbook | PENDING | — |
 | 8 | Error Case Library | PENDING | — |
 | 9 | Audio Transcription | N/A | — |
