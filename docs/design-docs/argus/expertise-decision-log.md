@@ -375,7 +375,12 @@ Real-time updated knowledge base with highest priority and authority. Reflects r
 | **L1** | Domain-global | `<domain>/dkb.<slug>.yaml` | `数字证书客服热线/dkb.service-hours.yaml` |
 | **L2** | Case-specific | `<domain>/<case>/dkb.<slug>.yaml` | `数字证书客服热线/证书续期/dkb.renewal-fees.yaml` |
 
-**L1-L2 Association**: L1 global DKBs may reference or override L2 case-specific DKBs via `extends` or `overrides` fields. L2 DKBs can declare `parent: <L1-dkb-id>` for inheritance.
+**L1-L2 Association**: Three inheritance mechanisms:
+- `parent`: L2 DKB declares L1 parent for base inheritance
+- `extends`: L2 DKB adds to parent's content (additive)
+- `overrides`: L2 DKB replaces parent's content (replacement)
+
+L2 DKBs must declare at least one: `parent`, `extends`, or `overrides`.
 
 ### File format
 
@@ -391,6 +396,10 @@ anchor_level: "case"
 last_updated: "2026-07-16"
 source: "Product team official announcement"
 parent: "dkb.base-pricing"               # L1 parent DKB (optional)
+extends:                                 # Add to parent content (optional)
+  - section: "vip_benefits"
+overrides:                               # Replace parent content (optional)
+  - section: "penalty_tiers"
 
 content:                                 # prose 文字描述 — unstructured prose (Markdown-like)
   zh_CN: |                               # 默认：仅中文
@@ -443,15 +452,100 @@ reference_sources:
 
 ---
 
-## #7 Best Practice Cookbook — PENDING
+## #7 Best Practice Cookbook — REFERENCE
 
 **Epistemic class:** Accumulated history
-**INTENTS location:** `<domain>/<case>/cookbook.<slug>.yaml`
+**INTENTS location:**
+- L1 (domain-global): `<domain>/cookbook.<slug>.yaml`
+- L2 (case-specific): `<domain>/<case>/cookbook.<slug>.yaml`
+**Decision date:** 2026-07-16
 
-### Pending questions
+### What it is
 
-1. Is the cookbook consumed exclusively via severity_map references (indirect — no compiler action needed)?
-2. Or do Items directly reference cookbook entries for signal calibration?
+Accumulated best practices from historical cases — curated examples of excellent agent performance, successful resolution patterns, and effective communication strategies. Human-reviewed and approved before entering the INTENTS tree. Each entry represents a validated pattern that Items can reference for signal calibration.
+
+### Hierarchy (L1 + L2)
+
+| Level | Scope | Location | Example |
+|:-----:|:------|:---------|:--------|
+| **L1** | Domain-global | `<domain>/cookbook.<slug>.yaml` | `数字证书客服热线/cookbook.service-recovery.yaml` |
+| **L2** | Case-specific | `<domain>/<case>/cookbook.<slug>.yaml` | `数字证书客服热线/证书续期/cookbook.renewal-objection-handling.yaml` |
+
+**L1-L2 Association**: Three inheritance mechanisms:
+- `parent`: L2 cookbook declares L1 parent for base inheritance
+- `extends`: L2 cookbook adds to parent's content (additive)
+- `overrides`: L2 cookbook replaces parent's content (replacement)
+
+L2 cookbooks must declare at least one: `parent`, `extends`, or `overrides`.
+
+### File format
+
+```yaml
+# cookbook.<slug>.yaml — Best Practice Cookbook
+# Type: cookbook (accumulated history)
+
+cookbook_id: "system-failure-evidence"
+level: "L2"                              # L1 (global) or L2 (case-specific)
+domain: "annual-report-submission"
+case: "late-filing-evidence"              # null if L1
+anchor_level: "case"
+last_updated: "2026-07-04"
+source: "Human reviewer annotation #QA-2026-042"
+parent: "cookbook.base-customer-service"  # L1 parent cookbook (optional)
+extends:                                   # Add to parent content (optional)
+  - section: "escalation_pattern"
+overrides:                                 # Replace parent content (optional)
+  - section: "evidence_collection"
+
+content:                                 # prose 文字描述 — unstructured prose (Markdown-like)
+  zh_CN: |                               # 默认：仅中文
+    ## 系统故障证据处理最佳实践
+
+    当客户因系统故障导致逾期提交时，优秀坐席会：
+
+    1. **主动确认故障**: 立即查询官方系统状态页面
+    2. **收集证据**: 引导客户提供截图、错误代码、时间戳
+    3. **明确告知**: 说明故障属于可豁免情形，不会处罚
+    4. **跟进承诺**: 承诺在24小时内通过邮件确认豁免结果
+
+    参考案例：客户张先生于2026年3月15日因系统维护无法登录，坐席小李按上述流程处理，客户满意度评分5/5。
+```
+
+### Multilingual support
+
+**Default: Chinese only.** `content.zh_CN` is required.
+
+**Optional: English.** `content.en_GB` may be added when domain requires bilingual support. Absence of `en_GB` implies Chinese-only cookbook.
+
+### Consumption pattern
+
+**Direct reference.** Items declare explicit `cookbook_ref` in Item YAML. Compiler reads cookbook at compile time for signal calibration.
+
+```yaml
+# Item YAML reference pattern (L2 case-specific)
+reference_sources:
+  cookbook:
+    - cookbook_id: "system-failure-evidence"
+      level: "L2"
+      case: "late-filing-evidence"
+      intents_path: "annual-report-submission/late-filing-evidence/cookbook.system-failure-evidence.yaml"
+      pinned_sha: "<git SHA at compile time>"
+      apply_to_signals: ["F3_system_failure_acknowledged", "F5_evidence_collected"]
+```
+
+### Analysis
+
+| Criterion | Assessment | Direction |
+|:---|:---|:--:|
+| Update frequency | **Medium** — curated human review, not real-time | Reference |
+| Sharing scope | **Multiple Items** — patterns can apply across related Items | **Reference** |
+| Content nature | **"what excellent looks like"** — referent patterns for calibration | **Reference** |
+
+### Decision
+
+**Reference.** Cookbook is consumed via direct `cookbook_ref` in Item YAML. Compiler reads cookbook content at compile time to enrich signal calibration. Evaluator loads referenced cookbooks at runtime.
+
+**Steering:** Direct reference chosen over severity_map indirection — cookbook patterns are concrete examples that directly inform signal thresholds and calibration, not abstract severity levels. Reference allows sharing across Items without embedding. L1+L2 hierarchy with association supports both domain-global best practices and case-specific refinements.
 
 ---
 
@@ -488,7 +582,7 @@ Not subject to embed-vs-reference. It is the raw input to evaluation, not refere
 | 4 | Product Introduction | **Reference** | PENDING |
 | 5 | Operation Manual | **Reference** | `<L1>/<L2>/<L3>/index.md` |
 | 6 | Dynamic Knowledge Base | **Reference** | `<domain>/dkb.<slug>.yaml` (L1) or `<domain>/<case>/dkb.<slug>.yaml` (L2) |
-| 7 | Best Practice Cookbook | PENDING | — |
+| 7 | Best Practice Cookbook | **Reference** | `<domain>/cookbook.<slug>.yaml` (L1) or `<domain>/<case>/cookbook.<slug>.yaml` (L2) |
 | 8 | Error Case Library | PENDING | — |
 | 9 | Audio Transcription | N/A | — |
 
