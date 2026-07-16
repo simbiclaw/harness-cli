@@ -661,12 +661,51 @@ reference_sources:
 
 ---
 
-## #9 Audio Transcription — N/A (per-call artefact)
+## Audio Transcription — Removed from Expertise Classification
 
-**Epistemic class:** N/A — not in the INTENTS tree
-**Location:** Per-call input, produced by audio2tree transformation layer
+**Why removed:** Audio Transcription is fundamentally different from the 8 expertise modules above.
 
-Not subject to embed-vs-reference. It is the raw input to evaluation, not referent data.
+| Dimension | Expertise (#1-#8) | Audio Transcription |
+|:---|:---|:---|
+| **Epistemic nature** | **Knowledge** — authored/curated descriptions of how the world works or should work | **Data** — raw observation of what actually happened in a specific call |
+| **Source** | Domain experts (human-authored) | Sensors/systems (automatically recorded) |
+| **Lifespan** | Persistent — versioned, accumulated over time | Transient — per-call, consumed during evaluation |
+| **Storage** | INTENTS tree (git-versioned, authoritative) | Call queue (per-call input, not authoritative) |
+| **Role in evaluation** | **Referent** — the yardstick or context against which facts are measured | **Facts** — the raw material being measured |
+| **Update mechanism** | Human-reviewed, gated changes | Automatically generated per call |
+
+**Conclusion:** Audio Transcription is **input data**, not **knowledge/expertise**. It belongs to the transformation tier's output (S0), not the INTENTS tree's content. Therefore, it is excluded from the expertise classification.
+
+### Storage: Grouped by L3 Intent under INTENTS
+
+Although not an expertise, Audio Transcription **is stored in INTENTS** for organizational and retrieval purposes:
+
+```
+INTENTS/
+└── <domain>/
+    └── <case>/
+        └── <L3-intent>/              # e.g., "late-filing-evidence"
+            └── calls/                # Audio Transcription storage
+                └── 2026-07-16/
+                    ├── <call-basename>.json    # CallRecord (basename matches input <call-basename>.wav)
+                    └── ...
+```
+
+**Naming convention:**
+- Input call log (audio): `<call-basename>.wav`
+- CallRecord (transcription): `<call-basename>.json` (same basename, different extension)
+
+Example: If input audio is `customer-service-20260716-001.wav`, CallRecord is `customer-service-20260716-001.json`
+
+**Purpose of L3 grouping:**
+- Calls are organized by the **L3 intent/activity** they represent
+- Enables efficient retrieval for evaluation, training, and pattern mining
+- Supports audio2tree's **unknown unknowns** emergence detection per L3 context
+
+**Key distinction:** While stored in INTENTS for organizational purposes, Audio Transcription files are:
+- **Not versioned** (no git history per call)
+- **Not authoritative** (no human curation)
+- **Consumed as input** (not referenced as expertise)
 
 ---
 
@@ -684,7 +723,8 @@ Not subject to embed-vs-reference. It is the raw input to evaluation, not refere
 | 6 | Dynamic Knowledge Base | **Reference** | `<domain>/dkb.<slug>.yaml` (L1) or `<domain>/<case>/dkb.<slug>.yaml` (L2) |
 | 7 | Best Practice Cookbook | **Reference** | `<domain>/cookbook.<slug>.yaml` (L1) or `<domain>/<case>/cookbook.<slug>.yaml` (L2) |
 | 8 | Error Case Library | **REFERENCE** | `<domain>/errors.<slug>.yaml` (L1) or `<domain>/<case>/errors.<slug>.yaml` (L2) |
-| 9 | Audio Transcription | N/A | — |
+
+**Note:** Audio Transcription is excluded from this expertise list — see "Removed from Expertise Classification" section above for rationale.
 
 ---
 
