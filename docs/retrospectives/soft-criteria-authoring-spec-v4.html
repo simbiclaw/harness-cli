@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Soft-Criteria Authoring — Companion Spec (rev. 4)</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --paper: #fffefb;
+    --ink: #1c1a17;
+    --muted: #6b665c;
+    --faint: #9a9488;
+    --rule: #ddd8cd;
+    --blue: #1d4e89;
+    --green: #2a7d4f;
+    --amber: #b87514;
+    --red: #b5402e;
+    --purple: #6a4a9c;
+    --codebg: #1c1f26;
+    --codefg: #e2e0d8;
+    --codekey: #7fb3e8;
+    --codestr: #9ed79e;
+    --codecom: #7a8290;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Newsreader', Georgia, serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+    font-size: 17px;
+    padding: 0 0 6rem;
+  }
+  .wrap { max-width: 54rem; margin: 0 auto; padding: 0 1.5rem; }
+
+  header {
+    border-bottom: 2px solid var(--ink);
+    padding: 3rem 0 1.4rem;
+    margin-bottom: 2rem;
+  }
+  .doctype {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 0.8rem;
+  }
+  h1 { font-size: 2.7rem; line-height: 1.08; font-weight: 600; letter-spacing: -0.02em; }
+  .meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.74rem;
+    color: var(--muted);
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.6rem;
+  }
+  .meta b { color: var(--ink); font-weight: 600; }
+
+  .thesis {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--blue);
+    padding: 1.4rem 1.6rem;
+    margin: 2rem 0;
+    font-size: 1.1rem;
+  }
+  .thesis b { color: var(--blue); }
+
+  h2 {
+    font-size: 1.7rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    margin: 3.2rem 0 0.3rem;
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--rule);
+  }
+  h2 .num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--blue);
+    display: block;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.2rem;
+    border: none;
+  }
+  h3 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.92rem;
+    font-weight: 700;
+    margin: 1.8rem 0 0.5rem;
+  }
+  p { margin-bottom: 0.9rem; }
+  .lead { color: var(--muted); font-size: 1.02rem; }
+
+  code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82em;
+    background: #ece8df;
+    padding: 0.1em 0.38em;
+    border-radius: 3px;
+    color: #5a4a2a;
+  }
+  pre {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    background: var(--codebg);
+    color: var(--codefg);
+    padding: 1.2rem 1.4rem;
+    border-radius: 5px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.55;
+  }
+  pre .k { color: var(--codekey); }
+  pre .s { color: var(--codestr); }
+  pre .c { color: var(--codecom); font-style: italic; }
+  pre .f { color: #e8c07a; }
+
+  .invariant {
+    counter-reset: none;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    border-radius: 5px;
+    margin: 1.2rem 0;
+    overflow: hidden;
+  }
+  .invariant .row {
+    display: grid;
+    grid-template-columns: 3.2rem 1fr;
+    border-bottom: 1px solid var(--rule);
+  }
+  .invariant .row:last-child { border-bottom: none; }
+  .invariant .tag {
+    background: var(--codebg);
+    color: var(--codekey);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.74rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.8rem 0;
+  }
+  .invariant .body { padding: 0.8rem 1.1rem; font-size: 0.92rem; }
+  .invariant .body b { font-family: 'IBM Plex Mono', monospace; font-size: 0.84rem; }
+
+  table.grid {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.4rem 0;
+    font-size: 0.82rem;
+  }
+  table.grid th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: left;
+    padding: 0.6rem 0.7rem;
+    border-bottom: 2px solid var(--ink);
+    color: var(--muted);
+    vertical-align: bottom;
+  }
+  table.grid td {
+    padding: 0.6rem 0.7rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  table.grid td.mono, table.grid th.mono { font-family: 'IBM Plex Mono', monospace; font-size: 0.76rem; }
+
+  .det { color: var(--green); font-weight: 600; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; }
+  .semi { color: var(--amber); font-weight: 600; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; }
+  .hum { color: var(--purple); font-weight: 600; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; }
+  .redm { color: var(--red); font-weight: 600; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; }
+
+  /* independence-class chips for corroboration */
+  .ic { font-family:'IBM Plex Mono',monospace; font-size:0.64rem; font-weight:700; letter-spacing:0.04em;
+        padding:0.12em 0.5em; border-radius:3px; text-transform:uppercase; white-space:nowrap; }
+  .ic.ind { background:#ecf6ef; color:var(--green); border:1px solid #bfe0c9; }
+  .ic.cor { background:#fbf3e6; color:var(--amber); border:1px solid #e6cf9e; }
+  .ic.red { background:#fbeeeb; color:var(--red);   border:1px solid #e6b6ab; }
+  .wgt { font-family:'IBM Plex Mono',monospace; font-size:0.74rem; color:var(--muted); }
+
+  /* toggle-revealed critique panel */
+  details.crit {
+    border:1px solid var(--rule); border-left:4px solid var(--red);
+    border-radius:5px; background:#fdf6f4; margin:1.1rem 0; padding:0 1.2rem;
+  }
+  details.crit > summary {
+    font-family:'IBM Plex Mono',monospace; font-size:0.74rem; font-weight:700;
+    letter-spacing:0.04em; color:var(--red); cursor:pointer; padding:0.85rem 0;
+    list-style:none;
+  }
+  details.crit > summary::-webkit-details-marker { display:none; }
+  details.crit > summary::before { content:"▸ "; }
+  details.crit[open] > summary::before { content:"▾ "; }
+  details.crit .cbody { font-size:0.9rem; padding:0 0 1rem; }
+  details.crit .cbody p { margin-bottom:0.6rem; }
+
+  .prompt { margin:1.2rem 0; border:1px solid var(--rule); border-radius:6px; overflow:hidden; }
+  .prompt .plabel {
+    font-family:'IBM Plex Mono',monospace; font-size:0.66rem; font-weight:700; letter-spacing:0.1em;
+    text-transform:uppercase; color:#fff; background:var(--blue); padding:0.45rem 1rem;
+  }
+  .prompt pre { margin:0; border-radius:0; font-size:0.74rem; }
+
+  .fixture {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    overflow: hidden;
+    margin: 1rem 0;
+  }
+  .fixture .cell { background: var(--paper); padding: 0.9rem 1.1rem; }
+  .fixture .cell.red { background: #fbeeeb; }
+  .fixture .cell.green { background: #ecf6ef; }
+  .fixture .label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+  }
+  .fixture .red .label { color: var(--red); }
+  .fixture .green .label { color: var(--green); }
+  .fixture .cell p { font-size: 0.82rem; margin: 0; }
+  .fixture .cell code { font-size: 0.74rem; }
+
+  .milestone {
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 1.1rem 1.3rem;
+    margin: 0.9rem 0;
+    background: var(--paper);
+  }
+  .milestone .mhead {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 700;
+    font-size: 0.88rem;
+    margin-bottom: 0.3rem;
+  }
+  .milestone .mhead .id {
+    background: var(--blue);
+    color: #fff;
+    padding: 0.1em 0.5em;
+    border-radius: 3px;
+    margin-right: 0.6rem;
+    font-size: 0.78rem;
+  }
+  .milestone .accept {
+    font-size: 0.84rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--rule);
+  }
+  .milestone .accept b { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--green); letter-spacing: 0.04em; }
+
+  .callout {
+    border-radius: 5px;
+    padding: 1rem 1.3rem;
+    margin: 1.2rem 0;
+    font-size: 0.92rem;
+  }
+  .callout.warn { background: #fbf3e6; border: 1px solid #e6cf9e; }
+  .callout.warn b { color: var(--amber); }
+  .callout.key { background: #eaf0f7; border: 1px solid #b8cce4; }
+  .callout.key b { color: var(--blue); }
+
+  ol.spec, ul.spec { padding-left: 1.4rem; margin: 0.6rem 0 1rem; }
+  ol.spec li, ul.spec li { font-size: 0.92rem; margin-bottom: 0.4rem; }
+
+  .stagebar { margin: 1.6rem 0; }
+  figcaption { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--faint); margin-top: 0.5rem; text-align: center; }
+
+  @media (max-width: 640px) {
+    h1 { font-size: 2rem; }
+    .fixture { grid-template-columns: 1fr; }
+    body { font-size: 16px; }
+  }
+
+  /* transfer-verdict chips (companion) */
+  .vd { font-family:'IBM Plex Mono',monospace; font-size:0.62rem; font-weight:700; letter-spacing:0.05em;
+        padding:0.14em 0.55em; border-radius:3px; text-transform:uppercase; white-space:nowrap; color:#fff; }
+  .vd.trans  { background:var(--green); }
+  .vd.xform  { background:var(--blue); }
+  .vd.repl   { background:var(--purple); }
+  .vd.forbid { background:var(--red); }
+  .astep { border:1px solid var(--rule); border-left:4px solid var(--blue); background:var(--paper);
+           border-radius:5px; padding:1rem 1.3rem; margin:0.9rem 0; }
+  .astep .aid { font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:0.82rem; color:var(--blue);
+                margin-right:0.5rem; }
+  .astep .atitle { font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:0.86rem; }
+  .astep .arepl { font-size:0.8rem; color:var(--muted); border-top:1px dashed var(--rule); margin-top:0.6rem; padding-top:0.5rem; }
+  .astep .arepl b { font-family:'IBM Plex Mono',monospace; font-size:0.7rem; color:var(--ink); }
+
+  del.patch-1 { text-decoration: line-through; color: #9a9488; background: rgba(181,64,46,0.06); }
+  del.patch-1 code { text-decoration: line-through; }
+  .p1-note { font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; color: #b87514; margin-left: 3px; white-space: nowrap; }
+  .computable-footnote { font-size: 0.78rem; color: var(--muted); border: 1px solid var(--rule); border-radius: 8px; padding: 1rem 1.2rem; margin: 1.2rem 0; }
+  .computable-footnote dt { font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; font-weight: 700; color: var(--ink); margin-top: 0.6rem; }
+  .computable-footnote dd { margin: 0.2rem 0 0; font-size: 0.82rem; color: var(--g700); padding-left: 0; }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="doctype">Companion Spec · rev. 4 · four-input contract · conformed to spine v6</div>
+  <h1>Two Versions of the Same Rubric</h1>
+  <div class="meta">
+    <span><b>Layer</b> TRANSFORMATION — a peer of audio2tree &amp; doc2graph · home <code>.claude/skills/</code> · packaged as a skill (subagent TBD, §7) with a <code>SKILL.md</code> contract</span>
+    <span><b>Compiler inputs (3)</b> Specific QA Rubric (human · binary) · Generic Evaluator Skill (AI template · continuous) · <code>align.md</code> (item→dimension map)</span>
+    <span><b>Independent channel</b> Calibration Manifest — company fragments + human scores <b>from the Error Case Library and expertise-derived Best Practices</b> · injectable alone, no compile run required</span>
+    <span><b>Output</b> machine rubric authored into <code>INTENTS/_rubric/</code> + a residue manifest</span>
+    <span><b>Compiles into</b> the <code>_rubric/</code> shelf (three category readers) · read by S2 (hunt), S3 (ground), S4a (weight)</span>
+    <span><b>Pairs with</b> Process-Derivation Pipeline rev. 5 (v6-conformed)</span>
+    <span><b>rev. 3 added</b> v6 conformance · output → <code>_rubric/</code> · falsifiable fields · <del class="patch-1">acoustic+phrase as targets</del> <span class="p1-note">acoustic+phrase are evidence sources, not rules_criteria targets (Patch 1 §1, D2)</span></span>
+    <span><b>New in rev. 4</b> four-input contract · binary→continuous bridge · NA→applicability gate · hard-threshold synthesis · value extraction · calibration manifest · dimension-coverage gap</span>
+  </div>
+</header>
+
+<p class="lead">A soft QA rubric exists in more than one form, and rev. 4 corrects a framing error carried since rev. 2. The <b>Specific QA Rubric</b> is the human version: binary <code>0/1/NA</code> checklist items an inspector marks, carrying company-specific <em>values</em> (named phrases, numeric thresholds) and failure examples. The <b>Generic Evaluator Skill</b> is <em>not</em> a human artifact — it is an AI-executed template supplying judgment <em>structure</em> (four dimensions, a 1–10 scale, failure signatures, a hard-threshold mechanism), not ground truth. The compiler fuses these through the <code>align.md</code> item→dimension map and emits <dfn class="computable">computable</dfn><sup>◆</sup> <code>_rubric/</code> nodes a proposer hunts with, a gate grounds against, and a pure function weights. Alongside — <em>not inside</em> — the compile sits the <b>Calibration Manifest</b>: human-judged fragments <b>drawn from the Error Case Library and expertise-derived Best Practices</b>, injected on its own channel whenever drift demands, with or without a compile run. The compiler is not a runtime stage and never sees a live call; it runs offline, per criterion, and re-runs when the <em>rules</em> change. It is a <b>transformation-layer skill</b> — a peer of audio2tree and doc2graph, and like them it converts an unstructured human artifact (here, intuition-driven quality judgment) into structured, machine-gradable INTENTS content (the <code>_rubric/</code> shelf). The transformation is <em>agentic</em> — classifying gap types, deciding what won't reduce and must go to residue, extracting values without over-fitting is judgment, not a pure pass; but what it emits is <em>deterministic</em> rubric that Argus later applies as a pure function. <b>Authoring is agentic; enforcement is pure.</b> That seam is internal to the skill and is the line rev. 4 must not blur.</p>
+
+<div class="computable-footnote">
+<sup>◆</sup> <b>"Computable" in this spec means something specific — three distinct layers, not one.</b> The word is used throughout this spec and the v5 runtime pipeline, but it names three different things that are all Turing-computable yet play different architectural roles:
+<dl>
+<dt>1. Compute (模型) — propose findings with referents</dt>
+<dd>The model reads transcript + INTENTS, performs a forward pass, and proposes findings each carrying a <code>grounding_signals[]</code> with claimed referents. This IS computation — a finite sequence of matrix operations producing a deterministic output for fixed weights and inputs. But the model does NOT dispose: its output is quarantined (I1).</dd>
+<dt>2. Verify (门) — confirm referents exist and match</dt>
+<dd>The gate checks each proposed finding: does it anchor to a real transcript span AND a real INTENTS node at the pinned git-SHA epoch, and does the cited evidence literally satisfy the <code>required_evidence</code> / <code>fail_condition</code> spec? This too IS computation — a mechanical check against external referents. A digit has no span; a finding without a referent is ungrounded (I2).</dd>
+<dt>3. Dispose (门) — decide the verdict</dt>
+<dd>Pass, fail, or defer-to-human. This IS computation — a pure function (<code>score()</code>, <code>adjust()</code>) of the surviving anchored findings + versioned rubric weights + case precedents — re-derivable bit-for-bit. The model's proposed score never ships (D7, D8).</dd>
+</dl>
+The term "computable" in this spec therefore means <b>gate-checkable</b> — a finding is computable when it carries a referent the gate can deterministically verify against. A model output without a referent IS Turing-computable but is NOT "computable" in the spec's sense: it cannot survive the grounding pass. The pipeline's honesty is not that everything is computable; it is that the boundary between computable and uncomputable is explicitly named (<code>gap_type</code>, <code>gap_rationale</code>, <code>residue</code>) and reported in the manifest.
+</div>
+
+<div class="thesis">
+The machine rubric is not a faithful translation of the human rubric — it is a <b>lossy projection</b> of it. The compilable part becomes triggers; the part that won't reduce to a check ("substantive rather than scripted", "genuine not performative") stays human and routes to a person. So the output is always two things: the machine nodes <em>and</em> a declared residue manifest naming what was left behind — including <b>whole criteria no dimension covers</b> (Item 24). A compiler that emits only the nodes, and silently drops the residue, is the failure this spec exists to prevent.
+</div>
+
+
+<!-- ════════ §0 ════════ -->
+<h2><span class="num">§0 · TWO PIPELINES</span>Where the methodology lives</h2>
+
+<p>"Front-end" means front-end of the <em>authoring</em> pipeline, not a stage ahead of the evaluator. The runtime path (rev. 4) is unchanged; the authoring path runs once per criterion, before any call is evaluated.</p>
+
+<div class="callout key">
+<b>This compiler is a transformation-layer skill, not consumer-tier code.</b> The layer is defined by <em>what a component produces</em>, not the language it is written in: audio2tree emits intent structure, doc2graph emits procedural structure, and this skill emits <code>_rubric/</code> nodes — all three take an unstructured human artifact and produce structured INTENTS content. So the soft-criteria compiler is a <b>peer of audio2tree and doc2graph</b>, homed in <code>.claude/skills/</code> with its own <code>SKILL.md</code>, not a module buried under <code>src/argus</code>. What keeps this honest with the rest of the architecture is the internal seam: the skill <em>authors</em> rubric (agentic judgment), but the rubric it emits is applied by Argus as a <em>pure function</em> (deterministic enforcement). An agentic authoring skill is correct; an agentic <em>runtime</em> would be the C5 poison. The non-poisoning invariants therefore attach to where the skill's <em>output</em> goes — no rule edits from Argus output, epoch-commit-only re-entry, no <code>src/argus</code> write-path into INTENTS — not to the skill's own agency.
+</div>
+
+<div class="stagebar">
+<figure>
+<svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, monospace">
+  <defs><marker id="a" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#6b665c"/></marker></defs>
+
+  <text x="20" y="28" font-size="10" font-weight="700" fill="#1d4e89">AUTHORING (offline · per criterion)</text>
+  <g>
+    <rect x="20" y="40" width="120" height="46" rx="4" fill="#eaf0f7" stroke="#1d4e89"/>
+    <text x="80" y="58" font-size="9" font-weight="700" fill="#1d4e89" text-anchor="middle">human + method</text>
+    <text x="80" y="72" font-size="7.5" fill="#6b665c" text-anchor="middle">decompose → signature</text>
+  </g>
+  <g>
+    <rect x="170" y="40" width="120" height="46" rx="4" fill="#eaf0f7" stroke="#1d4e89"/>
+    <text x="230" y="58" font-size="9" font-weight="700" fill="#1d4e89" text-anchor="middle">compile trigger</text>
+    <text x="230" y="72" font-size="7.5" fill="#6b665c" text-anchor="middle">+ residue + τ + class</text>
+  </g>
+  <line x1="141" y1="63" x2="168" y2="63" stroke="#6b665c" marker-end="url(#a)"/>
+
+  <!-- rubric shelf -->
+  <rect x="240" y="118" width="220" height="48" rx="4" fill="#1c1f26" stroke="#1c1f26"/>
+  <text x="350" y="135" font-size="9.5" font-weight="700" fill="#7fb3e8" text-anchor="middle">INTENTS/_rubric/ shelf</text>
+  <text x="350" y="148" font-size="7" fill="#e2e0d8" text-anchor="middle">rules · acoustic framework · phrase lexicon</text>
+  <text x="350" y="159" font-size="7" fill="#e2e0d8" text-anchor="middle">write-time owned · pinned git-SHA epoch</text>
+  <path d="M 230 87 L 230 142 L 238 142" fill="none" stroke="#1d4e89" stroke-dasharray="3 3" marker-end="url(#a)"/>
+  <text x="200" y="108" font-size="7" fill="#1d4e89" text-anchor="middle">committed at write time (new epoch)</text>
+
+  <text x="470" y="28" font-size="10" font-weight="700" fill="#2a7d4f">RUNTIME (online · per call — unchanged)</text>
+  <g>
+    <rect x="470" y="40" width="100" height="46" rx="4" fill="#fbeeeb" stroke="#b5402e"/>
+    <text x="520" y="58" font-size="9" font-weight="700" fill="#b5402e" text-anchor="middle">S2 PROPOSE</text>
+    <text x="520" y="72" font-size="7.5" fill="#6b665c" text-anchor="middle">reads triggers</text>
+  </g>
+  <g>
+    <rect x="590" y="40" width="100" height="46" rx="4" fill="#ecf6ef" stroke="#2a7d4f"/>
+    <text x="640" y="58" font-size="9" font-weight="700" fill="#2a7d4f" text-anchor="middle">S3 GROUND</text>
+    <text x="640" y="72" font-size="7.5" fill="#6b665c" text-anchor="middle">checks vs trigger</text>
+  </g>
+  <line x1="571" y1="63" x2="588" y2="63" stroke="#6b665c" marker-end="url(#a)"/>
+  <path d="M 450 142 L 520 142 L 520 88" fill="none" stroke="#2a7d4f" stroke-dasharray="3 3" marker-end="url(#a)"/>
+  <text x="510" y="158" font-size="7" fill="#2a7d4f" text-anchor="middle">_rubric/ read at a pinned SHA</text>
+
+  <!-- feedback up, human-gated -->
+  <path d="M 640 88 L 640 200 L 350 200 L 350 166" fill="none" stroke="#6a4a9c" stroke-dasharray="2 2" marker-end="url(#a)"/>
+  <text x="495" y="216" font-size="7.5" fill="#6a4a9c" text-anchor="middle">S6 corrections re-enter at write time → new epoch — never model-edited (A7)</text>
+</svg>
+<figcaption>Fig. C1 — the methodology is the left box only. It never touches a call log; it stocks the referent the runtime reads.</figcaption>
+</figure>
+</div>
+
+<div class="callout key">
+<b>The dependency it bears.</b> method → <code>_rubric/</code> shelf → {what S2 can propose, what S3 can confirm}. Remove it and the shelf holds no judgment-layer rules; S3 has nothing to ground soft findings against; every soft finding returns <code>deferred</code>. That is the load — it stocks the referent — and it is borne offline. It is load-bearing <em>with a known gap</em>: it carries coverage, not completeness (the C3 residue stays, §6).</div>
+
+<!-- ════════ §0.5 INPUT CONTRACT ════════ -->
+<h2><span class="num">§0.5 · INPUT CONTRACT</span>Three compiler inputs + one independent channel (rev. 4)</h2>
+
+<p>rev. 2 modeled the compiler as ingesting a single "human version." That was wrong, and it hid the real structure. The <b>Generic Evaluator Skill is an AI-executed template</b>, not a human artifact — it carries judgment <em>structure</em>, not truth. The human artifact is the <b>Specific QA Rubric</b>: binary items with company values. <code>align.md</code> bridges them. The <b>Calibration Manifest is deliberately <em>not</em> a compiler input</b>: it is an independent channel — human-judged fragments <b>from the Error Case Library and expertise-derived Best Practices</b> — that can be injected <em>alone</em>, on demand, without a compile run. Miss a compiler input and the projection is unsound; miss the manifest and the projection is sound but <em>conservative</em> — AUTH-9 withholds auto-final from surface-form-sensitive criteria until coverage arrives.</p>
+
+<table class="grid">
+  <thead><tr><th style="width:22%">Input</th><th style="width:16%">Executed by</th><th style="width:20%">Supplies</th><th style="width:42%">Omitting it causes</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">Specific QA Rubric</td><td>human inspector</td><td>27 binary <code>0/1/NA</code> items · concrete values · company failure examples</td><td>no content — only generic principles, no named phrases or thresholds (Item 4)</td></tr>
+    <tr><td class="mono">Generic Evaluator Skill</td><td><b>AI agent (template)</b></td><td>4 dimensions · 1–10 scale · failure signatures · hard-threshold mechanism</td><td>no judgment scaffold — binary items with nowhere to aggregate to</td></tr>
+    <tr><td class="mono">Calibration Manifest</td><td>human (annotates)</td><td><b>independent channel — injectable alone</b> · fragments + scores <b>from the Error Case Library &amp; expertise-derived Best Practices</b></td><td>safe degradation, not unsoundness: surface-form criteria compile but cannot auto-final (AUTH-9) until coverage arrives (Item 22)</td></tr>
+    <tr><td class="mono"><code>align.md</code></td><td>authoring</td><td>item → dimension mapping</td><td>no bridge — items can't be routed to the dimension they inform</td></tr>
+  </tbody>
+</table>
+<p style="font-size:0.9rem;color:var(--muted);">Output is unchanged: <code>_rubric/</code> nodes + a residue manifest. The manifest now also carries <b>dimension-coverage gaps</b> — human criteria that map to <em>no</em> adequate dimension (Item 24).</p>
+
+<div class="callout key">
+<b>The Calibration Manifest is a mechanism, not a compiler input.</b> Per the generic skill's own calibration philosophy, its distribution is <em>deliberately uneven</em> — a set of <b>countermeasures, not a curriculum</b>. Fragments concentrate where the evaluator's cognitive bias is known to misjudge (≈<b>2:1 danger-zone ratio</b>: twice the anchors at misjudgment points as at excellence ceilings), because a false <em>pass</em> on the judgment layer costs asymmetrically more than a false flag. Its cases are <b>drawn from the Error Case Library and expertise-derived Best Practices</b> — the two INTENTS knowledge modules that already hold, respectively, confirmed failures and confirmed exemplars. Operationally it is <b>embedded in the live QA loop, on its own channel</b>:
+<ol class="spec" style="margin-top:0.7rem;">
+<li><b>Trigger.</b> Observed scoring deviation — falling Argus-vs-human κ or a rising escape rate on a criterion (the pipeline §6 drift detector).</li>
+<li><b>Injection — standalone, no compile run.</b> Targeted human-judged cases from the <b>Error Case Library</b> (confirmed failures) and <b>Best Practice Cookbook</b> (confirmed exemplars) are annotated and committed as a new manifest epoch — aimed at the specific bias the deviation exposed, not spread evenly.</li>
+<li><b>Recalibration — by reference, not recompilation.</b> Because each node's <code>severity_map</code> is a <em>reference into</em> the manifest, the injection re-anchors severity and re-evaluates AUTH-9 coverage on the existing nodes. Auto-final rights are restored (or withheld) against the new epoch. The compiler re-runs only when the <em>rules</em> change — manifest injections alone never require it.</li>
+</ol>
+<p style="margin:0.7rem 0 0;font-size:0.93rem;">Each injection is a <b>write-time, producer-owned commit minting a new INTENTS epoch</b> (ADR-0003) — the same non-poisoning path as every other rubric change (A7): human-judged cases enter; evaluator output never self-edits the manifest. "Supplied on demand" therefore means versioned and growing, with each epoch auditable — and separable: manifest epochs advance independently of rule epochs.</p>
+</div>
+
+<!-- ════════ §1 ════════ -->
+<div class="callout key">
+<b>What rev. 4 adds — the gap types the compiler must handle.</b> Sampled human-vs-generic gaps (one per inspection category) specify <em>capabilities</em>, not the 27 instances — so they fix the compiler's contract even before the full rubric arrives. Each maps to a concrete authoring change.
+<ol class="spec" style="margin-top:0.7rem;">
+<li><b>Binary → continuous bridge (§2.6-A).</b> Binary items are <em>evidence weighed into</em> a 1–10 dimension score, not the verdict. Triggers → grounded findings → pure <code>score()</code> re-derives the dimension number; the calibration manifest sets the deduction weights and the severity mapping. Two calls that both fail an item for different severities are distinguished by the manifest, not the binary.</li>
+<li><b>NA → applicability gate (§2.6-B, AUTH-7).</b> An NA condition compiles into a trigger <code>applicability_gate</code>: condition unmet → trigger does not fire → the item is not counted as evidence for or against the dimension. NA is a structural feature of binary rubrics with no continuous counterpart; it must be compiled, not dropped.</li>
+<li><b>Hard-threshold synthesis (§2.6-C).</b> "Problem Resolution &lt; 7 = IMMEDIATE FAIL" has no single-item human equivalent. The compiler <em>synthesizes</em> the routing rule from a <b>subset</b> of binary items that collectively indicate severe failure — a many-to-one gate, not a copied threshold.</li>
+<li><b>Value extraction (§2.6-D, Item 4).</b> Parse concrete values from checklist text: named phrases → <code>lexical</code> triggers, numeric thresholds → <code>threshold</code> triggers, at confidence 1.0. The gap here is specificity, not kind — the compiler extracts values, it does not merely infer forms from principles.</li>
+<li><b>Calibration coverage (Item 22, AUTH-9).</b> A surface-form-sensitive judgment criterion may <em>not</em> auto-finalize unless the calibration manifest covers its failure surface. Without company fragments, the deflect-before-acknowledge pattern scores as helpful assistance — a systematic false positive.</li>
+<li><b>Escape tier by gap type (Item 16).</b> A proxy-only criterion (a cognitive state with only lagging structural indicators) gets the most aggressive escape sampling in the rubric. <code>escape_tier</code> is a function of gap type, not a hand-set default: silent misdiagnosis is invisible to every structural check.</li>
+<li><b>Dimension-coverage gap (Item 24, AUTH-10).</b> When a human criterion measures something <em>no</em> dimension covers — consequential business harm (callback inevitability, unnecessary cost, incomplete resolution) — the compiler emits <code>lookup</code> triggers with <code>data_dependency</code> declarations, <b>defers to human until the source is connected</b>, and flags a <code>dimension_coverage_gap</code> manifest row (possibly proposing a new <em>Business Impact</em> sub-dimension).</li>
+</ol>
+<p style="margin:0.7rem 0 0;font-size:0.93rem;color:var(--muted);">The v6-conformance decisions from rev. 3 (output → <code>_rubric/</code>, falsifiable fields, acoustic/phrase as targets, write-time re-entry) are unchanged and still hold — see §1 and §2.5.</p>
+</div>
+
+<h2><span class="num">§1 · WHAT TRANSFERS</span>The methodology's seven steps, adjudicated</h2>
+
+<p>The reference assumes the evaluator <em>is</em> an LLM judging prose. This pipeline moves the disposing judgment out of the model into a deterministic gate plus the §6 instrument. So each step is adjudicated against that move, not adopted wholesale.</p>
+
+<table class="grid">
+  <thead><tr><th style="width:26%">Reference step (§04)</th><th style="width:14%">Verdict</th><th style="width:60%">In this architecture</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">1 · Decompose into orthogonal dimensions</td><td><span class="vd trans">transfers</span></td><td>Kept, with a sharper operationalizability test: a dimension is admissible only if it reduces to a structurally checkable trigger. If it can't, it is <em>residue</em> (A4), not a criterion — and is declared, not forced.</td></tr>
+    <tr><td class="mono">2 · Replace adjectives with failure signatures</td><td><span class="vd xform">transforms</span></td><td>The signature is compiled into a <code>_rubric/rules/</code> node carrying <code>required_evidence</code> + <code>fail_condition</code> (lexical / ordered-relation / threshold / lookup) — a falsifiable rule, not rubric prose in a skill file. An adjective trigger is rejected at authoring (AUTH-1).</td></tr>
+    <tr><td class="mono">3 · Weight by baseline performance</td><td><span class="vd repl">replaced</span></td><td>That heuristic budgets an LLM judge's attention; the gate has no attention budget. The deduction weight comes from the human rubric on the anchor; corroboration weight comes from the independence class (D2), not from baseline scores.</td></tr>
+    <tr><td class="mono">4 · Set hard thresholds</td><td><span class="vd xform">transforms</span></td><td>Per-criterion minimum becomes the §6 κ-gate τ; "IMMEDIATE FAIL" critical dimensions map to compliance-layer criteria that resolve at <code>grounding_confidence 1.0</code>. Thresholds live on the wire, not in evaluator prose.</td></tr>
+    <tr><td class="mono">5 · Calibrate with few-shot examples</td><td><span class="vd repl">replaced</span></td><td>Replaced by the §6 agreement instrument: continuous Argus-vs-human κ on a rolling sample, versioned with the rubric, with a drift detector. The reference's one-shot, in-file calibration is the informal ancestor of this.</td></tr>
+    <tr><td class="mono">6 · Make criteria active, not passive</td><td><span class="vd trans">transfers</span></td><td>Strongest transfer. An active check ("find the acknowledgment span; verify it precedes the resolution span") <em>is</em> the §4 applicability check — an ordered-relation trigger. Active phrasing is exactly what makes a signature compilable.</td></tr>
+    <tr><td class="mono">7 · Iterate the rubric itself</td><td><span class="vd forbid">forbidden as written</span></td><td>Free iteration against the evaluator's own output is the C5 co-degradation loop. Replaced by drift-detector-triggered re-grounding through a write-time human-confirmed commit (S6). Rules may change — only via a producer-owned commit that mints a new epoch, never by editing against Argus output (A7).</td></tr>
+  </tbody>
+</table>
+
+<details class="crit">
+<summary>THE ONE STEP THAT MOST WANTS TO POISON THE LOOP — read before automating step 7</summary>
+<div class="cbody">
+<p>Step 7 in the reference is a tight loop: run evaluator → see where it diverges from you → add examples → re-run. Mechanize that with the model on both ends and you have each rubric generation trained on the last evaluator's confident errors — model collapse for verification.</p>
+<p>The §6 instrument is what makes iteration safe: the only signal allowed to change a rule is <em>human</em> disagreement (falling Argus-vs-human κ), and the only path back into <code>_rubric/</code> is a write-time, producer-owned commit that mints a new epoch (ADR-0003). The human is not removed from calibration; calibration is moved from synchronous (review every call) to asynchronous (sampled agreement sets the gate). It shrank and relocated — it did not vanish. An authoring tool that edits a rule directly from Argus outputs must fail review.</p>
+</div>
+</details>
+
+<!-- ════════ §2 ════════ -->
+<h2><span class="num">§2 · AUTHORING PROCEDURE</span>From soft concept to wire entry</h2>
+
+<p>Run once per soft criterion. Output is a single <code>_rubric/rules/</code> node (category = <code>rules_criteria</code>, layer = <code>judgment</code>), authored into the tree at write time. Compliance criteria do not need this procedure — they are already lexical/lookup at <code>confidence 1.0</code>.</p>
+
+<div class="astep"><span class="aid">A1</span><span class="atitle">Decompose to orthogonal dimensions</span>
+<p>Apply the independence, exhaustiveness, and operationalizability tests. Add the residue-or-trigger test: for each dimension, can it be stated as a structural check on transcript spans / acoustic thresholds / lookups? If yes → candidate trigger. If no → it is residue; record it for A4 and stop trying to force it.</p></div>
+
+<div class="astep"><span class="aid">A2</span><span class="atitle">Compile each signature to a trigger</span>
+<p>Translate the failure signature into a <code>trigger</code> with an explicit <code>form ∈ {lexical, ordered_relation, threshold, lookup}</code> and a <code>spec</code> S3 can evaluate deterministically. Example: "empathy" → "acknowledgment_span PRECEDES resolution_span within turn". No adjectives survive into the trigger.</p>
+<div class="arepl"><b>WIRES TO</b> Finding meta-verification in §4 of the pipeline; the trigger is what <code>anchor_applicable</code> checks against.</div></div>
+
+<div class="astep"><span class="aid">A3</span><span class="atitle">Classify corroborators by independence (D2)</span>
+<p>Declare which other expertise signals back this criterion and their <code>independence_class</code>. Acoustic threshold entries are <span class="ic ind">independent</span>; exemplar/case matches are <span class="ic cor">correlated</span>. Declaring a soft text signal — another model-judged <code>rules_criteria</code> item — as a corroborator is <span class="ic red">redundant</span> and forbidden (AUTH-4): it is the §6.4 voting prohibition in costume.</p>
+<div class="arepl"><b>WIRES TO</b> the §4.1 aggregator; classes are authored here, copied by S2, re-checked by S3.</div></div>
+
+<div class="astep"><span class="aid">A4</span><span class="atitle">Declare the residue — required field</span>
+<p>Name, in <del class="patch-1"><code>residue_declared</code></del> <code>gap_rationale</code> <span class="p1-note">renamed (Patch 1 §6)</span>, what the criterion does <em>not</em> capture. "Acknowledge-before-resolve captures sequence; it does not capture warmth, sincerity, or sarcasm that keeps correct sequence." An entry with no declared residue is rejected (AUTH-2). This is the C3 honesty made a schema constraint, not a footnote.</p></div>
+
+<div class="astep"><span class="aid">A5</span><span class="atitle">Seed the agreement gate</span>
+<p>Set initial <code>tau</code> (start 0.8) and <em>both</em> sampling plans for the criterion's auto-final right: a <code>kappa_sample_plan</code> (agreement tail — Argus-vs-human on co-reviewed calls) and an <code>escape_sample_plan</code> + <code>escape_ceiling</code> (auto-pass tail — sampled human review of what the criterion auto-passed, D11). A judgment-layer entry missing either plan is rejected (AUTH-3 / AUTH-6). This replaces the reference's few-shot calibration with a measurable, versioned, two-tailed instrument.</p>
+<div class="arepl"><b>WIRES TO</b> §6 of the pipeline; <code>current_kappa</code> starts null and is filled by the rolling sample.</div></div>
+
+<div class="astep"><span class="aid">A6</span><span class="atitle">Set deduction weight and corroboration constant</span>
+<p>The <code>deduction</code> is the human rubric's weight if the criterion is violated — independent of how many instruments corroborate (corroboration moves routing, not arithmetic). The corroboration constant <del class="patch-1"><code>w_c</code></del> <span class="p1-note">removed from AuthoredNode (Patch 1 D6)</span> for correlated signals is provisional (0.4); flag it for empirical measurement as <code>1 − corr(matcher_error, proposer_error)</code> and log the debt in the Decision Log.</p></div>
+
+<div class="astep"><span class="aid">A7</span><span class="atitle">Register drift detection and iteration policy</span>
+<p>Set <code>iteration_policy</code> to "re-ground only via S6 human confirmation; trigger edits against Argus output forbidden." The §6.3 drift detector watches this criterion's κ across windows; a fall auto-demotes it to human_review and flags for re-grounding. Iteration is human-gated, never model-gated.</p></div>
+
+<!-- ════════ §2.5 ════════ -->
+<h2><span class="num">§2.5 · ACOUSTIC & PHRASE ARE RUBRIC (v6)</span>Two modules the compiler now authors, not just consumes</h2>
+
+<p>In rev. 2 the acoustic threshold and the phrase lexicon were treated as <em>inputs</em> the runtime reads — corroborating signals the compiler pointed at. Spine v6 reclassifies both from facts to <b>rubric</b> (ADR-0001, M3), which changes the compiler's job: the acoustic <em>indicator framework</em> and the phrase <em>lexicon</em> are now yardsticks it must <b>author into <code>_rubric/</code></b>, alongside the rules. The measurement-vs-yardstick line is the whole point.</p>
+
+<div class="callout key">
+<b>The split, stated once.</b> The <em>per-call acoustic measurement</em> (a prosody number on the waveform) stays a runtime <b>fact</b> in the call record — it is what a rule's <code>required_evidence</code> tests against, and it remains an independent corroborator (D16). The <em>12-indicator framework</em> that says which prosodic features matter and where their thresholds sit is the <b>yardstick</b> — versioned rubric the compiler authors into <code>_rubric/acoustic/</code>. Same for phrase: a matched term is a fact; the <em>lexicon</em> of which terms matter is rubric in <code>_rubric/phrase/</code>.</p>
+</div>
+
+<div class="astep"><del class="patch-1"><span class="aid">A2-ac</span><span class="atitle">Compile the acoustic framework into <code>_rubric/acoustic/</code></span></del> <span class="p1-note">now produces EvidenceEntry; written to _rubric/evidence/acoustic/indicators.yaml (Patch 1 D2)</span>
+<p>Author the 12 indicators as rubric nodes: each names a prosodic feature, its threshold, and the <code>required_evidence</code> shape a rule cites when it corroborates against the measurement. The compiler does <em>not</em> author the measurement (that is produced upstream per call); it authors the framework that interprets it.</p>
+<div class="arepl"><b>WIRES TO</b> §4.1 of the pipeline — a rule citing an acoustic measurement resolves its threshold against this framework node, never against a hardcoded constant.</div></div>
+
+<div class="astep"><del class="patch-1"><span class="aid">A2-ph</span><span class="atitle">Compile the phrase lexicon into <code>_rubric/phrase/</code></span></del> <span class="p1-note">now produces EvidenceEntry; written to _rubric/evidence/phrase/ (Patch 1 D2)</span>
+<p>Author the lexicon as a rubric module: the terms/patterns that matter for each judgment dimension, with their match form. A rule's <code>required_evidence</code> of form <code>lexical</code> resolves against this lexicon at the pinned epoch.</p>
+<div class="arepl"><b>WIRES TO</b> the §4 grounding gate — Phrase/Keyword checks test the call against this lexicon (rubric), not a fact table.</div></div>
+
+<div class="callout warn">
+<b>Why this matters for corroboration.</b> Because the framework and lexicon are now rubric that <code>score()</code> reads, they must <em>not</em> also be counted as independent corroborating anchors — that would double-count the rubric against itself (D16). AUTH-4's redundancy prohibition extends here: a rule may corroborate against the acoustic <em>measurement</em>, never against the acoustic <em>framework</em> it is already scored under.
+</div>
+
+<!-- ════════ §2.6 ════════ -->
+<h2><span class="num">§2.6 · BINARY → CONTINUOUS</span>Compiling a human checklist into dimension evidence (rev. 4)</h2>
+
+<p>The Specific QA Rubric scores 27 items as <code>0/1/NA</code>; the Generic Evaluator template scores four dimensions <code>1–10</code>. These are incommensurable, and the compiler must bridge them <em>without</em> letting the binary items <em>become</em> the score. Binary items are <b>evidence the pure <code>score()</code> weighs</b> into a dimension number — inputs to judgment, not the judgment. Run these four steps after A1–A7, once per item, using <code>align.md</code> to find the item's dimension.</p>
+
+<div class="astep"><span class="aid">B-A</span><span class="atitle">Bind the item to a dimension as weighted evidence</span>
+<p>Via <code>align.md</code>, <del class="patch-1">attach the item's trigger to its dimension</del> <span class="p1-note">trigger.spec removed; machine_criterion + signals replace it. Binding now attaches machine_criterion. (Patch 1 D10)</span> with a <code>deduction</code> and a <code>severity_map</code> — a <em>reference into</em> the <b>Calibration Manifest</b> at its current epoch, mapping "which items failed and how badly" to "what 1–10 the dimension deserves." Two calls that both fail an item are separated here, by the manifest, never by the binary verdict alone. Because it is a reference, a standalone manifest injection (§0.5) re-anchors severity on existing nodes with <em>no recompile</em>. If no manifest exists yet, the node still compiles — but a surface-form-sensitive node cannot auto-final until coverage arrives (AUTH-9): sound, conservative, self-correcting as injections land.</p>
+<div class="arepl"><b>WIRES TO</b> pipeline §5 — the pure <code>score()</code> sums calibrated deductions into the dimension score; the binary finding is an input, never the shipped number.</div></div>
+
+<div class="astep"><span class="aid">B-B</span><span class="atitle">Compile every NA condition into an applicability gate</span>
+<p>Translate the item's NA condition into <code>applicability_gate.spec</code>: a structural precondition S3 evaluates first. Gate false → the trigger does not fire and the item contributes <em>nothing</em> (not a pass, not a fail) to the dimension. An item with a declared NA condition and no compiled gate is rejected (AUTH-7).</p>
+<div class="arepl"><b>WIRES TO</b> S3 <code>anchor_applicable</code> — the gate runs before the finding is even proposed as evidence.</div></div>
+
+<div class="astep"><span class="aid">B-C</span><span class="atitle">Synthesize hard-fail routing from an item subset</span>
+<p>The template's IMMEDIATE-FAIL threshold has no single-item source. Identify the <b>subset</b> of binary items whose collective failure indicates severe dimension failure, and author a <code>hard_fail_rule</code> (many-to-one) that routes the whole call to fail/human when the subset trips. This is a routing rule, not a deduction — it lives on the dimension, synthesized, not copied.  <span class="p1-note">stored in gates/{dimension}.yaml, never on individual nodes (Patch 1 D3)</span></p>
+<div class="arepl"><b>WIRES TO</b> pipeline §5 routing — the hard-fail rule short-circuits auto-final regardless of the weighted total.</div></div>
+
+<div class="astep"><span class="aid">B-D</span><span class="atitle">Extract concrete values from checklist text</span>
+<p>Where the item names <em>values</em> — specific phrases, a numeric threshold — <del class="patch-1">extract them into the trigger:</del> <span class="p1-note">values now enrich machine_criterion and signals, not a standalone trigger spec (Patch 1 D10)</span> named phrases → <code>lexical</code> spec, numbers → <code>threshold</code> spec, at <code>confidence 1.0</code> (compliance layer). The gap is specificity: do not settle for a principle-level trigger when the rubric text carries the exact value (Item 4).</p>
+<div class="arepl"><b>WIRES TO</b> §4 grounding — extracted values become the <code>required_evidence</code> spec the gate checks literally.</div></div>
+
+<div class="callout warn">
+<b>The coverage check every item must pass.</b> After binding, ask: does <em>some</em> dimension adequately measure what this item measures? If no (Item 24 — consequential business harm has no home in the four dimensions), do not force-fit it. Emit its <code>lookup</code> triggers with <code>data_dependency</code>, set it to defer-to-human until the source is connected, and write a <code>dimension_coverage_gap</code> row (AUTH-10). Forcing an unmapped item into the nearest dimension is a silent-miscoding failure worse than deferring it.
+</div>
+
+<!-- ════════ §3 ════════ -->
+<h2><span class="num">§3 · AUTHORED-ENTRY SCHEMA</span>The wire object this procedure emits</h2>
+
+<p>Extends the pipeline's IntentsNode (§3.1) with the soft-specific fields, authored into <code>_rubric/rules/</code>. Validated at authoring; committed to the tree at write time (there is no runtime <code>human_confirmed</code> gate — confirmation is producer ownership, ADR-0003).</p>
+
+<pre>{
+  <span class="k">"node_id"</span>: <span class="s">"rc-soft-0118"</span>,
+  <span class="k">"category"</span>: <span class="s">"rules_criteria"</span>,       <span class="c">// rubric-category reader</span>
+  <span class="k">"intents_path"</span>: <span class="s">"_rubric/rules/rc-soft-0118.yaml"</span>,
+  <span class="k">"layer"</span>: <span class="s">"judgment"</span>,            <span class="c">// soft → judgment; never auto-promotes to 1.0</span>
+  <span class="c">// no `human_confirmed` field: confirmation is write-time ownership (ADR-0003)</span>
+  <span class="k">"authored_by"</span>: <span class="s">"qa_lead_22"</span>,        <span class="c">// producer that owns this file</span>
+  <span class="k">"dimension"</span>: <span class="s">"empathy"</span>,            <span class="c">// the subjective concept being operationalized</span>
+  <span class="k">"required_evidence"</span>: {              <span class="c">// v6 M6 — falsifiable; what must be present</span>
+    <span class="k">"form"</span>: <span class="s">"ordered_relation"</span>,      <span class="c">// lexical | ordered_relation | threshold | lookup</span>
+    <span class="k">"spec"</span>: <span class="s">"ack_span PRECEDES resolution_span WITHIN turn"</span>,
+    <span class="k">"checkable"</span>: <span class="k">true</span>             <span class="c">// validator rejects if false (AUTH-1)</span>
+  },
+  <span class="k">"fail_condition"</span>: {                 <span class="c">// v6 M6 — falsifiable; what counts as a violation</span>
+    <span class="k">"spec"</span>: <span class="s">"no ack_span, OR ack_span FOLLOWS resolution_span"</span>
+  },
+  <span class="k">"corroborators"</span>: [                 <span class="c">// A3 — redundant class forbidden (AUTH-4)</span>
+    { <span class="k">"signal_type"</span>: <span class="s">"acoustic_measurement"</span>, <span class="k">"node_ref"</span>: <span class="s">"_rubric/acoustic/emp-thr"</span>, <span class="k">"independence_class"</span>: <span class="s">"independent"</span> }
+  ],
+  <span class="c">// NOTE (D16): the corroborator is the acoustic MEASUREMENT (a fact). The acoustic FRAMEWORK and</span>
+  <span class="c">// the phrase LEXICON are themselves rubric authored into _rubric/ (see §2.5), not corroborators here.</span>
+  <del class="patch-1"><span class="k">"residue_declared"</span></del> <span class="p1-note">renamed to gap_rationale under machine_criterion (Patch 1 §6)</span>: <span class="s">"captures acknowledgment SEQUENCE; does NOT capture warmth, sincerity, or sarcasm with correct sequence"</span>,  <span class="c">// A4 — REQUIRED (AUTH-2); also copied into the residue manifest (§3.5)</span>
+  <span class="k">"agreement"</span>: {                     <span class="c">// A5 — REQUIRED for judgment layer (AUTH-3)</span>
+    <span class="k">"tau"</span>: <span class="f">0.8</span>,
+    <span class="k">"kappa_sample_plan"</span>: <span class="s">"rolling 200 calls, weekly kappa"</span>,   <span class="c">// agreement tail</span>
+    <span class="k">"escape_sample_plan"</span>: <span class="s">"20 auto-passes/week → human review"</span>,  <span class="c">// auto-pass tail (pipeline §6)</span>
+    <span class="k">"escape_ceiling"</span>: <span class="f">0.05</span>,         <span class="c">// demote if escape rate exceeds this or trends up</span>
+    <span class="k">"current_kappa"</span>: <span class="k">null</span>          <span class="c">// filled by the rolling sample</span>
+  },
+  <span class="k">"proposed_score_hook"</span>: <span class="k">true</span>,         <span class="c">// S2 may emit a proposed_score against this criterion; QUARANTINED, never ships (D7)</span>
+  <span class="k">"source_binary_items"</span>: [<span class="s">"item-22"</span>],       <span class="c">// rev.4 — which Specific-Rubric items this node carries (via align.md)</span>
+  <span class="k">"dimension_ref"</span>: <span class="s">"empathy"</span>,          <span class="c">// rev.4 — the dimension this evidence feeds (B-A)</span>
+  <span class="k">"applicability_gate"</span>: {             <span class="c">// rev.4 — compiled NA condition (B-B); null if item has none</span>
+    <span class="k">"spec"</span>: <span class="s">"turn contains emotional-content marker"</span>   <span class="c">// gate false ⇒ trigger does not fire, contributes nothing</span>
+  },
+  <span class="k">"severity_map"</span>: <span class="s">"calibration:emp-sev-v3"</span>,  <span class="c">// rev.4 — REFERENCE into the manifest epoch; standalone injections re-anchor it, no recompile (B-A)</span>
+  <span class="k">"data_dependency"</span>: <span class="k">null</span>,             <span class="c">// rev.4 — for lookup triggers: e.g. {"source":"callback_logs","connected":false} ⇒ defer (B-D/Item24)</span>
+  <span class="k">"gap_type"</span>: <span class="s">"calibration_surface_form"</span>, <span class="c">// rev.4 — values | perceiver | proxy | calibration_surface_form | coverage</span>
+  <span class="k">"escape_tier"</span>: <span class="s">"aggressive"</span>,        <span class="c">// rev.4 — standard | aggressive; a function of gap_type, not hand-set (Item16)</span>
+  <span class="k">"deduction"</span>: <span class="f">0.3</span>,                  <span class="c">// A6 — rubric weight; not scaled by corroboration</span>
+  <del class="patch-1"><span class="k">"w_c"</span>: <span class="f">0.4</span>,</del> <span class="p1-note">w_c removed from AuthoredNode; agreement-module concern (Patch 1 D6)</span>                        <span class="c">// PROVISIONAL — flag for measurement, log the debt</span>
+  <span class="k">"iteration_policy"</span>: <span class="s">"re-ground via write-time epoch commit only; no rule edits from Argus output"</span>  <span class="c">// A7</span>
+}</pre>
+
+<p style="font-size:0.9rem;color:var(--muted);"><b>Dimension hard-fail rules</b> (B-C) are authored once per dimension, not per node  <span class="p1-note">confirmed: gates/{dimension}.yaml (Patch 1 D3)</span>: <code>{ "dimension":"problem_resolution", "hard_fail_rule": { "subset":["item-16","item-24","item-31"], "trips_when":"≥2 fail", "routes":"human" } }</code> — a synthesized many-to-one gate, stored alongside the dimension's weight in the rubric table.
+
+<h3>3.5 — ResidueManifest (the other required output)</h3>
+<p>For every human item that did <em>not</em> fully compile, the compiler emits a manifest row. This is the lossy-projection ledger: it is what makes "fewer false defers" honest rather than a silent drop. rev. 4 adds a distinct row type — <code>dimension_coverage_gap</code> — for criteria that map to <em>no</em> adequate dimension (Item 24), which is a different failure from residue <em>within</em> a dimension. The manifest routes to the human queue and seeds the pipeline's per-criterion escape-rate watch (§6).</p>
+<pre>{
+  <span class="k">"sources"</span>: {                        <span class="c">// rev.4 — three compiler inputs + the calibration channel epoch in effect</span>
+    <span class="k">"specific_rubric"</span>: <span class="s">"cs-qa-rubric v3.2"</span>,
+    <span class="k">"generic_skill"</span>: <span class="s">"evaluator-criteria-customer-service-generic v1.3"</span>,  <span class="c">// AI TEMPLATE, not a human version</span>
+    <span class="k">"calibration_epoch"</span>: <span class="s">"cs-calibration v3"</span>,   <span class="c">// independent channel — may be null before first injection</span>
+    <span class="k">"align"</span>: <span class="s">"align.md@git:…"</span>
+  },
+  <span class="k">"rows"</span>: [
+    { <span class="k">"kind"</span>: <span class="s">"within_dimension"</span>,     <span class="c">// residue inside a dimension the item maps to</span>
+      <span class="k">"dimension"</span>: <span class="s">"empathy"</span>, <span class="k">"source_items"</span>: [<span class="s">"item-11"</span>,<span class="s">"item-22"</span>],
+      <span class="k">"compiled_to"</span>: [<span class="s">"rc-soft-0118"</span>],
+      <span class="k">"left_behind"</span>: <span class="s">"sincerity of engagement; sarcasm with correct sequence"</span>,
+      <span class="k">"disposition"</span>: <span class="s">"human_review"</span> },
+    { <span class="k">"kind"</span>: <span class="s">"dimension_coverage_gap"</span>,  <span class="c">// rev.4 — NO dimension measures this (Item 24)</span>
+      <span class="k">"source_items"</span>: [<span class="s">"item-24"</span>],
+      <span class="k">"measures"</span>: <span class="s">"consequential business harm — callback inevitability, unnecessary cost, incomplete resolution"</span>,
+      <span class="k">"compiled_to"</span>: [<span class="s">"lookup-biz-0007"</span>],       <span class="c">// lookup triggers with data_dependency</span>
+      <span class="k">"data_dependency"</span>: { <span class="k">"source"</span>: <span class="s">"callback_logs+ticket_status"</span>, <span class="k">"connected"</span>: <span class="k">false</span> },
+      <span class="k">"disposition"</span>: <span class="s">"defer_until_source_connected"</span>,
+      <span class="k">"proposes"</span>: <span class="s">"new sub-dimension: Business Impact"</span> }
+  ]
+}</pre>
+
+<!-- ════════ §3.6 ════════ -->
+<h2><span class="num">§3.6 · WORKED COMPILATION</span>Two demonstrations — the template scaffold (shown) and the full fusion (stubbed for Claude Code)</h2>
+
+<div class="callout warn">
+<b>Framing correction (rev. 4).</b> Earlier revisions treated <code>evaluator-criteria-customer-service-generic.md</code> as "the human version." It is not — it is the <b>Generic Evaluator Skill</b>, an AI-executed <em>template</em> supplying judgment structure. The human version is the <b>Specific QA Rubric</b> (27 binary items). The table below therefore shows only what the <em>template scaffold</em> looks like decomposed — useful, but it is <em>not</em> the full compile, because the full compile fuses the specific rubric's binary items + calibration manifest + <code>align.md</code> into these dimensions.
+</div>
+
+<h3>3.6a — The template scaffold, decomposed (demonstration only)</h3>
+<p>Running the four <em>generic dimensions</em> through the compiler shows where each dimension's judgment structure lands — which parts have a structural signature at all, and where whole dimensions cross into the compliance layer. This is the skeleton the binary items will hang evidence on.</p>
+
+<table class="grid">
+  <thead><tr><th style="width:20%">Generic dimension</th><th style="width:34%">Structural signature (what a trigger can check)</th><th style="width:30%">Stays residue (→ manifest)</th><th style="width:16%">Verdict</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">Empathy &amp; Tone</td><td><code>ordered_relation</code>: ack_span PRECEDES resolution_span · <code>lexical</code>: acknowledgment reuses customer's own problem-nouns · corroborated by <span class="ic ind">acoustic</span> prosody measurement</td><td>"substantive vs scripted", "genuine not performative", register-matching</td><td><span class="vd xform">mostly compiles</span></td></tr>
+    <tr><td class="mono">Problem Resolution</td><td><code>threshold</code>: action + reference-number + timeline all-three present · <code>lexical</code>: root-cause explanation span present</td><td>whether the underlying problem was <em>actually</em> solved / customer left confident — the part beyond the three artifacts</td><td><span class="vd xform">partly compiles</span></td></tr>
+    <tr><td class="mono">Procedural Accuracy</td><td><code>lookup</code>: every stated fact matches source-of-truth · <code>lexical</code>: required disclosures present · <code>ordered_relation</code>: identity verified BEFORE account details — <b>compliance layer, confidence 1.0</b></td><td>"verification done smoothly without making the customer feel suspected"</td><td><span class="vd trans">crosses to compliance</span></td></tr>
+    <tr><td class="mono">Proactive Value</td><td><code>ordered_relation</code>: interaction does NOT end immediately at resolution · weak presence-check for an unprompted offer</td><td>"genuinely better off", "genuinely useful" — value judgments with no structural form</td><td><span class="vd forbid">barely compiles</span></td></tr>
+  </tbody>
+</table>
+
+<ul class="spec">
+  <li><b>Procedural Accuracy was never really a judgment-layer dimension.</b> Almost all of it is fact-lookup and ordered verification — compliance entries at confidence 1.0, no κ-gate. The template grades it 1–10 only because it grades everything uniformly. The compiler exposes that most of this "soft" dimension was objective all along.</li>
+  <li><b>Proactive Value is mostly residue.</b> The structural part (didn't-end-abruptly) compiles; the load-bearing part ("genuinely better off") does not, and the manifest says so. Forcing it into a trigger would assert that "ended after one extra sentence" equals "left the customer better off" — the operationalization overreach §6 warns against.</li>
+  <li><b>What does NOT survive.</b> The template's scoring machinery — grade 1–10, weighted-average ×3/×3/×2/×1 ÷ 9, honor the hard thresholds — is dropped. Weights move to the S4a rubric table; the 1–10 emission becomes a quarantined <code>proposed_score</code> (never ships); the hard thresholds become synthesized routing rules (B-C); few-shot examples become κ/escape seeds. The signatures cross over; the "let the model grade" core does not.</li>
+</ul>
+
+<h3>3.6b — The full fusion (stubbed — Claude Code completes against the real artifacts)</h3>
+<div class="callout key">
+<b>PENDING INPUTS — hand to Claude Code.</b> The full worked compilation requires two compiler artifacts not yet in hand: the <b>Specific QA Rubric</b> (27 binary items with values + company failure examples) and <code>align.md</code> (item→dimension map). The <b>Calibration Manifest</b> is <em>not</em> required to compile — it arrives on its own channel (fragments <b>from the Error Case Library and Best Practices</b>, injectable alone, §0.5); until its first injection, surface-form-sensitive nodes compile with auto-final withheld (AUTH-9). The five sampled gaps (<code>sampled-gaps.md</code>) already fix the <em>capabilities</em> the compiler must exercise; §2.6 + §3 + §5 encode them. When the artifacts arrive, Claude Code produces the per-item compile using the worked pattern below — one row per item, not per dimension.
+<pre style="margin-top:0.8rem;">PER-ITEM COMPILE PATTERN (Claude Code, once inputs land):
+  for each item in specific_rubric (27):
+    dim   = align.md[item]                         # bind to dimension (B-A)
+    form  = extract_values(item.text)              # phrases→lexical, numbers→threshold (B-D)
+    gate  = compile_na(item.na_condition)          # → applicability_gate (B-B)
+    sev   = manifest.severity_ref(item) if manifest else None   # reference; absent ⇒ AUTH-9 withholds auto-final (B-A)
+    gap   = classify_gap(item, dim)                # values|perceiver|proxy|calibration_surface_form|coverage
+    tier  = aggressive if gap in {proxy, coverage} else standard   # (Item16)
+    if no dimension adequately covers item:        # (Item24)
+        emit lookup + data_dependency; defer_until_source_connected
+        write dimension_coverage_gap row
+    elif surface_form_sensitive(item) and not calibration.covers(item):   # (Item22)
+        emit node but forbid auto_final (AUTH-9)
+    else:
+        emit _rubric/ node (§3 schema) + within_dimension residue row if lossy
+  then: synthesize per-dimension hard_fail_rule from item subsets (B-C)  <span class="p1-note">output to gates/{dimension}.yaml (Patch 1 D3)</span>
+  emit: _rubric/ nodes + ResidueManifest (both required)</pre>
+Deliverables for Claude Code: (1) the compiler+validator per §7, (2) the 27 compiled nodes once inputs land, (3) the calibration-manifest input schema, (4) AUTH-7…10 fixtures standing. The worked §3.6b table gets filled from real items — do not invent item values.
+</div>
+
+<!-- ════════ §4 ════════ -->
+<h2><span class="num">§4 · PROHIBITIONS</span>What the validator must refuse</h2>
+
+<ol class="spec">
+  <li><b>No adjective triggers.</b> <del class="patch-1"><code>trigger.checkable == false</code></del> <span class="p1-note">trigger removed; checkable concept moves to machine_criterion (Patch 1 D10)</span> or a <code>spec</code> containing an evaluative adjective ("empathetic", "polished") → reject. A trigger names a structural check, never a conclusion.</li>
+  <li><b>No undeclared residue.</b> A judgment-layer entry without <del class="patch-1"><code>residue_declared</code></del> <code>gap_rationale</code> <span class="p1-note">renamed (Patch 1 §6)</span> → reject. The gap must be named where it can be audited.</li>
+  <li><b>No ungated soft entry.</b> A judgment-layer entry without an <code>agreement</code> plan → reject. Nothing soft auto-finalizes without a κ-gate.</li>
+  <li><b>No soft⊕soft corroborator.</b> A corroborator with <code>independence_class: "redundant"</code> (another model-judged text signal) → reject. Manufactured consensus is not corroboration (D5 / §6.4).</li>
+  <li><b>No model-edited triggers.</b> Any authoring path that mutates a trigger from Argus output rather than human confirmation → reject. Severs the C5 loop (A7).</li>
+  <li><b>No promotion to 1.0.</b> A <code>layer: "judgment"</code> entry that declares <code>grounding_confidence 1.0</code> → reject. Compliance-grade certainty is for lexical/lookup criteria only; corroboration narrows the residue but never closes it (D6).</li>
+  <li><b>No compile without a manifest.</b> A compile run over a human rubric that has any non-fully-compilable dimension must emit a <code>ResidueManifest</code> row for it → reject the run if the manifest is missing. Dropping the residue silently is the one failure this spec exists to prevent.</li>
+  <li><b>No soft entry without an escape plan.</b> rev. 4: a judgment-layer entry whose <code>agreement</code> block lacks <code>escape_sample_plan</code>/<code>escape_ceiling</code> → reject. κ alone is blind to auto-passed calls; the auto-pass tail must be planned at authoring time (pipeline §6, D11).</li>
+  <li><b>No NA condition without a compiled gate (AUTH-7).</b> rev. 4: a source item that carries an NA condition but whose node has no <code>applicability_gate</code> → reject. An uncompiled NA silently turns "not applicable" into "fail" (B-B).</li>
+  <li><b>No lookup trigger without a data-dependency declaration, and it must defer while unconnected (AUTH-8).</b> rev. 4: a <code>lookup</code> trigger citing out-of-band data (callback logs, ticket status) with no <code>data_dependency</code>, or one whose source is <code>connected: false</code> that does <em>not</em> defer to human → reject (Item 24).</li>
+  <li><b>No auto-final on an uncalibrated surface-form criterion (AUTH-9).</b> rev. 4: a judgment node flagged <code>gap_type: "calibration_surface_form"</code> that permits auto-final while the calibration manifest does not cover its failure surface → reject. Without company fragments the criterion produces systematic false-positive passes (Item 22).</li>
+  <li><b>No unmapped item forced into a dimension (AUTH-10).</b> rev. 4: an item that <code>align.md</code> maps to no adequate dimension but which is compiled into the nearest dimension anyway, instead of emitting a <code>dimension_coverage_gap</code> row → reject. Silent miscoding is worse than an honest defer (Item 24).</li>
+</ol>
+
+<!-- ════════ §5 ════════ -->
+<h2><span class="num">§5 · FIXTURES</span>Authoring-time red/green — the validator floor</h2>
+
+<h3>AUTH-1 — adjective trigger</h3>
+<div class="fixture">
+  <div class="cell red"><div class="label">RED · must reject</div><p>Entry with <del class="patch-1"><code>trigger.spec: "agent should sound empathetic"</code>, <code>checkable: false</code></del> <span class="p1-note">trigger.spec removed; AUTH-1 now checks machine_criterion for non-structural content (Patch 1 D10)</span>. Validator must refuse — no structural check.</p></div>
+  <div class="cell green"><div class="label">GREEN · must accept</div><p><del class="patch-1"><code>trigger.form: "ordered_relation"</code>, a span-precedence spec, <code>checkable: true</code></del> <span class="p1-note">machine_criterion + signals replace trigger.form/checkable (Patch 1 D10)</span> → validates.</p></div>
+</div>
+
+<h3>AUTH-2 — undeclared residue</h3>
+<div class="fixture">
+  <div class="cell red"><div class="label">RED · must reject</div><p>Judgment-layer entry with <del class="patch-1"><code>residue_declared</code> absent or empty</del> <span class="p1-note">now gap_rationale under machine_criterion (Patch 1 §6)</span>. Refuse: the C3 gap must be named.</p></div>
+  <div class="cell green"><div class="label">GREEN · must accept</div><p>Same entry with a concrete <del class="patch-1"><code>residue_declared</code></del> <code>gap_rationale</code> <span class="p1-note">renamed (Patch 1 §6)</span> string naming what the criterion misses → validates.</p></div>
+</div>
+
+<h3>AUTH-3 — ungated soft entry</h3>
+<div class="fixture">
+  <div class="cell red"><div class="label">RED · must reject</div><p><code>layer: "judgment"</code> with no <code>agreement.tau</code> / <code>kappa_sample_plan</code>. Refuse: nothing soft auto-finalizes without a κ-gate.</p></div>
+  <div class="cell green"><div class="label">GREEN · must accept</div><p>τ and a sample plan present (or a <code>layer: "compliance"</code> entry, which is exempt) → validates.</p></div>
+</div>
+
+<h3>AUTH-5 — compile without a residue manifest</h3>
+<div class="fixture">
+  <div class="cell red"><div class="label">RED · must reject</div><p>A compile run over a rubric with a non-fully-compilable dimension (e.g. Proactive Value's "genuinely better off") emits machine entries but <em>no</em> <code>ResidueManifest</code> row. Refuse the run — the lossy part was dropped silently.</p></div>
+  <div class="cell green"><div class="label">GREEN · must accept</div><p>Same run emits both the entries and a manifest row naming what was left behind and its <code>disposition: "human_review"</code> → validates.</p></div>
+</div>
+
+<h3>AUTH-6 — soft entry without an escape plan (rev. 4)</h3>
+<div class="fixture">
+  <div class="cell red"><div class="label">RED · must reject</div><p>Judgment-layer entry whose <code>agreement</code> block has κ planning but no <code>escape_sample_plan</code>/<code>escape_ceiling</code>. Refuse: the auto-pass tail (D11) is unwatched.</p></div>
+  <div class="cell green"><div class="label">GREEN · must accept</div><p>Both tails planned — κ sampling and escape sampling with a ceiling → validates.</p></div>
+</div>
+
+<h3>AUTH-4 — soft⊕soft corroborator</h3>
+<div class="fixture">
+  <div class="cell red"><div class="label">RED · must reject</div><p>A corroborator entry with <code>independence_class: "redundant"</code> (another soft text criterion), <em>or</em> a corroborator pointing at the acoustic <em>framework</em> / phrase <em>lexicon</em> rather than the <em>measurement</em> (double-count of rubric, D16). Refuse — D5.</p></div>
+  <div class="cell green"><div class="label">GREEN · must accept</div><p>Corroborator with <code>independence_class: "independent"</code> (acoustic <em>measurement</em>) or <code>"correlated"</code> (exemplar) → validates.</p></div>
+</div>
+
+<h3>AUTH-7 — NA condition without a compiled gate (rev. 4)</h3>
+<div class="fixture">
+  <div class="cell red"><div class="label">RED · must reject</div><p>A node built from an item with an NA condition (e.g. Item 4 "no hold occurred", Item 22 "no emotional content") but with <code>applicability_gate: null</code>. Refuse: the item will score fails on calls where it never applied.</p></div>
+  <div class="cell green"><div class="label">GREEN · must accept</div><p>Same node with <code>applicability_gate.spec</code> compiled from the NA condition → gate false ⇒ trigger inert → validates.</p></div>
+</div>
+
+<h3>AUTH-8 — lookup without data-dependency / non-deferring (rev. 4)</h3>
+<div class="fixture">
+  <div class="cell red"><div class="label">RED · must reject</div><p>Item 24 business-harm node emits a <code>lookup</code> trigger over callback logs with no <code>data_dependency</code>, <em>or</em> with <code>connected: false</code> but <code>disposition</code> ≠ defer. Refuse: it would score a business outcome it cannot observe.</p></div>
+  <div class="cell green"><div class="label">GREEN · must accept</div><p><code>data_dependency: {source, connected:false}</code> + <code>disposition: "defer_until_source_connected"</code> + a <code>dimension_coverage_gap</code> row → validates.</p></div>
+</div>
+
+<h3>AUTH-9 — auto-final on an uncalibrated surface-form criterion (rev. 4)</h3>
+<div class="fixture">
+  <div class="cell red"><div class="label">RED · must reject</div><p>Item 22 empathy node with <code>gap_type: "calibration_surface_form"</code> permits auto-final, but the calibration manifest has no fragment covering the deflect-before-acknowledge surface. Refuse: systematic false-positive passes (evaluator scores the deflection 7, inspector 2).</p></div>
+  <div class="cell green"><div class="label">GREEN · must accept</div><p>Either the manifest covers the surface, or the node is authored <code>auto_final: false</code> (κ-gate + human) → validates.</p></div>
+</div>
+
+<h3>AUTH-10 — unmapped item forced into a dimension (rev. 4)</h3>
+<div class="fixture">
+  <div class="cell red"><div class="label">RED · must reject</div><p>Item 24 (consequential business harm) compiled into Problem Resolution because it is "closest," with no <code>dimension_coverage_gap</code> row. Refuse: this silently miscodes business harm as resolution quality.</p></div>
+  <div class="cell green"><div class="label">GREEN · must accept</div><p>Item flagged as a coverage gap: <code>lookup</code>+<code>data_dependency</code>, defer disposition, manifest row, optional Business-Impact sub-dimension proposal → validates.</p></div>
+</div>
+
+<!-- ════════ §6 ════════ -->
+<h2><span class="num">§6 · RESIDUE</span>What this companion does not solve</h2>
+
+<p>The methodology converts the signature-able fraction of a soft judgment and leaves the rest. Three debts are structural, not bugs to be closed:</p>
+
+<ul class="spec">
+  <li><b>The C3 residue is unbounded.</b> <del class="patch-1"><code>residue_declared</code></del> <code>gap_rationale</code> <span class="p1-note">renamed (Patch 1 §6)</span> makes the gap auditable; it does not measure it. There is no principled estimate of "how much of empathy this trigger captures," so no principled stopping rule — only the human queue catching what the trigger missed.</li>
+  <li><b>The escape rate measures the residue, but only its floor.</b> rev. 4 turns "how complete is this trigger" into a tracked number (pipeline §6) — but one that counts only the misses a reviewer catches. It bounds the <em>knowable</em> residue from above; the unknown-unknown and the genuinely-contested call stay outside it. Report it as a floor, never as completeness.</li>
+  <li><b>w<sub>c</sub> is a measurement debt.</b> Shipping 0.4 as a constant is the analogue of the asserted decorrelation this whole effort exists to stop asserting. It must be measured against human-labeled error correlation, or the correlated-signal weighting is itself ungrounded.</li>
+  <li><b>The authored triggers rot if the drift detector goes dark.</b> A compiled trigger is only as good as the norm it was authored against. Without live κ <em>and</em> escape sampling, a criterion silently diverges and keeps auto-finalizing on a stale proxy. The companion's output depends on the instrument staying live.</li>
+</ul>
+
+<div class="callout key">
+<b>The honest claim.</b> This companion lets you <em>shrink</em> the human queue by converting the part of a soft judgment that has a referent, and lets you do it on terms that don't poison the loop. It does not let you retire the human inspector for the judgment layer — it makes the boundary mechanical and declares, per entry, exactly where it sits.</div>
+
+<!-- ════════ §7 ════════ -->
+<h2><span class="num">§7 · HANDOFF</span>Copy-as-prompt for Claude Code</h2>
+
+<div class="prompt">
+<div class="plabel">paste to Claude Code · AUTHOR exec-plan 9003 (plan only, not implementation) · rev. 4</div>
+<pre>Author the exec-plan 9003-implement-soft-criteria-compiler.md for simbiclaw/harness-cli, per
+soft-criteria-authoring-spec-v4.html, in PLANS.md format. Your deliverable is the PLAN ONLY —
+do NOT write code, do NOT compile any rubric. Scope-confirm against the repo first. The SPEC is
+the contract — encode it into the plan, don't re-derive it.
+
+LAYER: this is a TRANSFORMATION-LAYER skill — a peer of audio2tree & doc2graph — that converts
+  intuition-driven human quality judgment into machine-gradable INTENTS content (_rubric/). It is
+  NOT consumer-tier src/argus code. Home it in .claude/skills/ with a SKILL.md contract
+  (when-to-use description · 3-input interface · _rubric/+ResidueManifest output · on-demand
+  recompile trigger). Authoring is agentic; the rubric it emits is enforced by Argus as a pure
+  function — keep that seam.
+
+FIRST TASK IN THE PLAN — skill vs subagent: lay out the tradeoff and RECOMMEND one, with rationale.
+  Skill = a called capability. Subagent = warranted because the compile is judgment-laden (B-A..B-D:
+  classify gap types, decide what won't reduce → residue, extract values without over-fitting). Do
+  not just assume; make it an explicit decision the plan opens with.
+
+PLAN: 9003-implement-soft-criteria-compiler.md (all plans/ADRs are 9000-series). Two-phase: this
+  call produces the plan; implementation is a separate later phase. Its _rubric/ output must land
+  before 9002's judgment-layer gating, despite the number order.
+
+The plan must capture, as milestones/tasks with acceptance criteria (not as code):
+CONTRACT: §0.5 — THREE compiler inputs (specific rubric · generic skill=AI TEMPLATE, not a human
+  version · align.md) → _rubric/ nodes + ResidueManifest. The CALIBRATION MANIFEST is NOT a compiler
+  input: an independent channel (fragments from the Error Case Library + Best Practices), injectable
+  ALONE — severity_map refs re-anchor and AUTH-9 re-evaluates with NO compile run.
+  Target/output shapes: §2.5 (acoustic+phrase are rubric), §3 (node schema + <del class="patch-1">hard_fail_rule</del> <span class="p1-note">hard_fail_rule moved to gates/ (Patch 1 D3)</span>),
+  §3.5 (manifest incl. dimension_coverage_gap rows).
+CORE JOB: §2.6 B-A..B-D — binary items are EVIDENCE into a 1–10 dimension score, never the score.
+GAP HANDLING: §0.5 rev.4 list, items 1–7 (values | perceiver | proxy | calibration_surface_form
+  | coverage → escape_tier, AUTH-9 auto-final ban, defer-until-connected).
+VALIDATOR + FIXTURES: plan AUTH-1..10 per §4 as standing red+green per §5.
+INVARIANTS (attach to the skill's OUTPUT, not its agency): no rule edits from Argus output (C5/A7);
+  no node emission without the manifest; re-entry = write-time epoch commit only (ADR-0003); no
+  src/argus write path into INTENTS/.
+
+PENDING INPUTS: specific rubric + align.md (compiler); calibration manifest arrives separately on
+  its channel. Plan the §3.6b per-item compile over all 27 items as a FOLLOW-ON task, fired when
+  those inputs land — fill §3.6b from REAL values, never invent them.
+
+When done, output the plan for review — STOP before implementation.</pre>
+</div>
+
+</div>
+</body>
+</html>

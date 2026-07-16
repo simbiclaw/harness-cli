@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Process-Derivation Pipeline — Implementation Spec (rev. 5)</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --paper: #fffefb;
+    --ink: #1c1a17;
+    --muted: #6b665c;
+    --faint: #9a9488;
+    --rule: #ddd8cd;
+    --blue: #1d4e89;
+    --green: #2a7d4f;
+    --amber: #b87514;
+    --red: #b5402e;
+    --purple: #6a4a9c;
+    --codebg: #1c1f26;
+    --codefg: #e2e0d8;
+    --codekey: #7fb3e8;
+    --codestr: #9ed79e;
+    --codecom: #7a8290;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Newsreader', Georgia, serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+    font-size: 17px;
+    padding: 0 0 6rem;
+  }
+  .wrap { max-width: 54rem; margin: 0 auto; padding: 0 1.5rem; }
+
+  header {
+    border-bottom: 2px solid var(--ink);
+    padding: 3rem 0 1.4rem;
+    margin-bottom: 2rem;
+  }
+  .doctype {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 0.8rem;
+  }
+  h1 { font-size: 2.7rem; line-height: 1.08; font-weight: 600; letter-spacing: -0.02em; }
+  .meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.74rem;
+    color: var(--muted);
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.6rem;
+  }
+  .meta b { color: var(--ink); font-weight: 600; }
+
+  .thesis {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--blue);
+    padding: 1.4rem 1.6rem;
+    margin: 2rem 0;
+    font-size: 1.1rem;
+  }
+  .thesis b { color: var(--blue); }
+
+  h2 {
+    font-size: 1.7rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    margin: 3.2rem 0 0.3rem;
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--rule);
+  }
+  h2 .num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--blue);
+    display: block;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.2rem;
+    border: none;
+  }
+  h3 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.92rem;
+    font-weight: 700;
+    margin: 1.8rem 0 0.5rem;
+  }
+  p { margin-bottom: 0.9rem; }
+  .lead { color: var(--muted); font-size: 1.02rem; }
+
+  code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82em;
+    background: #ece8df;
+    padding: 0.1em 0.38em;
+    border-radius: 3px;
+    color: #5a4a2a;
+  }
+  pre {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    background: var(--codebg);
+    color: var(--codefg);
+    padding: 1.2rem 1.4rem;
+    border-radius: 5px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.55;
+  }
+  pre .k { color: var(--codekey); }
+  pre .s { color: var(--codestr); }
+  pre .c { color: var(--codecom); font-style: italic; }
+  pre .f { color: #e8c07a; }
+
+  .invariant {
+    counter-reset: none;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    border-radius: 5px;
+    margin: 1.2rem 0;
+    overflow: hidden;
+  }
+  .invariant .row {
+    display: grid;
+    grid-template-columns: 3.2rem 1fr;
+    border-bottom: 1px solid var(--rule);
+  }
+  .invariant .row:last-child { border-bottom: none; }
+  .invariant .tag {
+    background: var(--codebg);
+    color: var(--codekey);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.74rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.8rem 0;
+  }
+  .invariant .body { padding: 0.8rem 1.1rem; font-size: 0.92rem; }
+  .invariant .body b { font-family: 'IBM Plex Mono', monospace; font-size: 0.84rem; }
+
+  table.grid {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.4rem 0;
+    font-size: 0.82rem;
+  }
+  table.grid th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: left;
+    padding: 0.6rem 0.7rem;
+    border-bottom: 2px solid var(--ink);
+    color: var(--muted);
+    vertical-align: bottom;
+  }
+  table.grid td {
+    padding: 0.6rem 0.7rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  table.grid td.mono, table.grid th.mono { font-family: 'IBM Plex Mono', monospace; font-size: 0.76rem; }
+
+  .det { color: var(--green); font-weight: 600; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; }
+  .semi { color: var(--amber); font-weight: 600; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; }
+  .hum { color: var(--purple); font-weight: 600; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; }
+  .redm { color: var(--red); font-weight: 600; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; }
+
+  /* independence-class chips for corroboration */
+  .ic { font-family:'IBM Plex Mono',monospace; font-size:0.64rem; font-weight:700; letter-spacing:0.04em;
+        padding:0.12em 0.5em; border-radius:3px; text-transform:uppercase; white-space:nowrap; }
+  .ic.ind { background:#ecf6ef; color:var(--green); border:1px solid #bfe0c9; }
+  .ic.cor { background:#fbf3e6; color:var(--amber); border:1px solid #e6cf9e; }
+  .ic.red { background:#fbeeeb; color:var(--red);   border:1px solid #e6b6ab; }
+  .wgt { font-family:'IBM Plex Mono',monospace; font-size:0.74rem; color:var(--muted); }
+
+  /* toggle-revealed critique panel */
+  details.crit {
+    border:1px solid var(--rule); border-left:4px solid var(--red);
+    border-radius:5px; background:#fdf6f4; margin:1.1rem 0; padding:0 1.2rem;
+  }
+  details.crit > summary {
+    font-family:'IBM Plex Mono',monospace; font-size:0.74rem; font-weight:700;
+    letter-spacing:0.04em; color:var(--red); cursor:pointer; padding:0.85rem 0;
+    list-style:none;
+  }
+  details.crit > summary::-webkit-details-marker { display:none; }
+  details.crit > summary::before { content:"▸ "; }
+  details.crit[open] > summary::before { content:"▾ "; }
+  details.crit .cbody { font-size:0.9rem; padding:0 0 1rem; }
+  details.crit .cbody p { margin-bottom:0.6rem; }
+
+  .prompt { margin:1.2rem 0; border:1px solid var(--rule); border-radius:6px; overflow:hidden; }
+  .prompt .plabel {
+    font-family:'IBM Plex Mono',monospace; font-size:0.66rem; font-weight:700; letter-spacing:0.1em;
+    text-transform:uppercase; color:#fff; background:var(--blue); padding:0.45rem 1rem;
+  }
+  .prompt pre { margin:0; border-radius:0; font-size:0.74rem; }
+
+  .fixture {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    overflow: hidden;
+    margin: 1rem 0;
+  }
+  .fixture .cell { background: var(--paper); padding: 0.9rem 1.1rem; }
+  .fixture .cell.red { background: #fbeeeb; }
+  .fixture .cell.green { background: #ecf6ef; }
+  .fixture .label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+  }
+  .fixture .red .label { color: var(--red); }
+  .fixture .green .label { color: var(--green); }
+  .fixture .cell p { font-size: 0.82rem; margin: 0; }
+  .fixture .cell code { font-size: 0.74rem; }
+
+  .milestone {
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 1.1rem 1.3rem;
+    margin: 0.9rem 0;
+    background: var(--paper);
+  }
+  .milestone .mhead {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 700;
+    font-size: 0.88rem;
+    margin-bottom: 0.3rem;
+  }
+  .milestone .mhead .id {
+    background: var(--blue);
+    color: #fff;
+    padding: 0.1em 0.5em;
+    border-radius: 3px;
+    margin-right: 0.6rem;
+    font-size: 0.78rem;
+  }
+  .milestone .accept {
+    font-size: 0.84rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--rule);
+  }
+  .milestone .accept b { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--green); letter-spacing: 0.04em; }
+
+  .callout {
+    border-radius: 5px;
+    padding: 1rem 1.3rem;
+    margin: 1.2rem 0;
+    font-size: 0.92rem;
+  }
+  .callout.warn { background: #fbf3e6; border: 1px solid #e6cf9e; }
+  .callout.warn b { color: var(--amber); }
+  .callout.key { background: #eaf0f7; border: 1px solid #b8cce4; }
+  .callout.key b { color: var(--blue); }
+
+  ol.spec, ul.spec { padding-left: 1.4rem; margin: 0.6rem 0 1rem; }
+  ol.spec li, ul.spec li { font-size: 0.92rem; margin-bottom: 0.4rem; }
+
+  .stagebar { margin: 1.6rem 0; }
+  figcaption { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--faint); margin-top: 0.5rem; text-align: center; }
+
+  @media (max-width: 640px) {
+    h1 { font-size: 2rem; }
+    .fixture { grid-template-columns: 1fr; }
+    body { font-size: 16px; }
+  }
+  .computable-footnote { font-size: 0.82rem; color: var(--muted); border: 1px solid var(--rule); border-radius: 8px; padding: 1rem 1.2rem; margin: 0.8rem 0 1.4rem; }
+  .computable-footnote dt { font-family: monospace; font-size: 0.85rem; font-weight: 700; color: var(--ink); margin-top: 0.6rem; }
+  .computable-footnote dd { margin: 0.2rem 0 0; font-size: 0.84rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="doctype">Implementation Spec · rev. 5 · conformed to spine v6 · hand to Claude Code</div>
+  <h1>Deterministic Process-Derivation Pipeline</h1>
+  <div class="meta">
+    <span><b>Subject</b> Argus QA verifier — consumer tier only</span>
+    <span><b>Kit</b> DSMath-V2, layer-aware</span>
+    <span><b>Ground</b> INTENTS tree, read by one Provider at a pinned git-SHA epoch</span>
+    <span><b>rev. 3</b> independence-weighted multi-anchor corroboration (S3⁺)</span>
+    <span><b>rev. 4</b> proposed-score-as-signal · coverage-vs-residue gates · escape-rate</span>
+    <span><b>New in rev. 5</b> v6 conformance · score→adjust split · acoustic/phrase→rubric · store→INTENTS provider</span>
+    <span><b>Companion</b> soft-criteria authoring spec rev. 4 (compiles the shared rubric into <code>_rubric/</code>)</span>
+    <span><b>Spine</b> conforms to 0000-upgrade-spine-to-v6 (ADR-0001…0004)</span>
+    <span><b>Status</b> spec, not plan — Claude Code emits <code>9002-implement-argus-eval-pipeline.md</code> (harness-cli 9000-series), gated on v6</span>
+  </div>
+</header>
+
+<p class="lead">This spec deploys the four DeepSeekMath-V2 mechanisms as a deterministic QA pipeline. The determinism is not a property of the model — it's a property of the architecture: the model is confined to <em>proposing</em> findings, and every finding must survive a deterministic grounding pass against the confirmed knowledge base before it can affect a score. Nondeterminism is quarantined upstream of the verdict. <b>rev. 5 conforms the whole spec to spine v6:</b> this repository is the <em>Argus consumer tier only</em> — it reads an <code>INTENTS/</code> tree, runs <code>score</code> then <code>adjust</code>, and emits a report; ingest and calibration are other tiers, not this repo's code.</p>
+
+<div class="thesis">
+The model proposes; deterministic grounding against the confirmed knowledge base disposes. <b>No finding affects a score unless it anchors to a real transcript span and a real INTENTS node at the pinned git-SHA epoch.</b> The score is a pure function of the surviving anchored findings and a versioned rubric — replayable bit-for-bit, never generated by the model. rev. 5 splits that pure step into v6's two stages — <code>raw = score(facts, rubric)</code> then <code>adjusted = adjust(raw, history)</code> — without moving the seam: both are proposers on the model side; the gate and the re-derivation stay deterministic.
+</div>
+
+<div class="callout key">
+<b>What rev. 3 adds — six decisions, propagated through §3–§9.</b> A single soft <code>rules_criteria</code> finding is model-judgment grounded against model-shaped text. Rev. 3 lets a finding carry <em>corroborating anchors from other expertise types</em>, but only on terms that buy real decorrelation rather than manufacture consensus.
+<ol class="spec" style="margin-top:0.7rem;">
+<li><b>D1 · Multi-anchor findings.</b> A Finding carries <code>grounding_signals[]</code> spanning expertise types, not one anchor (§3.2).</li>
+<li><b>D2 · Independence taxonomy.</b> Each signal gets an <code>independence_class</code> set by error-source disjointness from the proposer: <span class="ic ind">independent</span> (acoustic DSP, weight 1.0) · <span class="ic cor">correlated</span> (model-matched exemplar/case, weight w<sub>c</sub>) · <span class="ic red">redundant</span> (model-judged text, weight 0) — §4.1.</li>
+<li><b>D3 · S2 proposes signals, S3 only verifies them.</b> The proposer populates <code>grounding_signals[]</code>; S3 deterministically checks each resolves and co-locates on the span, then applies a <em>fixed</em> aggregation. S3 never runs the exemplar/case match itself — that would put model judgment back in the gate (importlinter <code>grounding ✗ matching_model</code>).</li>
+<li><b>D4 · Aggregation ⟂ τ.</b> Corroboration acts on the <em>finding</em> axis (clears a per-finding thin-grounding deferral); the §6 κ-gate acts on the <em>criterion</em> axis. Auto-final requires both clear. An independent anchor never substitutes for κ.</li>
+<li><b>D5 · Soft⊕soft = 0.</b> Two model-judged text signals on one span are the §6.4 voting prohibition in costume; aggregated corroboration from redundant-only signals is exactly zero.</li>
+<li><b>D6 · Acoustic narrows the residue, not only the uncertainty.</b> An independent acoustic anchor observes a facet of tone the text proxy can't, so multi-anchor shrinks the C3 tone residue too — asymptotically; warm-prosody sarcasm still escapes (§9).</li>
+</ol>
+</div>
+
+<div class="callout key">
+<b>What rev. 4 adds — six decisions, and one correction to rev. 1–3.</b> This thread sharpened the seam between what the model may <em>say</em> and what may <em>ship</em>, and split the single word "residue" into a <dfn class="computable">computable</dfn><sup>◆</sup> part and an estimable part.
+<ol class="spec" style="margin-top:0.7rem;">
+<li><b>D7 · The model MAY propose a score — it never ships (corrects I3).</b> A proposed score is just another finding. Proposing it is fine and even useful; it is quarantined like every model output and never enters the verdict. Earlier revisions said "the model never emits a score"; the precise rule is "the model's score is never the one that ships."</li>
+<li><b>D8 · S3 grounds evidence, not numbers.</b> A digit has no transcript span to anchor to. S3 grounds the <em>violation + span + criterion</em> the proposed score rests on; S4 re-derives the number from those. The model's number is <em>superseded</em>, not blessed — passing it through would rebuild the evaluator-skill failure mode (the model handing out the score).</li>
+<li><b>D9 · One computable rubric, three roles.</b> S2 reads it as a checklist to <em>hunt</em> against, S3 as the referent to <em>ground</em> against, S4 as the weight table to <em>compute</em> with. Same artifact, three jobs — which is why the companion's human→machine compile is load-bearing for all three at once.</li>
+<li><b>D10 · Two gates, two axes (the residue split).</b> Per-call <em>coverage</em> is computable (how much of the verdict rests on grounded findings vs ungrounded assertion) — this is the finding axis, already implemented as anchor-or-quarantine. Per-criterion <em>residue</em> is <em>not</em> computable per call but is estimable over a stream via escape rate — the criterion axis. Auto-final requires both clear (§5.1).</li>
+<li><b>D11 · Escape rate is the other tail of the agreement instrument.</b> κ asks "when Argus and a human both look, do they agree?"; escape rate asks "when Argus auto-passes, how often did it miss something a human catches?" Same drift detector, two faces (§6).</li>
+<li><b>D12 · Residue is a floor, and model-wobble is not residue.</b> The escape-rate estimate bounds only the failures a reviewer can discover — it is an upper bound on <em>knowable</em> residue, not the truth. And proposer self-disagreement measures how <em>hard</em> a call is, not how much the checklist misses (the C4 contested-vs-hard conflation); it is a triage signal only, never a residue gate (§9).</li>
+</ol>
+</div>
+
+<div class="computable-footnote">
+<sup>◆</sup> <b>"Computable" in this spec means three distinct layers — all Turing-computable, but playing different architectural roles.</b> The word is used throughout this spec and the soft-criteria authoring companion, and it names three things the pipeline must keep apart:
+<dl>
+<dt>1. Compute (模型) — propose findings with referents</dt>
+<dd>The model reads transcript + INTENTS, performs a forward pass, and proposes findings each carrying claimed referents. This IS computation — a finite sequence of matrix operations — and it IS Turing-computable. But the model does NOT dispose: its output is quarantined (I1).</dd>
+<dt>2. Verify (门) — confirm referents exist and match</dt>
+<dd>The gate checks each proposed finding: does it anchor to a real transcript span AND a real INTENTS node at the pinned SHA, and does the cited evidence literally satisfy the <code>required_evidence</code> / <code>fail_condition</code>? This IS computation — a mechanical check. A digit has no span; a finding without a referent is ungrounded (I2).</dd>
+<dt>3. Dispose (门) — decide the verdict</dt>
+<dd>Pass, fail, or defer-to-human. This IS computation — a pure function (<code>score()</code>, <code>adjust()</code>) of the surviving anchored findings + versioned rubric + case precedents — replayable bit-for-bit. The model's proposed score never ships (D7, D8).</dd>
+</dl>
+"Computable" in these two specs therefore means <b>gate-checkable</b>: a finding is computable when it carries a referent the gate can deterministically verify against. Uncomputable does NOT mean Turing-uncomputable — it means <b>lacking a ground-truth referent</b>. Coverage (the fraction of verdict resting on grounded findings) is computable per call; residue (what the checklist missed) is not computable per call but estimable over a stream via escape rate (D10).
+</div>
+
+<div class="callout key">
+<b>What rev. 5 adds — six conformance decisions against spine v6.</b> v6 landed contract-only (zero <code>src/argus/</code> edits), so this is re-targeting, not a merge. The kernel — propose/dispose/re-derive, the compliance ⁄ judgment seam, corroboration, escape-rate — is unchanged. What moves is every reference to the pre-v6 referent shape.
+<ol class="spec" style="margin-top:0.7rem;">
+<li><b>D13 · Argus-only consumer scope (R1).</b> This repo is one tier of three: <em>read INTENTS → score → adjust → emit</em>. <b>S0 Ingest</b> (audio→transcript, Acoustic alignment) is the transformation tier and <b>S6 Feedback</b> (correction→store) is write-time — both leave the enforced pipeline and survive only as a non-enforced platform reference (§2). <em>Source: v6 Big Picture · ADR-0004.</em></li>
+<li><b>D14 · The referent is one INTENTS Provider at a pinned SHA (R2).</b> The loaded, content-addressed 8-type expertise store becomes a single Provider (<code>io</code>) that resolves paths in a git-versioned <code>INTENTS/</code> tree at a pinned epoch. The nine v1 reader interfaces collapse to three category readers behind that one Provider. <code>ExpertiseEntry</code> is an INTENTS-read result shape, not a stored record (§3.1). <em>Source: ADR-0004 · ADR-0002.</em></li>
+<li><b>D15 · <code>human_confirmed</code> dissolves into write-time ownership (R3).</b> The co-degradation loop is still severed — but by producer file-ownership + demand-minted slugs at write time, not by a runtime boolean gate. Argus always reads an already-single, already-calibrated tree; it never reconciles two sources at read time. <em>Source: ADR-0003.</em></li>
+<li><b>D16 · Acoustic Feature &amp; Phrase/Keyword are rubric, not facts (R4).</b> The per-call <em>measurement</em> stays a fact in the call record; the <em>indicator framework</em> and the <em>lexicon</em> are the yardstick — versioned rubric living in <code>_rubric/</code>. §4.1 keeps acoustic as an independent grounding wire <strong>only</strong> for the measurement; the framework is read by <code>score()</code> as rubric and is never double-counted as a corroborating anchor. <em>Source: ADR-0001 · v6 M3.</em></li>
+<li><b>D17 · The pure step splits into <code>score</code> then <code>adjust</code> (R5, §2.5).</b> v6's two-stage contract: <code>raw = score(facts, rubric)</code> with <b>history-purity</b> (history is not an argument), then <code>adjusted = adjust(raw, history)</code> applying anchored L3 case precedents recorded in <code>applied_precedents[]</code>. rev. 4 had no history stage; rev. 5 adds it <em>below</em> the seam — see the new §2.5. <em>Source: ADR-0001 · v6 M4.</em></li>
+<li><b>D18 · Pins become the git-SHA epoch; layers become v6's five (R6/R7).</b> The content-addressed <code>expertise_snapshot_hash</code> becomes the INTENTS <code>intents_sha</code> (EPOCH.yaml); I4/I5 replayability re-expressed. The importlinter contract renames onto <code>types → config → io → core → cli</code>, with the load-bearing rule that <b>the LLM proposer is a Provider (<code>io</code>) and the pure <code>score</code>/<code>adjust</code> live in <code>core</code></b> — which is exactly what keeps v6's "core is pure" claim true (§1). <em>Source: ADR-0002 · v6 M1/M5/M6.</em></li>
+</ol>
+<p style="margin:0.7rem 0 0;font-size:0.93rem;color:var(--muted);"><b>Carried default — Q1 (module count).</b> rev. 4 named 8 expertise types; v6 names 9 modules / nine reader interfaces. Until <code>expertise-library.md</code> reconciles the two on fact, rev. 5 adopts <b>v6's nine, grouped into three category readers</b> behind the one INTENTS Provider, and flags every count reference inline. This is the one open item; nothing else in rev. 5 depends on its resolution.</p>
+</div>
+
+<!-- ════════ §0 ════════ -->
+<h2><span class="num">§0 · FOUNDATION</span>Why determinism is now possible</h2>
+
+<p>The blocking problem in every prior turn was the absence of a decorrelated external referent for soft judgment. The constraint just changed: <strong>the entire knowledge base Argus reads is confirmed before Argus ever reads it</strong>. Under spine v6 that confirmation is not a runtime boolean on a stored entry — it is <em>write-time ownership</em>: the <code>INTENTS/</code> tree is produced by upstream tiers, owned per-file by its producer, and read by Argus at a pinned git-SHA epoch as an already-single, already-calibrated artifact (D15, ADR-0003). Three consequences follow, and the architecture is built on them.</p>
+
+<ul class="spec">
+  <li><b>Every INTENTS node is a grounding wire.</b> Because it was confirmed at write time by a producer that owns it, it is external to and decorrelated from the proposer model's blind spot. Meta-verification against it is a real circuit breaker, not the model shaking its own hand.</li>
+  <li><b>The Error Case Library loop is an oracle, not a poison reservoir.</b> The co-degradation risk from earlier turns required model-auto-detected errors re-entering training. The write-time ownership gate severs that loop: nothing enters the <code>INTENTS/</code> tree except through a producer-owned commit that mints a new epoch — Argus, the consumer, has no write path back into its own referent (D13/D15).</li>
+  <li><b>The judgment layer shrinks but does not vanish.</b> Tone grounds against the Acoustic indicator framework (now rubric, D16); appropriateness grounds against Rules&amp;Criteria + Best-Practice exemplars. The irreducible residue — genuinely contested calls where confirmed experts disagree — is detected by Argus-vs-human disagreement and routed out, never auto-scored.</li>
+</ul>
+
+<!-- ════════ §0.5 ════════ -->
+<h2><span class="num">§0.5 · DESIGN RATIONALE</span>Why these mechanisms, and not the naive port</h2>
+
+<p class="lead">The DSMath-V2 mechanisms do not transfer to QA uniformly. A naive port — apply all four everywhere — manufactures false rigor on exactly the criteria where the model is most prone to correlated error. The governing question is whether meta-verification can ground a critique against <em>something outside the model's own blind spot</em>. That single test sorts every criterion into two layers and decides each mechanism's fate.</p>
+
+<table class="grid">
+  <thead><tr><th style="width:20%">Mechanism</th><th style="width:40%">◢ Compliance layer<br>(transcript-checkable vs SOP)</th><th style="width:40%">◢ Judgment layer<br>(tone · empathy · appropriateness)</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="mono">① Process<br>Derivation</td>
+      <td><span class="det">WORKS</span> — cite span + rule clause; real accuracy gain, citation is auditable.</td>
+      <td><span class="semi">PARTIAL</span> — derivation becomes post-hoc narration unless a grounding wire (acoustics, exemplar) backs the claim.</td>
+    </tr>
+    <tr>
+      <td class="mono">② Meta-<br>Verification</td>
+      <td><span class="det">WORKS</span> — "does the flagged violation exist in the transcript" has an answer; false positives drop.</td>
+      <td style="color:var(--red);"><b>CONFIRMS BIAS</b> — meta-checker reads the same words through the same model; it rubber-stamps the shared blind spot instead of catching it.</td>
+    </tr>
+    <tr>
+      <td class="mono">③ Self-<br>Verification</td>
+      <td><span class="det">WORKS</span> — "did I include the disclaimer" is a string match dressed as judgment; safe to gate on.</td>
+      <td style="color:var(--red);"><b>THEATER</b> — prompted self-check on tone is the failure mode the paper names; faithfulness was an RL artifact, not a prompt.</td>
+    </tr>
+    <tr>
+      <td class="mono">④ Auto-<br>Labeling</td>
+      <td><span class="det">WORKS</span> — votes over an objective rule cancel error because the rule is external.</td>
+      <td style="color:var(--red);"><b>POISONS DATA</b> — voting over correlated uncertainty crystallizes bias into "ground truth" and feeds it back.</td>
+    </tr>
+  </tbody>
+</table>
+<p style="font-size:0.84rem;color:var(--muted);">Read each row twice — down each column. The same mechanism earns opposite verdicts depending on whether a referent exists. The right-column failures are not weak-but-harmless; they are confidently wrong, which is worse than absent.</p>
+
+<h3>The four corrections this spec encodes</h3>
+
+<div class="invariant">
+  <div class="row"><div class="tag" style="color:#e8c07a;">①</div><div class="body"><b>SOP is not an axiom.</b> In math, following every rule guarantees correctness. In service, you can pass every extractable SOP check and still deliver a catastrophic interaction. So process-derivation buys scoring accuracy <em>and</em> coaching value — the cited sentence is useful to a human reviewer even when the score is contestable. → encoded as the Finding triple (§3.2) and the auditable <code>score_derivation</code> trail (§3.5).</div></div>
+  <div class="row"><div class="tag" style="color:#e8c07a;">②</div><div class="body"><b>Meta-verification needs a grounding wire.</b> It is a circuit breaker only against an external referent; on tone it is the model shaking its own hand. The human-confirmed expertise types <em>are</em> those wires — that is the whole unlock. → encoded as S3's per-type applicability gradient (§4), deterministic where a wire exists, <code>deferred</code> where it doesn't.</div></div>
+  <div class="row"><div class="tag" style="color:#e8c07a;">③</div><div class="body"><b>Prompted self-verification is theater.</b> DSMath-V2's generator self-evaluates faithfully because RL rewarded honest error-acknowledgment — not because it was asked nicely. We do not have that training, so "self-verification" is reinterpreted as the <em>structural</em> grounding pass (S3), and any copilot self-check is restricted to enumerable compliance items. → encoded in the S4 footnote and the §6 prohibition on trusting model self-report for scoring.</div></div>
+  <div class="row"><div class="tag" style="color:#e8c07a;">④</div><div class="body"><b>Auto-labeling without a validation gate poisons the set.</b> The paper automated labeling only after confirming alignment with human experts. The judgment layer has no model-internal oracle, so the gate is human confirmation (S6) plus Argus-vs-human agreement (§6) — never Argus-vs-Argus voting. → encoded as the S1 reject-fixture, the S6 human-confirmation gate, and the §6 agreement instrument.</div></div>
+</div>
+
+<div class="callout warn">
+<b>The operationalization residue — the honest caveat on §4.</b> Decomposing "appropriateness" into fifteen binary checks asserts that the conjunction of the fifteen <em>equals</em> appropriateness. It rarely does. Operationalization doesn't eliminate judgment; it relocates it into the checklist design, where at least it is auditable and held in one place. The determinism gradient in §4 is therefore as good as the INTENTS nodes are complete — and the <code>ungrounded</code> bucket (I2) plus the human queue (§9) exist precisely to catch what the checklist failed to encode. The pipeline's honesty is not that it captures everything; it is that it knows, and reports, what it didn't.
+</div>
+
+<!-- ════════ §1 ════════ -->
+<h2><span class="num">§1 · DETERMINISM CONTRACT</span>The five invariants Claude Code must enforce</h2>
+
+<p>These are the load-bearing invariants. Every component is built to preserve them, and §7 gives each one a standing fixture. State them in <code>CLAUDE.md</code> as non-negotiable.</p>
+
+<div class="invariant">
+  <div class="row"><div class="tag">I1</div><div class="body"><b>QUARANTINE.</b> Model nondeterminism exists only in Stage 2 (finding proposal). Stages 3–5 are pure functions of their inputs. A module in <code>scoring/</code> or <code>grounding/</code> that imports the model client is an architecture violation.</div></div>
+  <div class="row"><div class="tag">I2</div><div class="body"><b>ANCHOR-OR-QUARANTINE.</b> Every finding references a real transcript span (exact-quote verified) and a real INTENTS node at the pinned SHA epoch, or it is moved to the <code>ungrounded</code> bucket and routed to a human. Findings are never silently dropped.</div></div>
+  <div class="row"><div class="tag">I3</div><div class="body"><b>SHIPPED SCORE = pure re-derivation, in two stages (D17).</b> <code>raw = score(grounded findings, rubric)</code>, then <code>adjusted = adjust(raw, anchored precedents)</code>. Both are pure functions of their inputs; <code>score</code> never receives history. The model <em>may propose</em> a score (a quarantined finding, D7), but a proposed score enters neither stage and is never the shipped number. Same grounded findings + same rubric version + same anchored precedents ⇒ identical <code>raw</code> and <code>adjusted</code>.</div></div>
+  <div class="row"><div class="tag">I7</div><div class="body"><b>GROUND EVIDENCE, NOT NUMBERS.</b> S3 grounds the violation, span, and criterion a finding rests on — never a bare score (a digit has no span). A model-proposed score is grounded only by grounding its evidence; the pure stages re-derive the number. No code path passes a model-proposed score through S3 into the verdict (D8). Proposed-vs-derived divergence is logged as a drift probe, never as a result.</div></div>
+  <div class="row"><div class="tag">I4</div><div class="body"><b>PINNED REFERENTS (v6: git-SHA epoch).</b> Each evaluation pins the <code>INTENTS/</code> tree at a single git-SHA epoch (<code>EPOCH.yaml</code>) covering every node read. Re-running against the same epoch reproduces the same grounding outcomes. This replaces rev. 4's content-addressed expertise-snapshot hash (D18).</div></div>
+  <div class="row"><div class="tag">I5</div><div class="body"><b>REPLAYABILITY.</b> The stored FindingGraph + <code>intents_sha</code> + rubric version re-derive the identical EvaluationResult forever. This is the liveness canary for the whole pipeline.</div></div>
+  <div class="row"><div class="tag">I6</div><div class="body"><b>INDEPENDENCE-WEIGHTED CORROBORATION.</b> Multi-anchor confidence is a pure, independence-weighted function of the signals — redundant (same model-judged text) signals contribute zero, so no number of correlated re-reads manufactures confidence. Corroboration is orthogonal to the §6 agreement gate: it may clear a per-finding thin-grounding deferral but never a criterion's <code>κ &lt; τ</code> deferral. <code>aggregate ✗ model_client</code>.</div></div>
+</div>
+
+<div class="callout key">
+<b>The importlinter contract makes I1 mechanical — now on v6's five layers.</b> Spine v6 enforces <code>types → config → io → core → cli</code>, and rev. 5 maps this pipeline onto them (D18): the <b>INTENTS Provider is <code>io</code></b>; the <b>LLM proposer is also a Provider (<code>io</code>)</b>, never <code>core</code>; the pure <b><code>score</code>, <code>adjust</code>, corroboration aggregator, and report emission are <code>core</code></b>; schemas are <code>types</code>. The decorrelation between "what proposes" and "what disposes" is enforced in the dependency graph, not in a code review.
+<p style="margin:0.7rem 0 0;"><b>The load-bearing fence (R7).</b> v6 calls <code>score</code>/<code>adjust</code> "pure, in <code>core</code>." That claim is only true because the model call lives in a Provider: <code>core ✗ model_client</code>. So rev. 4's discipline is exactly what protects v6's purity — it does not contradict it. The fences, restated in v6 layer names: <code>core ✗ model_client</code> (was <code>scoring ✗ model_client</code>) · <code>core ✗ proposer</code> (grounding and scoring never import the proposer) · <code>grounding ✗ matching_model</code> (the exemplar/case match producing a correlated signal happens in the proposer, never in the gate — D3) · <code>aggregate ✗ model_client</code> (the corroboration aggregator is pure — I6).</p>
+</div>
+
+<!-- ════════ §2 ════════ -->
+<h2><span class="num">§2 · PIPELINE STAGES</span>Four enforced stages — two tiers alongside (D13)</h2>
+
+<p>Under spine v6 this repo is the <b>consumer tier only</b>: <em>read INTENTS → score → adjust → emit</em>. Ingest (S0) and correction (S6) are other tiers — kept below as a <b>non-enforced platform reference</b>, never as <code>src/argus/</code> stages. The enforced pipeline is S2 → S3 → S4a → S4b → S5, and the model still touches only S2.</p>
+
+<div class="stagebar">
+<figure>
+<svg viewBox="0 0 720 268" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, monospace">
+  <defs><marker id="a" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#6b665c"/></marker></defs>
+
+  <!-- OTHER-TIER band -->
+  <rect x="6" y="6" width="708" height="44" rx="5" fill="none" stroke="#c9c3b6" stroke-dasharray="4 3"/>
+  <text x="14" y="20" font-size="7.5" fill="#9a9488">OTHER TIERS — not this repo · platform-reference only (D13)</text>
+  <g opacity="0.6">
+    <rect x="20" y="24" width="120" height="20" rx="3" fill="#f2efe9" stroke="#9a9488"/>
+    <text x="80" y="37" font-size="8" fill="#6b665c" text-anchor="middle">S0 Ingest · audio→transcript</text>
+    <rect x="574" y="24" width="126" height="20" rx="3" fill="#f2efe9" stroke="#9a9488"/>
+    <text x="637" y="37" font-size="8" fill="#6b665c" text-anchor="middle">S6 correction · write-time</text>
+  </g>
+
+  <!-- THE SEAM -->
+  <line x1="128" y1="66" x2="128" y2="210" stroke="#1c1a17" stroke-width="1.3" stroke-dasharray="3 4"/>
+  <text x="128" y="224" font-size="7" fill="#1c1a17" text-anchor="middle">seam · model | deterministic</text>
+
+  <!-- Enforced stages -->
+  <g>
+    <rect x="18" y="72" width="98" height="50" rx="4" fill="#fbeeeb" stroke="#b5402e"/>
+    <text x="67" y="90" font-size="9.5" font-weight="700" fill="#b5402e" text-anchor="middle">S2 · PROPOSE</text>
+    <text x="67" y="103" font-size="7.5" fill="#6b665c" text-anchor="middle">model emits findings</text>
+    <text x="67" y="113" font-size="7.5" fill="#6b665c" text-anchor="middle">(only here) · io</text>
+  </g>
+  <g>
+    <rect x="140" y="72" width="98" height="50" rx="4" fill="#ecf6ef" stroke="#2a7d4f"/>
+    <text x="189" y="90" font-size="9.5" font-weight="700" fill="#2a7d4f" text-anchor="middle">S3 · GROUND</text>
+    <text x="189" y="103" font-size="7.5" fill="#6b665c" text-anchor="middle">meta-verify vs</text>
+    <text x="189" y="113" font-size="7.5" fill="#6b665c" text-anchor="middle">INTENTS · core</text>
+  </g>
+  <g>
+    <rect x="262" y="72" width="98" height="50" rx="4" fill="#ecf6ef" stroke="#2a7d4f"/>
+    <text x="311" y="88" font-size="9.5" font-weight="700" fill="#2a7d4f" text-anchor="middle">S4a · score</text>
+    <text x="311" y="101" font-size="7.5" fill="#6b665c" text-anchor="middle">raw = score(</text>
+    <text x="311" y="111" font-size="7.5" fill="#6b665c" text-anchor="middle">facts, rubric) · pure</text>
+  </g>
+  <g>
+    <rect x="384" y="72" width="98" height="50" rx="4" fill="#ecf6ef" stroke="#2a7d4f"/>
+    <text x="433" y="88" font-size="9.5" font-weight="700" fill="#2a7d4f" text-anchor="middle">S4b · adjust</text>
+    <text x="433" y="101" font-size="7.5" fill="#6b665c" text-anchor="middle">adjusted = adjust(</text>
+    <text x="433" y="111" font-size="7.5" fill="#6b665c" text-anchor="middle">raw, history) · pure</text>
+  </g>
+  <g>
+    <rect x="506" y="72" width="98" height="50" rx="4" fill="#fffefb" stroke="#b87514"/>
+    <text x="555" y="90" font-size="9.5" font-weight="700" fill="#b87514" text-anchor="middle">S5 · ROUTE</text>
+    <text x="555" y="103" font-size="7.5" fill="#6b665c" text-anchor="middle">auto-final OR</text>
+    <text x="555" y="113" font-size="7.5" fill="#6b665c" text-anchor="middle">human queue</text>
+  </g>
+  <g>
+    <rect x="628" y="72" width="74" height="50" rx="4" fill="#fffefb" stroke="#6b665c"/>
+    <text x="665" y="90" font-size="9" font-weight="700" fill="#1c1a17" text-anchor="middle">EMIT</text>
+    <text x="665" y="103" font-size="7.5" fill="#6b665c" text-anchor="middle">report +</text>
+    <text x="665" y="113" font-size="7.5" fill="#6b665c" text-anchor="middle">coaching</text>
+  </g>
+
+  <!-- arrows -->
+  <line x1="117" y1="97" x2="138" y2="97" stroke="#6b665c" marker-end="url(#a)"/>
+  <line x1="239" y1="97" x2="260" y2="97" stroke="#6b665c" marker-end="url(#a)"/>
+  <line x1="361" y1="97" x2="382" y2="97" stroke="#6b665c" marker-end="url(#a)"/>
+  <line x1="483" y1="97" x2="504" y2="97" stroke="#6b665c" marker-end="url(#a)"/>
+  <line x1="605" y1="97" x2="626" y2="97" stroke="#6b665c" marker-end="url(#a)"/>
+
+  <!-- S0 feeds S2 -->
+  <line x1="80" y1="45" x2="80" y2="70" stroke="#9a9488" stroke-dasharray="3 3" marker-end="url(#a)"/>
+
+  <!-- INTENTS provider feeding S3 + S4a -->
+  <rect x="150" y="150" width="220" height="42" rx="4" fill="#1c1f26" stroke="#1c1f26"/>
+  <text x="260" y="167" font-size="9.5" font-weight="700" fill="#7fb3e8" text-anchor="middle">INTENTS tree — one Provider (io)</text>
+  <text x="260" y="181" font-size="7.5" fill="#e2e0d8" text-anchor="middle">read at pinned git-SHA epoch · already-confirmed</text>
+  <line x1="189" y1="149" x2="189" y2="124" stroke="#2a7d4f" stroke-dasharray="3 3" marker-end="url(#a)"/>
+  <line x1="311" y1="149" x2="311" y2="124" stroke="#2a7d4f" stroke-dasharray="3 3" marker-end="url(#a)"/>
+
+  <!-- history feeding adjust -->
+  <rect x="392" y="150" width="180" height="42" rx="4" fill="#2b2418" stroke="#2b2418"/>
+  <text x="482" y="167" font-size="9" font-weight="700" fill="#e8c07a" text-anchor="middle">L3 case history (precedents)</text>
+  <text x="482" y="181" font-size="7.5" fill="#e2e0d8" text-anchor="middle">enters adjust only · never score</text>
+  <line x1="433" y1="149" x2="433" y2="124" stroke="#b87514" stroke-dasharray="3 3" marker-end="url(#a)"/>
+
+  <!-- ungrounded path -->
+  <path d="M 189 122 L 189 138 L 555 138 L 555 123" fill="none" stroke="#b5402e" stroke-dasharray="2 2"/>
+  <text x="372" y="135" font-size="7" fill="#b5402e" text-anchor="middle">ungrounded findings bypass scoring → human queue (I2)</text>
+
+  <!-- coaching to S6 -->
+  <path d="M 665 70 L 665 60 L 637 60 L 637 45" fill="none" stroke="#9a9488" stroke-dasharray="3 3" marker-end="url(#a)"/>
+  <text x="360" y="250" font-size="7.5" fill="#6b665c" text-anchor="middle">history-purity: score() cannot see precedents; the seam is preserved through the split (§2.5)</text>
+</svg>
+<figcaption>Fig. 01 — the model touches only S2; S3–S4b are pure and replayable. S0/S6 are other tiers, shown for context only.</figcaption>
+</figure>
+</div>
+
+<table class="grid">
+  <thead><tr><th style="width:14%">Stage</th><th style="width:46%">Does</th><th style="width:20%">Determinism</th><th style="width:20%">Layer / Mechanism</th></tr></thead>
+  <tbody>
+    <tr style="opacity:0.6;"><td class="mono">S0 Ingest †</td><td>Audio → structural transcription (turn + char spans, timestamps) + Acoustic measurements aligned to spans. <b>Transformation tier — not this repo.</b></td><td><span class="det">deterministic</span></td><td>platform-reference</td></tr>
+    <tr><td class="mono">S1 Read</td><td>Resolve the <code>INTENTS/</code> tree through <b>one Provider</b> at the pinned git-SHA epoch. No load-and-confirm step: the tree is already single and calibrated (D14/D15).</td><td><span class="det">deterministic</span></td><td>io · the referent</td></tr>
+    <tr><td class="mono">S2 Propose</td><td>Model walks spans, emits candidate findings, each anchoring a span + INTENTS node</td><td><span class="hum">model (quarantined)</span></td><td>io · ① Process Derivation</td></tr>
+    <tr><td class="mono">S3 Ground</td><td>Meta-verify each finding: span exists, quote matches, anchor exists, anchor applies; then <b>aggregate corroborating signals</b> by independence weight (pure) — D1–D5</td><td><span class="semi">det. / grounded</span></td><td>core · ② Meta-Verification</td></tr>
+    <tr><td class="mono">S4a score</td><td><b>Pure:</b> <code>raw = score(facts, rubric)</code>. Confirmed findings + versioned rubric → raw score + derivation trail. <b>History is not an argument (D17).</b></td><td><span class="det">deterministic</span></td><td>core · ③ Self-Verification*</td></tr>
+    <tr><td class="mono">S4b adjust</td><td><b>Pure:</b> <code>adjusted = adjust(raw, history)</code>. Applies anchored L3 case precedents, each recorded in <code>applied_precedents[]</code> (new in rev. 5)</td><td><span class="det">deterministic</span></td><td>core · precedent application</td></tr>
+    <tr><td class="mono">S5 Route</td><td>Confidence + ungrounded set decide auto-finalize vs human queue; emit report + coaching</td><td><span class="det">deterministic</span></td><td>core → cli · calibrated abstention</td></tr>
+    <tr style="opacity:0.6;"><td class="mono">S6 Correct †</td><td>Human-confirmed corrections re-enter the <code>INTENTS/</code> tree at write time, minting a new epoch. <b>Write-time producer-owned — not this repo</b> (D15).</td><td><span class="hum">write-time</span></td><td>platform-reference · ④ Auto-Labeling*</td></tr>
+  </tbody>
+</table>
+<p style="font-size:0.84rem;color:var(--muted);">† S0 and S6 are shown for continuity but are <b>not enforced stages in this repo</b> (D13). * ③ and ④ are the layer-aware corrections from the prior analysis: "self-verification" is the structural grounding pass, not the model introspecting its own tone; "auto-labeling" is gated at write time, so the loop cannot poison the tree. The score→adjust split and its history-purity seam are detailed in §2.5.</p>
+
+<!-- ════════ §2.5 ════════ -->
+<h2><span class="num">§2.5 · THE SEAM UNDER v6</span>Two score functions, one principle</h2>
+
+<p>v6 renamed the machinery; it did not move the seam. <code>score()</code> and <code>adjust()</code> are both <b>proposers on the model side</b>; the deterministic gate still disposes, and a pure function still re-derives the shipped number. v6 does not replace the governing principle — it makes the proposals falsifiable enough that the gate can finally reach the judgment layer.</p>
+
+<div class="thesis">
+Both v6 functions thread through the same three layers. <b>Nothing on the model's side of the seam sets a shipped number.</b> <code>score</code> emits per-rule verdicts; <code>adjust</code> proposes precedents; the gate anchors both; the pure re-derivation alone produces <code>raw</code> and <code>adjusted</code>.
+</div>
+
+<div class="stagebar">
+<figure>
+<svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, monospace">
+  <defs>
+    <marker id="s" markerWidth="8" markerHeight="7" refX="7" refY="3.5" orient="auto"><polygon points="0 0,8 3.5,0 7" fill="#6b665c"/></marker>
+    <marker id="sr" markerWidth="8" markerHeight="7" refX="7" refY="3.5" orient="auto"><polygon points="0 0,8 3.5,0 7" fill="#b5402e"/></marker>
+  </defs>
+  <!-- column headers -->
+  <text x="110" y="20" font-size="10" font-weight="700" fill="#b87514" text-anchor="middle">PROPOSE</text>
+  <text x="110" y="31" font-size="7.5" fill="#9a9488" text-anchor="middle">model · io · untrusted</text>
+  <text x="390" y="20" font-size="10" font-weight="700" fill="#1d4e89" text-anchor="middle">DISPOSE</text>
+  <text x="390" y="31" font-size="7.5" fill="#9a9488" text-anchor="middle">deterministic gate · core</text>
+  <text x="640" y="20" font-size="10" font-weight="700" fill="#2a7d4f" text-anchor="middle">RE-DERIVE</text>
+  <text x="640" y="31" font-size="7.5" fill="#9a9488" text-anchor="middle">pure fn · core · trusted</text>
+
+  <!-- seam -->
+  <line x1="222" y1="40" x2="222" y2="286" stroke="#1c1a17" stroke-width="1.4" stroke-dasharray="3 4"/>
+  <text x="222" y="298" font-size="7.5" fill="#1c1a17" text-anchor="middle">THE SEAM</text>
+
+  <!-- RAW LANE -->
+  <text x="12" y="70" font-size="7.5" font-weight="700" fill="#6b665c">RAW LANE</text>
+  <rect x="20" y="78" width="176" height="46" rx="4" fill="#fffefb" stroke="#b87514"/>
+  <text x="108" y="98" font-size="9" font-weight="700" fill="#b87514" text-anchor="middle">score(facts, rubric)</text>
+  <text x="108" y="112" font-size="7" fill="#6b665c" text-anchor="middle">per-rule verdicts + evidence anchor</text>
+  <line x1="196" y1="101" x2="286" y2="101" stroke="#6b665c" marker-end="url(#s)"/>
+  <rect x="288" y="74" width="196" height="54" rx="4" fill="#fffefb" stroke="#1d4e89"/>
+  <text x="386" y="91" font-size="8.5" font-weight="700" fill="#1d4e89" text-anchor="middle">ANCHOR CHECK</text>
+  <text x="386" y="103" font-size="6.6" fill="#6b665c" text-anchor="middle">verdict → span + INTENTS rule @SHA,</text>
+  <text x="386" y="112" font-size="6.6" fill="#6b665c" text-anchor="middle">evidence satisfies required_evidence/fail_condition</text>
+  <rect x="298" y="116" width="176" height="9" rx="2" fill="#fbeeeb"/>
+  <text x="386" y="123" font-size="6.4" font-weight="700" fill="#b5402e" text-anchor="middle">PURITY RULE — cites a precedent? REJECT</text>
+  <line x1="484" y1="101" x2="558" y2="101" stroke="#6b665c" marker-end="url(#s)"/>
+  <text x="521" y="96" font-size="6.5" fill="#6b665c" text-anchor="middle">surviving</text>
+  <rect x="560" y="78" width="150" height="46" rx="4" fill="#ecf6ef" stroke="#2a7d4f"/>
+  <text x="635" y="97" font-size="8" font-weight="700" fill="#2a7d4f" text-anchor="middle">raw = pure(</text>
+  <text x="635" y="108" font-size="6.6" fill="#6b665c" text-anchor="middle">anchored verdicts, rubric wts)</text>
+  <text x="635" y="120" font-size="8" font-weight="700" fill="#1c1a17" text-anchor="middle">→ raw</text>
+
+  <!-- raw carries down -->
+  <line x1="635" y1="124" x2="635" y2="150" stroke="#2a7d4f" stroke-width="1" stroke-dasharray="2 3"/>
+  <line x1="635" y1="150" x2="108" y2="150" stroke="#2a7d4f" stroke-width="1" stroke-dasharray="2 3"/>
+  <line x1="108" y1="150" x2="108" y2="188" stroke="#2a7d4f" stroke-width="1" stroke-dasharray="2 3" marker-end="url(#s)"/>
+  <text x="360" y="146" font-size="6.5" fill="#2a7d4f" text-anchor="middle">raw carries forward — the only bridge between lanes</text>
+
+  <!-- ADJUST LANE -->
+  <text x="12" y="200" font-size="7.5" font-weight="700" fill="#6b665c">ADJUST LANE</text>
+  <rect x="20" y="192" width="176" height="46" rx="4" fill="#fffefb" stroke="#b87514"/>
+  <text x="108" y="212" font-size="9" font-weight="700" fill="#b87514" text-anchor="middle">adjust(raw, history)</text>
+  <text x="108" y="226" font-size="7" fill="#6b665c" text-anchor="middle">proposed precedents to apply</text>
+  <line x1="196" y1="215" x2="286" y2="215" stroke="#6b665c" marker-end="url(#s)"/>
+  <rect x="288" y="192" width="196" height="46" rx="4" fill="#fffefb" stroke="#1d4e89"/>
+  <text x="386" y="210" font-size="8.5" font-weight="700" fill="#1d4e89" text-anchor="middle">ANCHOR CHECK</text>
+  <text x="386" y="222" font-size="6.6" fill="#6b665c" text-anchor="middle">precedent → real L3 case-history entry,</text>
+  <text x="386" y="231" font-size="6.6" fill="#6b665c" text-anchor="middle">recorded in applied_precedents[]</text>
+  <line x1="484" y1="215" x2="558" y2="215" stroke="#6b665c" marker-end="url(#s)"/>
+  <text x="521" y="210" font-size="6.5" fill="#6b665c" text-anchor="middle">surviving</text>
+  <rect x="560" y="192" width="150" height="46" rx="4" fill="#ecf6ef" stroke="#2a7d4f"/>
+  <text x="635" y="211" font-size="8" font-weight="700" fill="#2a7d4f" text-anchor="middle">adjusted = pure(</text>
+  <text x="635" y="222" font-size="6.6" fill="#6b665c" text-anchor="middle">raw, anchored precedents)</text>
+  <text x="635" y="234" font-size="7.5" font-weight="700" fill="#1c1a17" text-anchor="middle">→ adjusted</text>
+
+  <!-- quarantine -->
+  <rect x="288" y="252" width="196" height="34" rx="4" fill="#fbeeeb" stroke="#b5402e"/>
+  <text x="386" y="269" font-size="8.5" font-weight="700" fill="#b5402e" text-anchor="middle">QUARANTINE</text>
+  <text x="386" y="280" font-size="6.6" fill="#8a3526" text-anchor="middle">unanchored + purity-violating → never scored</text>
+  <line x1="360" y1="128" x2="360" y2="250" stroke="#b5402e" stroke-width="0.9" stroke-dasharray="2 3" marker-end="url(#sr)"/>
+  <line x1="420" y1="238" x2="420" y2="250" stroke="#b5402e" stroke-width="0.9" stroke-dasharray="2 3" marker-end="url(#sr)"/>
+</svg>
+<figcaption>Fig. 02 — <code>score</code> and <code>adjust</code> both thread propose → dispose → re-derive; the purity rule keeps the raw lane history-free.</figcaption>
+</figure>
+</div>
+
+<h3>2.5.1 — The three layers, and where each v6 function sits</h3>
+<ul class="spec">
+  <li><b>Propose (model · io).</b> <code>score(facts, rubric)</code> emits per-rule verdicts — "turn N contains evidence of type X: pass/fail" — each carrying an evidence anchor. <code>adjust(raw, history)</code> proposes which case precedents apply. Both are model output; neither has scored anything. Because each rule carries <code>required_evidence</code> and <code>fail_condition</code>, the proposals are falsifiable and low-variance — but low-variance or not, they remain proposals.</li>
+  <li><b>Dispose (deterministic gate · core).</b> Each proposed verdict must anchor to a real transcript span <em>and</em> a real INTENTS rule at the pinned SHA, and the cited evidence must literally satisfy that rule's <code>required_evidence</code> / <code>fail_condition</code>. On the raw lane the gate also enforces the <b>purity rule</b>: any verdict citing a precedent is rejected. Each <code>adjust</code> precedent must anchor to a real L3 case-history entry, recorded in <code>applied_precedents[]</code>. Nothing survives on the model's say-so.</li>
+  <li><b>Re-derive (pure fn · core).</b> <code>raw</code> is a pure function of the surviving anchored verdicts plus versioned rubric weights — replayable bit-for-bit. <code>adjusted</code> is a pure function of <code>raw</code> plus surviving anchored precedents. The model emits neither number. This is the principle, unchanged from rev. 4.</li>
+</ul>
+
+<h3>2.5.2 — Why this is complementary, not redundant</h3>
+<p>The tempting objection is that if v6's criteria are unambiguous, the re-derivation gate is dead weight. It isn't — and this is the whole point. In rev. 4 the hazard on the judgment layer was that the gate had <em>nothing objective to check against</em>, so meta-verification degenerated into an echo chamber. A rule carrying <code>required_evidence</code> and <code>fail_condition</code> gives the gate a literal, transcript-checkable thing to verify — "is there an acknowledgment span before the resolution span?" — instead of asking the model "was this empathetic?" So v6's falsifiable criteria are precisely <em>what let the deterministic gate reach the judgment layer at all</em>. The criteria make the proposal checkable; the gate does the checking. Complementary by construction.</p>
+
+<h3>2.5.3 — The purity invariant is enforced twice, on purpose</h3>
+<p>v6 enforces history-purity at <em>authoring time</em> through the signature: <code>history</code> is not an argument to <code>score()</code>. Under the combined model the gate enforces it again at <em>runtime</em>: any raw-lane verdict citing a precedent is rejected and quarantined. The signature stops it going in; the gate catches it if it somehow appears — belt and suspenders, and it keeps the two-stage split honest against a future refactor that might quietly widen the <code>score()</code> signature.</p>
+
+<div class="callout">
+<b>Carryover from rev. 4.</b> The quarantined <code>proposed_score</code> (D7) still fits cleanly: the model may emit an aggregate as a <em>finding</em> for triage, but it is quarantined by definition — the shipped <code>raw</code> and <code>adjusted</code> are always re-derived. True in both the pre-v6 and v6 worlds; no change needed.
+</div>
+
+<!-- ════════ §3 ════════ -->
+<h2><span class="num">§3 · SCHEMAS</span>The five JSON contracts</h2>
+
+<h3>3.1 — IntentsNode (the referent — an INTENTS-read result shape, D14)</h3>
+<pre><span class="c">// rev.5: NOT a stored record. This is what the one INTENTS Provider (io) returns</span>
+<span class="c">// when it resolves a path in the INTENTS/ tree at the pinned git-SHA epoch.</span>
+<span class="c">// Q1 default: the nine v6 modules group into three category readers; `category`</span>
+<span class="c">// names the reader, not one of the historical "8 expertise types".</span>
+{
+  <span class="k">"node_id"</span>: <span class="s">"rc-0042"</span>,               <span class="c">// stable path-derived id within INTENTS/</span>
+  <span class="k">"category"</span>: <span class="s">"rules_criteria"</span>,        <span class="c">// one of the 3 category readers (rubric | facts | history)</span>
+  <span class="k">"intents_path"</span>: <span class="s">"_rubric/rules/rc-0042.yaml"</span>, <span class="c">// path-as-ontology position (ADR-0002)</span>
+  <span class="k">"intents_sha"</span>: <span class="s">"git:a1b2c3…"</span>,        <span class="c">// the epoch this read is pinned to (I4)</span>
+  <span class="c">// no `human_confirmed` field: confirmation is write-time ownership, not a runtime boolean (D15)</span>
+  <span class="k">"layer"</span>: <span class="s">"compliance"</span>,             <span class="c">// "compliance" | "judgment"</span>
+  <span class="k">"required_evidence"</span>: { <span class="c">/* falsifiable evidence spec — v6 M6, see §4 */</span> },
+  <span class="k">"fail_condition"</span>: { <span class="c">/* falsifiable failure spec — v6 M6 */</span> },
+  <span class="k">"deduction"</span>: <span class="f">0.5</span>                    <span class="c">// rubric weight if violated</span>
+}</pre>
+
+<h3>3.2 — Finding (the atomic grounded claim)</h3>
+<pre>{
+  <span class="k">"finding_id"</span>: <span class="s">"f-001"</span>,
+  <span class="k">"span_ref"</span>: { <span class="k">"turn"</span>: <span class="f">12</span>, <span class="k">"char_start"</span>: <span class="f">0</span>, <span class="k">"char_end"</span>: <span class="f">45</span>, <span class="k">"speaker"</span>: <span class="s">"agent"</span> },
+  <span class="k">"quoted_text"</span>: <span class="s">"the exact transcript substring being cited"</span>,
+  <span class="k">"anchor_node"</span>: <span class="s">"rc-0042"</span>,        <span class="c">// MUST resolve in INTENTS/ at the epoch (I2)</span>
+  <span class="k">"intents_sha"</span>: <span class="s">"git:a1b2c3…"</span>,
+  <span class="k">"finding_type"</span>: <span class="s">"violation"</span>,    <span class="c">// "violation" | "positive" | "notice"</span>
+  <span class="k">"claim"</span>: <span class="s">"agent failed to state cancellation fee before confirming"</span>,
+  <span class="k">"grounding_signals"</span>: [        <span class="c">// D1 — multi-anchor; each carries an independence_class (D2)</span>
+    { <span class="k">"signal_id"</span>: <span class="s">"transcript"</span>, <span class="k">"signal_type"</span>: <span class="s">"lexical"</span>,   <span class="k">"independence_class"</span>: <span class="s">"redundant"</span>,   <span class="k">"resolves_to"</span>: <span class="s">"span"</span> },
+    { <span class="k">"signal_id"</span>: <span class="s">"af-0012"</span>,    <span class="k">"signal_type"</span>: <span class="s">"acoustic_measurement"</span>, <span class="k">"independence_class"</span>: <span class="s">"independent"</span>, <span class="k">"resolves_to"</span>: <span class="s">"call_record_fact"</span> },
+    { <span class="k">"signal_id"</span>: <span class="s">"ec-0207"</span>,    <span class="k">"signal_type"</span>: <span class="s">"error_case"</span>, <span class="k">"independence_class"</span>: <span class="s">"correlated"</span>,  <span class="k">"resolves_to"</span>: <span class="s">"intents_node"</span> }
+  ],
+  <span class="c">// D16: the acoustic *measurement* is an independent fact in the call record and stays a signal.</span>
+  <span class="c">//      the acoustic *framework* (12 indicators) is rubric in _rubric/ that score() reads — NOT a signal here.</span>
+  <span class="c">// NOTE: classes are AUTHORED on the INTENTS node (companion spec), copied here by S2, re-checked by S3.</span>
+  <span class="k">"primary_channel"</span>: <span class="s">"redundant"</span>,   <span class="c">// the channel the proposer judged on; excluded from its own corroboration</span>
+  <span class="k">"model_confidence"</span>: <span class="f">0.0</span>,           <span class="c">// proposer's self-report; NOT trusted for scoring</span>
+  <span class="k">"proposed_score"</span>: <span class="f">0.4</span>             <span class="c">// D7 — optional; the model's own number. QUARANTINED: never enters f, never ships.</span>
+}                                <span class="c">//      S4 re-derives the shipped score from grounded evidence (D8); divergence is a drift probe only.</span></pre>
+
+<h3>3.3 — FindingGraph (one transcript's full derivation = verifier output)</h3>
+<pre>{
+  <span class="k">"evaluation_id"</span>: <span class="s">"eval-7731"</span>,
+  <span class="k">"transcript_id"</span>: <span class="s">"call-99214"</span>,
+  <span class="k">"intents_sha"</span>: <span class="s">"git:a1b2c3…"</span>,        <span class="c">// pins the whole INTENTS epoch (I4, D18)</span>
+  <span class="k">"rubric_version"</span>: <span class="s">"r-2026-05"</span>,
+  <span class="k">"findings"</span>: [ <span class="c">/* Finding[] that anchored */</span> ],
+  <span class="k">"ungrounded"</span>: [ <span class="c">/* proposed but failed to anchor → human queue (I2) */</span> ]
+}</pre>
+
+<h3>3.4 — MetaVerificationResult (S3 output, per finding)</h3>
+<pre>{
+  <span class="k">"finding_id"</span>: <span class="s">"f-001"</span>,
+  <span class="k">"span_exists"</span>: <span class="k">true</span>,           <span class="c">// deterministic lookup</span>
+  <span class="k">"quote_fidelity"</span>: <span class="f">1.0</span>,         <span class="c">// exact-match score; &lt;1.0 ⇒ reject</span>
+  <span class="k">"anchor_exists"</span>: <span class="k">true</span>,         <span class="c">// entry resolves at pinned version</span>
+  <span class="k">"anchor_applicable"</span>: <span class="s">"confirmed"</span>, <span class="c">// "confirmed"|"rejected"|"deferred" (§4)</span>
+  <span class="k">"meta_verdict"</span>: <span class="s">"confirmed"</span>,     <span class="c">// "confirmed"|"rejected"|"escalate"</span>
+  <span class="k">"grounding_confidence"</span>: <span class="f">1.0</span>,     <span class="c">// derived from wire type, not model (§4)</span>
+  <span class="k">"corroboration"</span>: {                  <span class="c">// D1–D5 — pure aggregation over verified signals</span>
+    <span class="k">"contributing"</span>: [<span class="s">"af-0012"</span>],     <span class="c">// signals that resolved AND co-located on the span</span>
+    <span class="k">"independent_present"</span>: <span class="k">true</span>,    <span class="c">// ≥1 independent signal beyond primary_channel</span>
+    <span class="k">"aggregate"</span>: <span class="f">1.0</span>,             <span class="c">// 1 − Π(1 − wᵢ); redundant-only ⇒ 0.0 (D5)</span>
+    <span class="k">"residue_narrowed"</span>: <span class="k">true</span>        <span class="c">// independent signal observes a non-text facet (D6)</span>
+  },
+  <span class="k">"defer_reason"</span>: <span class="k">null</span>             <span class="c">// null | "criterion_below_tau" | "finding_thin" | "ungrounded"</span>
+}</pre>
+
+<h3>3.5 — EvaluationResult (final, deterministic — two-stage, D17)</h3>
+<pre>{
+  <span class="k">"evaluation_id"</span>: <span class="s">"eval-7731"</span>,
+  <span class="k">"raw"</span>: <span class="f">0.5</span>,                    <span class="c">// pure score(facts, rubric); history NOT an input (I3)</span>
+  <span class="k">"adjusted"</span>: <span class="f">0.5</span>,               <span class="c">// pure adjust(raw, anchored precedents) — the shipped number</span>
+  <span class="k">"applied_precedents"</span>: [             <span class="c">// each anchored to a real L3 case-history entry</span>
+    <span class="c">/* { "precedent_id": "case-8821", "delta": 0.0, "anchor": "hist/…" } — empty here: no precedent applied */</span>
+  ],
+  <span class="k">"score_derivation"</span>: [               <span class="c">// audit trail for `raw`</span>
+    { <span class="k">"finding_id"</span>: <span class="s">"f-001"</span>, <span class="k">"deduction"</span>: <span class="f">0.5</span>, <span class="k">"anchor"</span>: <span class="s">"rc-0042"</span> }
+  ],
+  <span class="k">"routing"</span>: <span class="s">"human_review"</span>,        <span class="c">// "auto_final" | "human_review"</span>
+  <span class="k">"routing_reason"</span>: <span class="s">"3 ungrounded findings; 1 low-agreement criterion"</span>,
+  <span class="k">"coverage"</span>: <span class="f">0.72</span>,               <span class="c">// D10 — fraction of the verdict resting on grounded findings vs ungrounded assertion (per-call, computable)</span>
+  <span class="k">"proposed_vs_derived"</span>: [            <span class="c">// D8/D12 — logged divergence; drift probe ONLY, not part of the result</span>
+    { <span class="k">"finding_id"</span>: <span class="s">"f-001"</span>, <span class="k">"proposed"</span>: <span class="f">0.4</span>, <span class="k">"derived"</span>: <span class="f">0.5</span>, <span class="k">"delta"</span>: <span class="f">0.1</span> }
+  ],
+  <span class="k">"replay_hash"</span>: <span class="s">"sha256:…"</span>          <span class="c">// reproduces this result from grounded inputs + intents_sha + rubric_version (I5) — NOT over proposed_score</span>
+}</pre>
+
+<h3>3.6 — CriterionHealth (per soft criterion, updated off-line by §6)</h3>
+<pre>{
+  <span class="k">"criterion_id"</span>: <span class="s">"rc-soft-0118"</span>,
+  <span class="k">"kappa"</span>: <span class="f">0.83</span>,                 <span class="c">// agreement tail: Argus-vs-human when both look (§6)</span>
+  <span class="k">"escape_rate"</span>: <span class="f">0.04</span>,           <span class="c">// D11 — auto-pass tail: human-caught misses ÷ sampled auto-passes</span>
+  <span class="k">"escape_rate_trend"</span>: <span class="s">"falling"</span>,  <span class="c">// "falling"|"flat"|"rising" over the last N windows</span>
+  <span class="k">"status"</span>: <span class="s">"trusted"</span>             <span class="c">// "trusted" (κ≥τ AND escape acceptable) | "demoted" (route all to human, re-author)</span>
+}</pre>
+<p style="font-size:0.84rem;color:var(--muted);"><code>escape_rate</code> is a <em>floor</em> on the criterion's true residue (D12): it counts only misses a reviewer actually catches. A failure invisible to both the checklist and every reviewer is invisible here too — so a low escape rate bounds the <em>knowable</em> residue, and the spec reports it as such, never as "the residue is zero."
+
+<!-- ════════ §4 ════════ -->
+<h2><span class="num">§4 · GROUNDING GATE</span>Per-expertise meta-verification rules</h2>
+
+<p>S3 is where determinism is won or lost. Each knowledge module has a defined <code>anchor_applicable</code> check and a fixed <code>grounding_confidence</code>. The gradient runs from fully deterministic (lexical/lookup) to model-assisted-but-grounded (soft rules, exemplar match). Confidence is a property of the <em>wire</em>, set here, never read from the model.</p>
+
+<p style="font-size:0.9rem;color:var(--muted);"><b>D16 note.</b> The rows below describe the <em>runtime check</em> Argus runs on a call. For Phrase/Keyword the check tests the call against the <em>lexicon</em>, and for Acoustic against the <em>indicator framework</em> — and under v6 both the lexicon and the framework are <b>rubric</b> read from <code>_rubric/</code>, not descriptive facts (D16). The <code>Layer</code> column below is the check's disposition; the yardstick it checks against lives in the rubric shelf.</p>
+
+<table class="grid">
+  <thead><tr><th style="width:22%">Expertise</th><th style="width:30%">Applicability check</th><th style="width:14%">Determinism</th><th style="width:10%">Conf.</th><th style="width:24%">Layer</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">Phrase / Keyword</td><td>term ∈ span? (lexical)</td><td><span class="det">full</span></td><td class="mono">1.0</td><td>compliance</td></tr>
+    <tr><td class="mono">Dynamic KB</td><td>cited fact == KB entry @ version?</td><td><span class="det">full</span></td><td class="mono">1.0</td><td>compliance</td></tr>
+    <tr><td class="mono">Operation Manual</td><td>step sequence ordered-match</td><td><span class="det">full</span></td><td class="mono">1.0</td><td>compliance</td></tr>
+    <tr><td class="mono">Product Intro</td><td>claim == spec lookup?</td><td><span class="det">full</span></td><td class="mono">1.0</td><td>compliance</td></tr>
+    <tr><td class="mono">Rules&amp;Criteria (obj.)</td><td>trigger condition met (rule-eval)</td><td><span class="det">full</span></td><td class="mono">1.0</td><td>compliance</td></tr>
+    <tr><td class="mono">Acoustic Features</td><td>prosody crosses entry threshold</td><td><span class="det">threshold</span></td><td class="mono">0.85</td><td>judgment (tone fact)</td></tr>
+    <tr><td class="mono">Error Case Library</td><td>pattern-match to confirmed case</td><td><span class="semi">grounded</span></td><td class="mono">0.8</td><td>judgment</td></tr>
+    <tr><td class="mono">Best Practice</td><td>similarity to exemplar situation</td><td><span class="semi">grounded</span></td><td class="mono">0.7</td><td>judgment</td></tr>
+    <tr><td class="mono">Rules&amp;Criteria (soft)</td><td>model-judged, agreement-gated (§6)</td><td><span class="semi">grounded</span></td><td class="mono">var.</td><td>judgment</td></tr>
+  </tbody>
+</table>
+
+<div class="callout warn">
+<b>The <code>deferred</code> verdict is the calibration escape hatch.</b> When a soft Rules&amp;Criteria item or a Best-Practice match falls below its agreement threshold (§6), S3 returns <code>anchor_applicable: "deferred"</code> rather than confirming or rejecting. A deferred finding does not enter scoring and forces <code>routing: human_review</code>. This is how the pipeline reports "I'm in the contested regime" instead of guessing — calibrated abstention made mechanical.
+</div>
+
+<!-- ════════ §4.1 ════════ -->
+<h2><span class="num">§4.1 · CORROBORATION</span>Which anchors actually decorrelate (D2)</h2>
+
+<p>A second anchor on a finding is worth exactly its <em>error-source disjointness from the proposer</em> — not its determinism column, and not its standalone confidence. The knowledge modules sort into three independence classes. The class is a property of the <em>act that produces the signal</em>, not of the referent it cites: a confirmed referent reached by a model judgment is still correlated with the model's blind spot.</p>
+
+<div class="callout warn">
+<b>D16 — the acoustic split, and why it does not break corroboration.</b> v6 reclassifies Acoustic Feature and Phrase/Keyword from facts to <em>rubric</em>. The distinction is measurement-vs-yardstick: the <b>per-call acoustic measurement</b> (a prosody number on the waveform) stays an independent <em>fact</em> in the call record and remains a full-weight corroborating signal below. But the <b>12-indicator acoustic framework</b> and the <b>phrase lexicon</b> are the <em>yardstick</em> — versioned rubric in <code>_rubric/</code> that <code>score()</code> reads to interpret the measurement. The framework is therefore <em>not</em> a corroborating anchor; counting it as one would double-count the rubric against itself. Corroboration weights below apply to the <b>measurement</b>, never the framework.
+</div>
+
+<table class="grid">
+  <thead><tr><th style="width:20%">Corroborator</th><th style="width:30%">Producing act</th><th style="width:16%">Class</th><th style="width:10%">Weight</th><th style="width:24%">Verdict as corroborator</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">Acoustic <em>measurement</em></td><td>DSP on the waveform — never reads the transcript (the <em>framework</em> is rubric, D16)</td><td><span class="ic ind">independent</span></td><td class="mono">1.0</td><td>The real one. Two instruments, not one model voting twice.</td></tr>
+    <tr><td class="mono">Phrase/Keyword · Dynamic KB · Operation Manual · Product Intro</td><td>lexical / lookup / ordered-match (no model judgment)</td><td><span class="ic ind">independent</span></td><td class="mono">1.0</td><td>Deterministic referents; disjoint from the proposer's text judgment. Full weight.</td></tr>
+    <tr><td class="mono">Error Case Library</td><td>model pattern-match to a confirmed case</td><td><span class="ic cor">correlated</span></td><td class="mono">w<sub>c</sub>≈0.4</td><td>Independent referent, <em>model-judged</em> applicability. Shares the matcher's blind spot. Half-weight.</td></tr>
+    <tr><td class="mono">Best Practice</td><td>model similarity to an exemplar situation</td><td><span class="ic cor">correlated</span></td><td class="mono">w<sub>c</sub>≈0.4</td><td>Same trap as Error Case. Treat as weaker than its 0.7 standalone confidence suggests.</td></tr>
+    <tr><td class="mono">Rules&amp;Criteria (soft)</td><td>model-judged against an authored text signature</td><td><span class="ic red">redundant</span></td><td class="mono">0.0</td><td>Same channel as the proposer. Backing a soft finding with another soft finding is manufactured consensus → 0 (D5).</td></tr>
+  </tbody>
+</table>
+
+<p>The aggregator is a pure function over the <em>verified</em> signals (S3 has already confirmed each resolves and co-locates on the span):</p>
+
+<pre><span class="k">def</span> <span class="f">aggregate_corroboration</span>(signals: list[Signal], primary_channel: str) -&gt; Corroboration:
+    <span class="c"># exclude the channel the proposer already judged on — it cannot corroborate itself</span>
+    others = [s <span class="k">for</span> s <span class="k">in</span> signals <span class="k">if</span> s.channel != primary_channel]
+    w = {<span class="s">"independent"</span>: <span class="f">1.0</span>, <span class="s">"correlated"</span>: W_C, <span class="s">"redundant"</span>: <span class="f">0.0</span>}
+    agg = <span class="f">1.0</span> - <span class="f">math.prod</span>(<span class="f">1.0</span> - w[s.independence_class] <span class="k">for</span> s <span class="k">in</span> others)  <span class="c"># noisy-OR; redundant-only ⇒ 0.0</span>
+    <span class="k">return</span> Corroboration(aggregate=agg,
+                         independent_present=<span class="f">any</span>(s.independence_class == <span class="s">"independent"</span> <span class="k">for</span> s <span class="k">in</span> others),
+                         contributing=[s.signal_id <span class="k">for</span> s <span class="k">in</span> others <span class="k">if</span> w[s.independence_class] &gt; <span class="f">0</span>])
+    <span class="c"># pure: no clock, no RNG, no model. W_C is a pinned rubric constant, versioned with the rubric.</span></pre>
+
+<div class="callout warn">
+<b>D4 — aggregation is orthogonal to τ, and the orthogonality is load-bearing.</b> There are two reasons a soft finding defers: the <em>criterion</em> isn't trusted (<code>κ &lt; τ</code>, §6) or <em>this finding</em> is thinly grounded on a trusted criterion (<code>finding_thin</code>). Corroboration clears the second — an independent anchor gives the finding support the single channel lacked. It must <em>never</em> clear the first: an acoustic anchor on a criterion whose Argus-vs-human agreement is below τ does not earn that criterion the right to auto-finalize. Collapsing the two axes turns corroboration into a laundering path around the agreement instrument. Auto-final requires <em>both</em> axes clear.</div>
+
+<details class="crit">
+<summary>WHERE THIS STILL LEAKS — read before trusting the aggregate</summary>
+<div class="cbody">
+<p><b>Convergent bias survives independence.</b> Acoustic and text are different instruments, but if both were calibrated on the same population's norms, a finding both confirm can still be wrong in the same direction. Independence of <em>channel</em> is not independence of <em>prior</em>. The aggregate measures the former; only the §6.3 drift detector, watching Argus-vs-human over time, catches the latter.</p>
+<p><b>w<sub>c</sub> is a guess until measured.</b> The 0.4 for correlated signals is a starting constant, not a derived one. It should be set empirically as <code>1 − corr(matcher_error, proposer_error)</code> on a human-labeled sample, then versioned with the rubric. Shipping it as a magic number is the rev. 3 analogue of the very thing this pipeline was built to stop asserting.</p>
+<p><b>Corroboration narrows the tone residue but cannot close it (D6).</b> Flat prosody catches the cold acknowledge-before-resolve that text misses. Warm-prosody sarcasm passes both. The residue closes toward zero, never to it — so an independently corroborated soft finding is still a <code>judgment</code>-layer finding, still κ-gated, never promoted to compliance-grade 1.0.</p>
+</div>
+</details>
+
+<!-- ════════ §5 ════════ -->
+<h2><span class="num">§5 · SCORE DERIVATION</span>Two pure stages — score then adjust (I3, D17)</h2>
+
+<p>The pure re-derivation is v6's two-stage contract. <b>Stage 1 <code>score</code></b> takes only the confirmed findings and the rubric — history is not an argument. <b>Stage 2 <code>adjust</code></b> takes <code>raw</code> and the anchored L3 case precedents. Both are in <code>core</code>; neither contains a model call or any I/O beyond the pinned rubric and the anchored precedent set. This is the heart of determinism, and each stage carries its own importlinter fence (<code>core ✗ model_client</code>).</p>
+
+<pre><span class="c"># STAGE 1 — raw = score(facts, rubric). HISTORY IS NOT AN ARGUMENT (D17 purity).</span>
+<span class="k">def</span> <span class="f">score</span>(graph: FindingGraph, rubric: Rubric, health: dict[str, CriterionHealth]) -&gt; RawResult:
+    confirmed = [f <span class="k">for</span> f <span class="k">in</span> graph.findings <span class="k">if</span> f.meta_verdict == <span class="s">"confirmed"</span>]
+    <span class="k">assert</span> <span class="f">all</span>(<span class="k">not</span> f.cites_precedent <span class="k">for</span> f <span class="k">in</span> confirmed)   <span class="c"># runtime purity gate: a raw-lane verdict citing a precedent is a violation</span>
+    deductions = [(f.finding_id, rubric.weight(f.anchor_node)) <span class="k">for</span> f <span class="k">in</span> confirmed]
+    raw = rubric.<span class="f">apply</span>(deductions)          <span class="c"># monotone, pure, total — reads NO proposed_score (I3/D7)</span>
+
+    coverage = <span class="f">grounded_mass</span>(confirmed) / (<span class="f">grounded_mass</span>(confirmed) + <span class="f">ungrounded_mass</span>(graph))
+    untrusted = {c <span class="k">for</span> c <span class="k">in</span> <span class="f">cited_criteria</span>(confirmed) <span class="k">if</span> health[c].status != <span class="s">"trusted"</span>}
+    probe = [(f.finding_id, f.proposed_score, rubric.weight(f.anchor_node)) <span class="k">for</span> f <span class="k">in</span> confirmed <span class="k">if</span> f.proposed_score <span class="k">is</span> <span class="k">not</span> <span class="k">None</span>]
+    <span class="k">return</span> RawResult(raw=raw, score_derivation=deductions, coverage=coverage,
+                     untrusted=untrusted, proposed_vs_derived=probe)
+
+<span class="c"># STAGE 2 — adjusted = adjust(raw, history). Precedents must anchor to real L3 case-history entries.</span>
+<span class="k">def</span> <span class="f">adjust</span>(raw: RawResult, precedents: list[Precedent], graph: FindingGraph, rubric: Rubric) -&gt; EvaluationResult:
+    anchored = [p <span class="k">for</span> p <span class="k">in</span> precedents <span class="k">if</span> <span class="f">resolves_in_history</span>(p, graph.intents_sha)]   <span class="c"># gate: unanchored precedent → dropped (I2)</span>
+    adjusted = rubric.<span class="f">apply_precedents</span>(raw.raw, anchored)      <span class="c"># pure; empty precedents ⇒ adjusted == raw</span>
+
+    routing = <span class="s">"auto_final"</span> <span class="k">if</span> (
+        <span class="k">not</span> graph.ungrounded <span class="k">and</span> <span class="k">not</span> <span class="f">any_deferred</span>(graph)   <span class="c"># coverage gate clear</span>
+        <span class="k">and</span> <span class="k">not</span> raw.untrusted                              <span class="c"># every cited criterion trusted</span>
+    ) <span class="k">else</span> <span class="s">"human_review"</span>
+    <span class="k">return</span> EvaluationResult(raw=raw.raw, adjusted=adjusted,
+                            applied_precedents=[p.as_record() <span class="k">for</span> p <span class="k">in</span> anchored],
+                            score_derivation=raw.score_derivation, routing=routing,
+                            coverage=raw.coverage, proposed_vs_derived=raw.proposed_vs_derived,
+                            replay_hash=<span class="f">hash_inputs</span>(graph, rubric, anchored))   <span class="c"># excludes proposed_score</span></pre>
+
+<p>Properties Claude Code must hold on both stages: <strong>total</strong> (empty findings → raw 1.0; empty precedents → adjusted == raw), <strong>monotone</strong> (adding a violation never raises raw), <strong>pure</strong> (no clock, no RNG, no network, no model), <strong>history-pure</strong> (<code>score</code> never receives or reads history — enforced by signature <em>and</em> the runtime assert), <strong>replayable</strong> (<code>replay_hash</code> is a function of grounded inputs + anchored precedents only — never of <code>proposed_score</code>).</p>
+
+<div class="callout key">
+<b>Corroboration changes routing, never the deduction.</b> The deduction weight for a confirmed finding is the rubric's weight for its <em>anchor</em> — corroboration does not scale it (a violation is a violation regardless of how many instruments saw it). What corroboration does is upstream of S4: in S3/S5 it can flip a <code>defer_reason: "finding_thin"</code> to <code>confirmed</code> when an independent signal is present, moving the finding from the human queue into the scored set. It cannot flip <code>criterion_below_tau</code> (D4) and cannot rescue <code>ungrounded</code> (I2). So the only thing the aggregate touches is <em>which bucket</em> a finding lands in, never the arithmetic once it is scored.</div>
+
+<!-- ════════ §5.1 ════════ -->
+<h2><span class="num">§5.1 · COVERAGE vs RESIDUE</span>The two gates auto-final must pass (D10)</h2>
+
+<p class="lead">The word "residue" hides two different quantities. Telling them apart is what makes auto-final safe instead of a guess. The tempting design — "compute this call's residue, route it to a human if the residue is above a threshold" — is <strong>not buildable</strong>, and the reason it isn't is the whole lesson.</p>
+
+<p>Residue is, by definition, the part the checks don't see. So when a call passes every check cleanly, the checks emit <em>no signal</em> about what they missed. A genuinely warm interaction and a coldly-sarcastic-but-correctly-sequenced one are <em>identical</em> to the machine — both pass acknowledge-before-resolve, both pass the keyword checks. No function of the checks can separate them; to compute a per-call residue number you would already need the judgment you removed. A per-call residue gate therefore smuggles the human back in.</p>
+
+<p>What <em>is</em> computable per call is a different quantity that is easy to confuse with residue:</p>
+
+<table class="grid">
+  <thead><tr><th style="width:18%">Gate</th><th style="width:16%">Axis</th><th style="width:22%">What it measures</th><th style="width:18%">Computable?</th><th style="width:26%">Already in the pipeline as</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">Coverage</td><td>finding (per call)</td><td>share of the verdict resting on grounded findings vs ungrounded model assertion</td><td><span class="det">YES — exact, per call</span></td><td>anchor-or-quarantine (I2) + the <code>deferred</code> bucket; <code>coverage</code> in EvaluationResult</td></tr>
+    <tr><td class="mono">Escape rate</td><td>criterion (over a stream)</td><td>how often an auto-passed call hid a real failure a human later caught</td><td><span class="semi">ESTIMATE — lagging, statistical</span></td><td>the §6 instrument, measured on the auto-pass tail; <code>CriterionHealth.escape_rate</code></td></tr>
+    <tr><td class="mono">Per-call residue</td><td>—</td><td>what this specific clean pass missed</td><td style="color:var(--red);"><b>NO — not buildable</b></td><td>nothing; demanding it re-imports human judgment</td></tr>
+  </tbody>
+</table>
+
+<p><b>Coverage is the computable shadow of residue.</b> If empathy here is fully decided by the acknowledge-before-resolve trigger plus acoustic corroboration, the checkable surface covered the call → auto-final eligible. If the verdict leans on a model assertion with nothing anchorable, that call has high uncovered surface → route to human. You already built this gate; rev. 4 only names it and surfaces the number.</p>
+
+<p><b>Escape rate is where your residue-threshold instinct genuinely lives</b> — but at the criterion level, lagging, and statistical, not per call. You cannot see the residue from inside the checklist; you can see its <em>consequences</em>. Sample what a criterion auto-passed, let humans review, count the real failures the criterion missed. A low, falling escape rate ⇒ small residue ⇒ its auto-finals are trustworthy. A rising escape rate ⇒ the residue is growing ⇒ demote the criterion, route its calls to humans, re-author. That rate <em>is</em> a thresholdable residue estimate — and it is the same instrument as the agreement gate, read on the other tail (§6).</p>
+
+<div class="callout key">
+<b>Auto-final = coverage gate AND health gate.</b> A call auto-finalizes only when it is fully covered (finding axis: no ungrounded, no deferred) <em>and</em> every criterion it cites is <code>trusted</code> (criterion axis: κ ≥ τ and escape rate acceptable). This is the rev. 3 D4 orthogonality, now with both axes named: coverage governs <em>this call</em>, escape rate governs <em>this criterion's right to auto-pass at all</em>. Neither substitutes for the other.</div>
+
+<details class="crit">
+<summary>TWO HONEST LIMITS — read before trusting the escape rate</summary>
+<div class="cbody">
+<p><b>The escape rate is a floor, not the truth (D12).</b> It only catches residue a reviewer eventually flags. A failure invisible to the checklist <em>and</em> to every reviewer is invisible to the estimator too — so the measured residue bounds the <em>knowable</em> residue from above and no further. Report it as "no residue we can currently find," never as "no residue."</p>
+<p><b>Model self-disagreement is not a residue meter (D12 / C4).</b> Sampling the proposer a few times and watching the verdict wobble feels like a residue signal; it isn't. It measures how <em>hard</em> the call is for the model, not how much the checklist misses the concept. A call can be easy for the model and high-residue (confident sarcasm) or hard for the model and zero-residue (a messy but fully checkable transcript). Treating wobble as residue is the contested-vs-hard conflation. Log it for triage priority; never wire it to auto-final.</p>
+</div>
+</details>
+
+<!-- ════════ §6 ════════ -->
+<h2><span class="num">§6 · AGREEMENT INSTRUMENT</span>Which criteria may auto-finalize</h2>
+
+<p>The instrument that gates auto-labeling already exists in the expertise design: Rules&amp;Criteria is applied by <em>both</em> human inspectors and Argus. Measure their per-criterion agreement continuously; it decides whether a criterion is groundable enough to auto-finalize or must defer to a human.</p>
+
+<ol class="spec">
+  <li><b>Compute</b> per-criterion Cohen's κ (or raw agreement) between Argus verdicts and human-inspector verdicts on a rolling sample, stored as <code>criterion_agreement[criterion_id] → float</code>, versioned with the rubric.</li>
+  <li><b>Gate.</b> A soft finding's S3 confidence = the criterion's agreement score. Below threshold τ (start τ = 0.8) ⇒ <code>deferred</code> ⇒ human_review. Compliance criteria are exempt (already deterministic, κ ≈ 1).</li>
+  <li><b>Drift detector.</b> A criterion whose agreement <em>falls</em> across windows means Argus is drifting from the confirmed norm; it auto-demotes to human_review and flags for re-grounding. This is the standing liveness check for the judgment layer.</li>
+  <li><b>No model-vote consensus anywhere.</b> Agreement is Argus-vs-human, never Argus-vs-Argus. N model samples voting is explicitly forbidden as a labeling mechanism — it manufactures correlated consensus. (Carry this as a one-line prohibition in CLAUDE.md.) <b>Rev. 3 corollary:</b> soft⊕soft corroboration (D5) is the same prohibition wearing a corroboration costume — a soft finding backed by another model-judged text signal on the same span aggregates to exactly 0, never to a sum.</li>
+  <li><b>Aggregation is orthogonal to τ (D4).</b> The κ-gate decides whether a <em>criterion</em> may auto-finalize; corroboration decides whether a <em>finding</em> on an already-trusted criterion has cleared thin grounding. An independent anchor on a <code>κ &lt; τ</code> criterion stays <code>deferred</code>. The two thresholds never substitute for one another, and no code path lets a corroboration score raise a criterion's effective κ.</li>
+  <li><b>The instrument has two tails (D11).</b> κ is the <em>agreement</em> tail — measured when Argus and a human both score the same sampled calls. <b>Escape rate</b> is the <em>auto-pass</em> tail — measured by sampling calls Argus auto-passed, having a human review them, and counting the real failures the criterion missed (<code>escape_rate = human-caught misses ÷ sampled auto-passes</code>). Both write to <code>CriterionHealth</code>; both feed the §6.3 drift detector. A criterion is <code>trusted</code> only while <em>both</em> hold: <code>κ ≥ τ</code> and escape rate below its ceiling. A rising escape rate demotes the criterion even if κ still looks healthy — auto-passes are exactly the calls κ never samples, so escape rate is the only instrument watching them.</li>
+</ol>
+
+<div class="callout warn">
+<b>Why escape rate is not redundant with κ.</b> κ samples calls a human <em>also</em> scores — it can only measure criteria on the calls humans look at. Auto-passed calls are, by construction, the ones humans <em>didn't</em> score, so κ is blind to them. Escape rate is the deliberate, sampled human look at that blind region. Drop it and a criterion can hold a high κ on reviewed calls while quietly rotting on the auto-passed majority. The two tails together close the loop; either alone leaves a blind side.</div>
+
+<!-- ════════ §7 ════════ -->
+<h2><span class="num">§7 · FIXTURE PAIRS</span>One red/green per invariant — the verification floor</h2>
+
+<p>Every gate enters the repo with a paired red+green fixture, per the harness discipline. Red fixtures are <em>standing</em> CI tests (dead-man's switches): the day a red fixture passes, the gate died.</p>
+
+<h3>I2 — Anchor-or-quarantine</h3>
+<div class="fixture">
+  <div class="cell red"><div class="label">RED · must reject</div><p>Finding cites <code>anchor_node: "rc-9999"</code> (no such node in <code>INTENTS/</code> at the epoch). Gate must move it to <code>ungrounded</code> and route human. Must <em>not</em> let it score.</p></div>
+  <div class="cell green"><div class="label">GREEN · must pass</div><p>Finding cites <code>rc-0042</code> resolving in <code>INTENTS/</code> at the pinned <code>intents_sha</code> → enters <code>findings</code>, scores normally.</p></div>
+</div>
+
+<h3>S3 — Quote fidelity (anti-fabrication)</h3>
+<div class="fixture">
+  <div class="cell red"><div class="label">RED · must reject</div><p><code>quoted_text</code> does not match the span at <code>span_ref</code> (model hallucinated a quote). <code>quote_fidelity &lt; 1.0</code> ⇒ <code>meta_verdict: rejected</code>.</p></div>
+  <div class="cell green"><div class="label">GREEN · must pass</div><p><code>quoted_text</code> is the exact substring → <code>quote_fidelity = 1.0</code> ⇒ proceeds to applicability.</p></div>
+</div>
+
+<h3>I3 — Score determinism (canary)</h3>
+<div class="fixture">
+  <div class="cell red"><div class="label">RED · must stay red</div><p>Same FindingGraph fed twice produces two different <code>raw</code> or <code>adjusted</code> values ⇒ CI fails. This canary must <em>never</em> pass; if it does, purity (I1/I3) broke — a clock, RNG, model call, or history leaked into <code>score</code>.</p></div>
+  <div class="cell green"><div class="label">GREEN · must pass</div><p>Same graph + rubric + anchored precedents ⇒ byte-identical <code>EvaluationResult</code> (<code>raw</code>, <code>adjusted</code>) and <code>replay_hash</code>.</p></div>
+</div>
+
+<h3>§6 — Agreement gate</h3>
+<div class="fixture">
+  <div class="cell red"><div class="label">RED · must defer</div><p>Soft criterion with <code>agreement = 0.6 (&lt; τ)</code> produces a finding → must return <code>deferred</code> and force <code>human_review</code>, never <code>auto_final</code>.</p></div>
+  <div class="cell green"><div class="label">GREEN · must auto-finalize</div><p>Compliance finding, all anchored, no deferrals, no ungrounded ⇒ <code>auto_final</code>.</p></div>
+</div>
+
+<h3>I6a — Soft⊕soft must not raise confidence (D5)</h3>
+<div class="fixture">
+  <div class="cell red"><div class="label">RED · must aggregate to 0</div><p>A soft finding carries two <code>redundant</code> (model-judged text) signals on the same span. Aggregator must return <code>aggregate = 0.0</code> and <code>independent_present: false</code>. Must <em>not</em> sum them into apparent corroboration.</p></div>
+  <div class="cell green"><div class="label">GREEN · must lift</div><p>Same soft finding plus one <code>acoustic</code> signal → <code>independent_present: true</code>, <code>aggregate = 1.0</code>; a <code>finding_thin</code> deferral clears.</p></div>
+</div>
+
+<h3>I6b — Corroboration cannot bypass the κ-gate (D4, laundering guard)</h3>
+<div class="fixture">
+  <div class="cell red"><div class="label">RED · must stay deferred</div><p>Soft criterion with <code>agreement = 0.6 (&lt; τ)</code>, finding carries a fully <code>independent</code> acoustic anchor (<code>aggregate = 1.0</code>). Router must still return <code>deferred / human_review</code> with <code>defer_reason: "criterion_below_tau"</code>. The independent anchor must <em>not</em> flip it to <code>auto_final</code>.</p></div>
+  <div class="cell green"><div class="label">GREEN · must auto-finalize</div><p>Criterion <code>κ ≥ τ</code> and finding had <code>finding_thin</code>, now corroborated by an independent anchor ⇒ both axes clear ⇒ <code>auto_final</code>.</p></div>
+</div>
+
+<h3>I6c — S3 purity: the gate never matches (D3)</h3>
+<div class="fixture">
+  <div class="cell red"><div class="label">RED · must fail import lint</div><p>A module in <code>grounding/</code> or <code>aggregate/</code> imports the exemplar/case <code>matching_model</code> (attempting to produce a correlated signal inside the gate). importlinter must fail: <code>grounding ✗ matching_model</code>, <code>aggregate ✗ model_client</code>.</p></div>
+  <div class="cell green"><div class="label">GREEN · must pass</div><p>Signals are produced in S2 (a Provider, <code>io</code>) and merely <em>verified</em> (resolve + co-locate) and weighted in S3. Gate and aggregator live in <code>core</code> and import only <code>types</code> and the INTENTS reader interface — never <code>model_client</code>.</p></div>
+</div>
+
+<h3>I7 — Ground evidence, not numbers (D8)</h3>
+<div class="fixture">
+  <div class="cell red"><div class="label">RED · must reject</div><p>A finding carries <code>proposed_score: 0.2</code>; a code path lets that number reach <code>EvaluationResult.score</code> or <code>replay_hash</code>. Must fail: the shipped score must be S4's re-derivation from grounded evidence, and the hash must exclude <code>proposed_score</code>.</p></div>
+  <div class="cell green"><div class="label">GREEN · must pass</div><p>Same finding; S4 ignores <code>proposed_score</code>, derives the score from the grounded violation+anchor, and logs <code>proposed_vs_derived</code> as a probe. Score is identical whether or not <code>proposed_score</code> is present.</p></div>
+</div>
+
+<h3>D10 — Coverage gate (per-call, finding axis)</h3>
+<div class="fixture">
+  <div class="cell red"><div class="label">RED · must route human</div><p>A call whose verdict leans on an ungrounded model assertion (low <code>coverage</code>) — even with a clean <code>proposed_score</code> — must route to <code>human_review</code>, not <code>auto_final</code>. A confident model number must not buy coverage.</p></div>
+  <div class="cell green"><div class="label">GREEN · must auto-final</div><p>A call fully decided by grounded findings on trusted criteria (<code>coverage</code> high, no ungrounded/deferred) ⇒ <code>auto_final</code>.</p></div>
+</div>
+
+<h3>D11 — Escape-rate demotion (per-criterion, criterion axis)</h3>
+<div class="fixture">
+  <div class="cell red"><div class="label">RED · must demote</div><p>A criterion with healthy κ on reviewed calls but a <em>rising</em> escape rate on sampled auto-passes must flip <code>status: "demoted"</code> and route its calls to humans — κ alone must not keep it <code>trusted</code>.</p></div>
+  <div class="cell green"><div class="label">GREEN · must stay trusted</div><p>κ ≥ τ <em>and</em> escape rate below ceiling and not rising ⇒ <code>status: "trusted"</code>, auto-finals permitted.</p></div>
+</div>
+
+<h3>D12 — Model-wobble is not a residue gate</h3>
+<div class="fixture">
+  <div class="cell red"><div class="label">RED · must reject</div><p>Any code path that reads proposer self-disagreement (resample variance) and uses it to grant or deny <code>auto_final</code>, or as a residue estimate. Difficulty ≠ residue (C4).</p></div>
+  <div class="cell green"><div class="label">GREEN · must pass</div><p>Resample variance is written only to a triage-priority field; routing and residue estimates ignore it entirely.</p></div>
+</div>
+
+<h3>S1 — No write-path into the referent (anti-poisoning, v6 form)</h3>
+<div class="fixture">
+  <div class="cell red"><div class="label">RED · must reject</div><p>Any code path in <code>src/argus/</code> that <em>writes</em> to the <code>INTENTS/</code> tree (attempting to fold an auto-detected error case back into the referent). The consumer has no write path; importlinter/CI must fail. This is how v6 severs the co-degradation loop — confirmation is write-time, producer-owned, and Argus is read-only against a pinned epoch (D15).</p></div>
+  <div class="cell green"><div class="label">GREEN · must pass</div><p>Argus reads <code>INTENTS/</code> through the one Provider at a pinned <code>intents_sha</code> and emits only a report + coaching. A corrected epoch (produced upstream) becomes visible only by re-pinning to a newer SHA.</p></div>
+</div>
+
+<!-- ════════ §8 ════════ -->
+<h2><span class="num">§8 · BUILD SEQUENCE</span>Milestones for Claude Code</h2>
+
+<p>Build bottom-up: the INTENTS Provider is the referent; the proposer is built last because it's the only quarantined component and everything else must be standing before it can be safely trusted to propose into. Ingestion (S0) and correction (S6) are other tiers — they are dependencies, not milestones in this repo (D13).</p>
+
+<div class="milestone">
+  <div class="mhead"><span class="id">M0</span>INTENTS Provider (io)</div>
+  <p>One Provider that resolves paths in the <code>INTENTS/</code> tree at a pinned git-SHA epoch (<code>EPOCH.yaml</code>), exposing the three category readers (rubric · facts · history) behind a single interface. No load-and-confirm step; no write path. Q1 default: the nine v6 modules group into the three readers.</p>
+  <div class="accept"><b>ACCEPTANCE</b> — S1 fixture pair passes; no <code>src/argus/</code> path writes to <code>INTENTS/</code>; a read at a pinned <code>intents_sha</code> is stable across runs; <code>io</code> is the only layer that touches the tree.</div>
+</div>
+<div class="milestone">
+  <div class="mhead"><span class="id">M1</span>Call-record intake contract (dependency, not a stage)</div>
+  <p>Define the typed contract for the transcript + acoustic-measurement call record Argus consumes from the transformation tier. <b>Argus does not transcribe</b> — S0 is upstream. This milestone lands only the read-side schema and a fixture stub.</p>
+  <div class="accept"><b>ACCEPTANCE</b> — the intake schema round-trips; a malformed call record is rejected before S2; no audio/DSP code exists in <code>src/argus/</code>.</div>
+</div>
+<div class="milestone">
+  <div class="mhead"><span class="id">M2</span>Schemas + validators</div>
+  <p>The five JSON schemas (§3) + a validator that rejects malformed findings before they reach the gate.</p>
+  <div class="accept"><b>ACCEPTANCE</b> — schema round-trips; a finding missing <code>anchor_node</code> fails validation.</div>
+</div>
+<div class="milestone">
+  <div class="mhead"><span class="id">M3</span>Grounding gate (S3) — pure</div>
+  <p>Per-type applicability checks (§4); quote-fidelity; anchor resolution; <code>deferred</code> verdict. No model import.</p>
+  <div class="accept"><b>ACCEPTANCE</b> — I2 + quote-fidelity fixtures pass; importlinter confirms <code>grounding ✗ proposer</code> and <code>grounding ✗ matching_model</code> (I6c).</div>
+</div>
+<div class="milestone">
+  <div class="mhead"><span class="id">M3.5</span>Corroboration aggregator (S3⁺) — pure</div>
+  <p>The independence-weighted noisy-OR over verified signals (§4.1); <code>W_C</code> as a pinned rubric constant; <code>defer_reason</code> assignment (<code>finding_thin</code> vs <code>criterion_below_tau</code> vs <code>ungrounded</code>). Reads independence classes off the resolved INTENTS nodes; runs no match itself.</p>
+  <div class="accept"><b>ACCEPTANCE</b> — I6a (soft⊕soft ⇒ 0) and I6b (κ-gate not bypassed) fixtures pass; <code>aggregate ✗ model_client</code>; aggregation is byte-identical on replay.</div>
+</div>
+<div class="milestone">
+  <div class="mhead"><span class="id">M4</span>Stage 1 — <code>score</code> (S4a) — pure, history-free</div>
+  <p>The <code>score(facts, rubric)</code> function (§5); rubric loader; replay hashing. <b>History is not an argument</b>; the runtime purity assert rejects any raw-lane verdict citing a precedent (D17).</p>
+  <div class="accept"><b>ACCEPTANCE</b> — determinism canary green; total/monotone/pure property tests pass; <code>core ✗ model_client</code>; the purity assert fires on a precedent-citing verdict.</div>
+</div>
+<div class="milestone">
+  <div class="mhead"><span class="id">M4.5</span>Stage 2 — <code>adjust</code> (S4b) — pure precedent application</div>
+  <p>The <code>adjust(raw, history)</code> function (§5): resolve each proposed precedent against the L3 case-history reader, drop the unanchored, apply the anchored, record <code>applied_precedents[]</code>. Empty precedents ⇒ <code>adjusted == raw</code>.</p>
+  <div class="accept"><b>ACCEPTANCE</b> — <code>adjusted == raw</code> when no precedent anchors; an unanchored precedent is dropped, never applied; <code>applied_precedents[]</code> matches the anchored set; <code>core ✗ model_client</code>; replay is byte-identical including the precedent set.</div>
+</div>
+<div class="milestone">
+  <div class="mhead"><span class="id">M5</span>Agreement instrument + routing (S5/§6)</div>
+  <p>Argus-vs-human κ store; τ gate; drift detector; <b>per-call coverage computation and the two-axis auto-final gate</b> (coverage AND criterion health, D10); routing logic.</p>
+  <div class="accept"><b>ACCEPTANCE</b> — §6 fixture defers below τ; drift demotes a criterion; D10 coverage fixture routes a low-coverage call to human even with a clean proposed_score; no Argus-vs-Argus voting path exists.</div>
+</div>
+<div class="milestone">
+  <div class="mhead"><span class="id">M5.5</span>Escape-rate sampler + CriterionHealth (§6 auto-pass tail)</div>
+  <p>Samples auto-passed calls, queues them for human review, computes <code>escape_rate</code> and its trend, writes <code>CriterionHealth</code>; demotes a criterion on a rising escape rate even when κ is healthy (D11). The only writer of the auto-pass tail.</p>
+  <div class="accept"><b>ACCEPTANCE</b> — D11 fixture demotes on rising escape rate; D12 fixture proves resample variance never touches routing or residue; CriterionHealth feeds the M5 gate.</div>
+</div>
+<div class="milestone">
+  <div class="mhead"><span class="id">M6</span>Proposer (S2) — the quarantined component, built last</div>
+  <p>Model walks spans, emits anchored candidate findings, <b>populating <code>grounding_signals[]</code> with independence classes copied from the resolved entries</b> (D3) and optionally a <b>quarantined <code>proposed_score</code></b> (D7 — logged, never shipped). Temperature/seed pinned for logging, but output is never trusted past the gate.</p>
+  <div class="accept"><b>ACCEPTANCE</b> — every proposer output is schema-valid or quarantined; importlinter confirms <code>core ✗ proposer</code> (the proposer is an <code>io</code> Provider; grounding and scoring never import it); the I7 fixture proves a proposed_score never reaches the shipped raw/adjusted or replay_hash; end-to-end replay reproduces an EvaluationResult from a stored graph.</div>
+</div>
+<div class="milestone">
+  <div class="mhead"><span class="id">M7</span>Correction boundary (S6) — write-time, out of this repo</div>
+  <p>Routed human decisions re-enter the <code>INTENTS/</code> tree <em>upstream</em>, at write time, producer-owned — minting a new epoch. This repo's only job is to consume the new epoch by re-pinning its <code>intents_sha</code>. The co-evolution loop closes without poisoning because Argus, the consumer, never writes its own referent (D15).</p>
+  <div class="accept"><b>ACCEPTANCE</b> — the S1 no-write-path fixture holds; re-pinning to a corrected epoch changes grounding outcomes on the next evaluation; no <code>src/argus/</code> path mutates <code>INTENTS/</code>.</div>
+</div>
+
+<!-- ════════ §9 ════════ -->
+<h2><span class="num">§9 · RESIDUE</span>What stays human, by design</h2>
+
+<p>The pipeline is honest about its own edge. Three things route to humans permanently — not as scaffolding to be optimized away, but as the structural reporting of where ground truth stops:</p>
+
+<ul class="spec">
+  <li><b>Ungrounded findings</b> (I2). The proposer saw something it couldn't anchor. Could be a real issue no INTENTS node covers yet — the seed of a new Error Case Library entry, minted upstream at write time (D15).</li>
+  <li><b>Deferred soft findings</b> (§4/§6). The contested regime: confirmed experts don't agree strongly enough for Argus to auto-finalize. Guessing here is the failure mode the whole thread was built to avoid.</li>
+  <li><b>Drift demotions</b> (§6). A criterion where Argus has diverged from the confirmed norm. Routes to human until re-grounded.</li>
+</ul>
+
+<p>Rev. 3 changes the <em>size</em> of the deferred bucket, not its existence. Independent corroboration (§4.1) rescues findings that were deferred only for thin grounding on a trusted criterion — and, for tone specifically, an acoustic anchor narrows the operationalization residue itself by observing a facet the text proxy can't (D6). But the narrowing is asymptotic: warm-prosody sarcasm passes both the text signature and the acoustic threshold, so a corroborated soft finding is still a judgment-layer finding, still κ-gated, never promoted to compliance-grade 1.0. The honest claim is "fewer false defers," not "the residue is gone."</p>
+
+<p>Rev. 4 makes the residue <em>measurable but never closed</em>. The escape rate (§6) turns "how complete is this criterion" from an assertion into a tracked number — but a number that is a <strong>floor</strong>: it counts only the misses a reviewer catches, so it bounds the residue we can <em>find</em>, not the residue that <em>exists</em> (D12). Two failure modes stay outside it permanently: a failure invisible to both checklist and reviewer (the true unknown-unknown), and a contested call where no fact of the matter exists to be caught (C4). The pipeline's honesty in rev. 4 is that it reports the floor as a floor — a falling escape rate earns more auto-final, never a claim that the judgment is now complete. And the one signal that looks like it would close the gap — proposer self-disagreement — is explicitly walled off from routing, because it measures difficulty, not residue (the C4 conflation), and wiring it in would let the model's confidence, not the human's, decide what ships.</p>
+
+<div class="callout key">
+<b>The closing discipline.</b> A pipeline that never escalates is not more automated — it is less honest about where its judgments stop being checkable. DeepSeekMath-V2 reached gold-medal performance and still routed ambiguous proofs to human experts. This pipeline does the same: the human queue is not a weakness, it is the pipeline correctly reporting the boundary of its ground truth — and the size of that queue, tracked over time, is the truest measure of how much of the judgment layer the <code>INTENTS/</code> tree has actually grounded.
+</div>
+
+<!-- ════════ §10 ════════ -->
+<h2><span class="num">§10 · HANDOFF</span>Copy-as-prompt for Claude Code — one block, spec-bound</h2>
+
+<p>rev. 5 integrates the rev. 3 corroboration layer (§4.1) and the rev. 4 instruments (§5.1, §6) into a v6-conformed whole, so the handoff is a single prompt binding Claude Code to the spec rather than restating it. The prompt asks Claude Code to <b>author the 9002 exec-plan only</b> — not to implement the pipeline; two-phase discipline keeps plan and build separate. The rev. 5 file must be readable in that session (the prompt binds to its §-references, it does not restate them).</p>
+
+<div class="prompt">
+<div class="plabel">paste to Claude Code · AUTHOR exec-plan 9002 (plan only, not implementation) · rev. 5</div>
+<pre>Author the exec-plan 9002-implement-argus-eval-pipeline.md for simbiclaw/harness-cli, per
+process-derivation-pipeline-spec-v5.html, in PLANS.md format. Your deliverable is the PLAN
+ONLY — do NOT write any src/argus code, do NOT implement stages. Scope-confirm against the
+repo first. The SPEC is the contract — encode it into the plan, don't re-derive it.
+
+PLAN: 9002-implement-argus-eval-pipeline.md (all plans/ADRs are 9000-series; next 9003, 9004…),
+  gated on v6 (0000-upgrade-spine-to-v6) being the current spine. Two-phase: this call produces
+  the plan; implementation is a separate later phase against the plan.
+
+The plan must capture, as milestones/tasks with acceptance criteria (not as code):
+SCOPE (D13): Argus consumer tier ONLY — read INTENTS → score → adjust → emit. Enforced stages
+  S2/S3/S4a/S4b/S5 per §2; S0 ingest + S6 correction are other tiers (platform-reference, no code).
+GOVERNING INVARIANT (§2.5): model proposes → deterministic gate disposes → pure fn re-derives.
+  score() and adjust() are PROPOSERS; the shipped raw/adjusted come only from the pure stages.
+CONTRACT: §1 invariants I1–I7 (incl. I3 two-stage + history purity, I4 intents_sha pins);
+  §3 schemas (IntentsNode, Finding, FindingGraph, EvaluationResult w/ raw·adjusted·applied_precedents);
+  §4 grounding gate + D16 measurement-vs-framework split; §4.1 independence-weighted corroboration
+  (W_C=0.4 PROVISIONAL — log the debt); §5 two pure stages + runtime purity assert;
+  §5.1 two-axis auto-final (coverage + criterion health; NO per-call residue gate);
+  §6 both tails (κ + escape rate; resample variance NEVER touches routing — D12/C4).
+LAYERS (D18/R7): types→config→io→core→cli. LLM proposer = io Provider; pure score/adjust = core;
+  core ✗ model_client — this is what keeps v6's "core is pure" true.
+FIXTURES (§7): plan them as standing red+green — S1 no-write-path, purity assert, adjusted==raw
+  on empty precedents, I3 canary over raw AND adjusted, I6a–c, I7, D10–D12.
+BUILD ORDER (§8): M0→M7 as written; companion 9003's _rubric/ must land before the judgment
+  layer gates.
+Q1 DEFAULT: v6's nine modules → three category readers; flag count refs in the plan as an OPEN
+  item until expertise-library.md reconciles 8-vs-9. Carry it as deferred, do not resolve it.
+
+Also emit, as a plan deliverable, a v6-conformed CLAUDE.md operating-invariants section derived
+from this spec (I1–I7, layer fences, deferred-verdict). Do NOT reuse any pre-v6 CLAUDE draft.
+When done, output the plan for review — STOP before implementation.</pre>
+</div>
+
+
+
+
+
+
+</div>
+</body>
+</html>

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>9003 编译器 — spec 访谈</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5;
+    --paper:  #FFFFFF;
+    --slate:  #141413;
+    --clay:   #D97757;
+    --clay-d: #B85C3E;
+    --oat:    #E3DACC;
+    --olive:  #788C5D;
+    --amber:  #b87514;
+    --g100:   #F0EEE6;
+    --g200:   #E6E3DA;
+    --g300:   #D1CFC5;
+    --g500:   #87867F;
+    --g700:   #3D3D3A;
+    --serif: ui-serif, "Noto Serif CJK SC", "Source Han Serif SC", Georgia, "Times New Roman", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Noto Sans CJK SC", Roboto, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ivory);
+    color: var(--slate);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px 100px; }
+
+  header { padding: 56px 0 8px; position: relative; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--g500);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .eyebrow::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); flex: none; }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(34px, 5vw, 50px);
+    line-height: 1.08;
+    letter-spacing: -0.018em;
+    margin: 0 0 10px;
+  }
+  .lede { font-size: 16.5px; color: var(--g700); max-width: 640px; margin: 0 0 30px; }
+
+  .promptbox {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    padding: 22px 24px 20px;
+    position: relative;
+  }
+  .promptbox .label {
+    font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--clay); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .promptbox .label::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); flex: none; }
+  .promptbox blockquote {
+    margin: 0; padding: 0;
+    font-family: var(--serif); font-style: italic;
+    font-size: 17.5px; line-height: 1.5; color: var(--slate);
+    max-width: 46em;
+  }
+
+  .divider {
+    display: flex; align-items: center; gap: 16px;
+    margin: 44px 0 30px;
+    font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--g500); white-space: nowrap;
+  }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--g300); }
+
+  .artifact {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .art-head {
+    padding: 16px 22px;
+    border-bottom: 1.5px solid var(--g200);
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    background: var(--g100);
+  }
+  .art-head .t { font-family: var(--serif); font-weight: 500; font-size: 17px; letter-spacing: -0.01em; }
+  .art-head .s { font-family: var(--mono); font-size: 11.5px; color: var(--g500); }
+
+  .art-body { display: grid; grid-template-columns: 240px 1fr; min-height: 480px; }
+  @media (max-width: 720px) { .art-body { grid-template-columns: 1fr; min-height: 0; } }
+
+  .rail {
+    border-right: 1.5px solid var(--g200);
+    padding: 20px 16px;
+    background: var(--ivory);
+  }
+  @media (max-width: 720px) {
+    .rail { border-right: none; border-bottom: 1.5px solid var(--g200); padding: 14px 16px; }
+  }
+  .rail .rail-label {
+    font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--g500); margin-bottom: 12px;
+  }
+  .rail-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 8px; margin: 0 -8px;
+    border-radius: 8px;
+    font-size: 12.5px; color: var(--g500);
+    cursor: default;
+    border: none; background: none; width: calc(100% + 16px);
+    text-align: left; font-family: var(--sans);
+  }
+  .rail-item.done { color: var(--g700); cursor: pointer; }
+  .rail-item.done:hover { background: var(--g100); }
+  .rail-item.current { color: var(--slate); font-weight: 600; background: var(--g100); }
+  .rail-dot {
+    width: 11px; height: 11px; border-radius: 50%; flex: none;
+    border: 2px solid var(--dotc, var(--g300));
+    background: transparent;
+  }
+  .rail-item.done .rail-dot { background: var(--dotc); }
+  .rail-item.current .rail-dot { box-shadow: 0 0 0 3px var(--g200); }
+  .rail-item .rail-q { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rail-item .tick { margin-left: auto; font-size: 11px; color: var(--olive); flex: none; }
+  .rail-meta {
+    margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--g200);
+    font-family: var(--mono); font-size: 11px; color: var(--g500); line-height: 1.8;
+  }
+  .rail-meta b { color: var(--g700); font-weight: 600; }
+  @media (max-width: 720px) {
+    .rail .rail-q, .rail .tick, .rail-meta, .rail .rail-label { display: none; }
+    .rail { display: flex; align-items: center; gap: 10px; }
+    .rail-item { width: auto; padding: 4px; margin: 0; }
+  }
+
+  .stage { padding: 28px 30px 30px; position: relative; }
+  @media (max-width: 720px) { .stage { padding: 22px 18px 24px; } }
+
+  .badge {
+    display: inline-block;
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 5px;
+    color: #fff; background: var(--g500);
+    margin-bottom: 4px;
+  }
+  .qnum { font-family: var(--mono); font-size: 11.5px; color: var(--g500); margin-left: 10px; }
+  .qtext {
+    font-family: var(--serif); font-weight: 500;
+    font-size: clamp(20px, 3vw, 25px); line-height: 1.25;
+    letter-spacing: -0.012em;
+    margin: 10px 0 6px; max-width: 34em;
+  }
+  .why {
+    font-size: 13.5px; color: var(--g500); margin: 0 0 22px;
+    display: flex; gap: 8px; align-items: baseline;
+  }
+  .why::before { content: "↳"; color: var(--clay); flex: none; }
+
+  .opts { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 620px) { .opts { grid-template-columns: 1fr; } }
+  .opt {
+    text-align: left;
+    background: var(--ivory);
+    border: 1.5px solid var(--g300);
+    border-radius: 11px;
+    padding: 14px 16px;
+    cursor: pointer;
+    font-family: var(--sans);
+    color: var(--slate);
+    transition: border-color .12s, background .12s, transform .12s;
+  }
+
+  footer {
+    margin-top: 56px; padding-top: 22px;
+    border-top: 1px solid var(--g300);
+    font-size: 13px; color: var(--g500);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Know your unknowns · 实现前访谈</div>
+    <h1>9003 soft-criteria compiler — spec 访谈</h1>
+    <p class="lede">Patch 1 留下了 5 个架构级歧义。按 blast radius 排序 — 每个答案都可能改变编译器的输出结构、类型定义和运行时接口。</p>
+
+    <div class="promptbox">
+      <div class="label">The prompt</div>
+      <blockquote>Interview me one question at a time about anything still ambiguous in the soft-criteria-authoring feature. Prioritize questions where my answer would change the architecture.</blockquote>
+    </div>
+  </header>
+
+  <div class="divider">歧义清单 · 按影响范围排序</div>
+
+  <div class="artifact">
+    <div class="art-head">
+      <span class="t">编译器输出结构与运行时消费</span>
+      <span class="s">9003 compiler × 9002 runtime · 5 个开放问题 · 按 blast radius 排序</span>
+    </div>
+    <div class="art-body">
+      <nav class="rail" aria-label="访谈进度">
+        <div class="rail-label">访谈进度</div>
+        <div class="rail-item current" style="--dotc:var(--clay)">
+          <span class="rail-dot"></span><span class="rail-q">运行时如何读取 _rubric/</span>
+        </div>
+        <div class="rail-item" style="--dotc:var(--clay)">
+          <span class="rail-dot"></span><span class="rail-q">evidence 的数据形态</span>
+        </div>
+        <div class="rail-item" style="--dotc:var(--clay-d)">
+          <span class="rail-dot"></span><span class="rail-q">gates 存储位置</span>
+        </div>
+        <div class="rail-item" style="--dotc:var(--clay-d)">
+          <span class="rail-dot"></span><span class="rail-q">引用方式</span>
+        </div>
+        <div class="rail-item" style="--dotc:var(--olive)">
+          <span class="rail-dot"></span><span class="rail-q">编译时序</span>
+        </div>
+        <div class="rail-meta">
+          <b>0</b> of 5 已回答<br>
+          <span style="color:var(--clay)">●</span> architecture &nbsp;
+          <span style="color:var(--clay-d)">●</span> data model<br>
+          <span style="color:var(--olive)">●</span> workflow
+        </div>
+      </nav>
+
+      <div class="stage">
+
+        <!-- Q1 -->
+        <div style="margin-bottom:32px;">
+          <span class="badge" style="background:var(--clay)">Architecture · Blast radius: 最大</span>
+          <span class="qnum">Question 1 of 5</span>
+          <h2 class="qtext">9002 runtime pipeline 如何读取和消费 _rubric/ 目录下的编译产物？</h2>
+          <p class="why">编译器输出 _rubric/ 的结构是由消费者决定的。如果 runtime 按维度一次性加载整个 rules_criteria/ 目录，输出结构就按维度组织。如果 runtime 是按 item_id 逐个查找 trigger，输出就需要按 item_id 做索引。如果不清楚消费方式，重构目录结构是盲目的。</p>
+          <div class="opts">
+            <div class="opt">
+              <span class="ot">A. 按维度批量加载</span>
+              <span class="od">runtime 启动时加载整个规则表（如 "Procedural Accuracy" 下的所有 node），一次 parse，内存常驻。编译器输出按 dimension/ 分目录。</span>
+            </div>
+            <div class="opt">
+              <span class="ot">B. 按 item_id 逐条查找</span>
+              <span class="od">runtime 在处理某个 item 时才通过 node_id 查找对应的 rule。编译器输出需要按 item_id 做索引，或保持 flat list。</span>
+            </div>
+            <div class="opt">
+              <span class="ot">C. runtime 目前不读 _rubric/ 目录</span>
+              <span class="od">9002 还没有实现 — 它的 KB context builder (kb_context_builder.py) 读的是 config/rubric_items.py 中的旧 RubricItem，不是编译器的 AuthoredNode。消费者尚未存在。</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q2 -->
+        <div style="margin-bottom:32px;">
+          <span class="badge" style="background:var(--clay)">Architecture · Blast radius: 大</span>
+          <span class="qnum">Question 2 of 5</span>
+          <h2 class="qtext">evidence/ 下的 acoustic indicators 和 phrase lexicons 应该是什么数据形态？</h2>
+          <p class="why">Patch 1 说它们"不是独立规则"，但没说具体是什么。如果它们是 AuthoredNode（有 trigger/agreement 等全套字段），它们就能被 runtime 统一处理但引入了冗余。如果它们是纯数据（只有 threshold 值、词表），runtime 需要两个不同的加载路径。这决定了 types/compiler.py 是否需要新类型。</p>
+          <div class="opts">
+            <div class="opt">
+              <span class="ot">A. 简化为纯数据 (dict / list)</span>
+              <span class="od">acoustic → {indicator_name: {threshold, unit, description}} 的 YAML；phrase → {group_name: [word_list]} 的 YAML。不继承 AuthoredNode。runtime 需要单独的 evidence loader。</span>
+            </div>
+            <div class="opt">
+              <span class="ot">B. 保持 AuthoredNode，但字段精简</span>
+              <span class="od">去掉 agreement、applicability_gate、hard_fail_rule 等不适用字段。保留 trigger (存阈值) 和 corroborators。runtime 可以复用 rules_criteria loader。</span>
+            </div>
+            <div class="opt">
+              <span class="ot">C. 内联到 rules_criteria 节点中，不独立存储</span>
+              <span class="od">需要声学证据的 item 的 trigger.spec 直接写具体的阈值（如 "speaking_rate ∈ [120,220] wpm"），需要词表的写具体词表。不产生 evidence/ 目录。</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q3 -->
+        <div style="margin-bottom:32px;">
+          <span class="badge" style="background:var(--clay-d)">Data Model · Blast radius: 中</span>
+          <span class="qnum">Question 3 of 5</span>
+          <h2 class="qtext">hard_fail_rule (B-C 产物) 应该存在哪里？</h2>
+          <p class="why">当前实现把 hard_fail_rule 附着在单个 rules_criteria node 上（且只给每个维度的第一个 node 设置）。Patch 1 要求分离到 gates/ 目录。但 gates/ 是一个维度一个文件，还是合并到一个文件？运行时是否需要独立查询 gate rules？</p>
+          <div class="opts">
+            <div class="opt">
+              <span class="ot">A. gates/ 按维度分文件，与 rules_criteria 严格分离</span>
+              <span class="od">gates/procedural_accuracy.yaml, gates/empathy_and_tone.yaml... 每个文件包含该维度的 hard_fail_rule。不附着在任何 node 上。运行时做路由决策时独立加载。</span>
+            </div>
+            <div class="opt">
+              <span class="ot">B. 保留在当前结构：附着在 rules_criteria node 上</span>
+              <span class="od">当前实现方式。不创建 gates/ 目录。hard_fail_rule 作为 node 的可选字段，运行时处理 node 时顺带检查。简单，但与 Patch 1 的层级关系冲突。</span>
+            </div>
+            <div class="opt">
+              <span class="ot">C. gates/ 合并为单个文件 + rules_criteria 也保留副本</span>
+              <span class="od">gates/ 作为索引方便批量查询；同时 rules_criteria node 也保留 hard_fail_rule 引用（通过 node_id 反向查 gates/）。冗余但方便两种消费模式。</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q4 -->
+        <div style="margin-bottom:32px;">
+          <span class="badge" style="background:var(--clay-d)">Data Model · Blast radius: 中</span>
+          <span class="qnum">Question 4 of 5</span>
+          <h2 class="qtext">rules_criteria 节点如何引用 evidence sources —— 通过路径、node_id、还是内联？</h2>
+          <p class="why">这决定了节点是自包含的（内联，运行时不需要额外加载）还是引用式的（通过引用链接，evidence 独立加载和缓存）。内联简单但有数据重复；引用灵活但引入了解析依赖。</p>
+          <div class="opts">
+            <div class="opt">
+              <span class="ot">A. 内联：trigger.spec 直接写阈值</span>
+              <span class="od">"speaking_rate ∈ [120, 220] wpm AND intensity_std < 15 dB"。节点自包含，不依赖外部 evidence 文件。evidence/ 目录存在但仅作为人类可读的文档参考。</span>
+            </div>
+            <div class="opt">
+              <span class="ot">B. 引用：corroborators[] 存放 evidence node_id</span>
+              <span class="od">corroborators: [{name: "speaking_rate", independence_class: "independent", ref: "evidence/acoustic/indicators#speaking_rate"}]。运行时需要按 ref 去加载对应的 evidence 条目。可共享，无重复。</span>
+            </div>
+            <div class="opt">
+              <span class="ot">C. 混合：内联核心阈值 + 引用详细指标</span>
+              <span class="od">trigger.spec 内联最关键的 1-2 个阈值，corroborators[] 引用剩余的 evidence 指标。兼顾运行时效率和完整性。</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q5 -->
+        <div style="margin-bottom:32px;">
+          <span class="badge" style="background:var(--olive)">Workflow · Blast radius: 小</span>
+          <span class="qnum">Question 5 of 5</span>
+          <h2 class="qtext">evidence 和 gate 节点的编译，应该在 compile_rubric() 内部完成，还是独立调用？</h2>
+          <p class="why">当前 A2-ac / A2-ph / B-C 都是独立函数，不在 compile_rubric() 的 per-item 循环中。Patch 1 要求 compile_rubric() 产出完整的 CompileResult（包含所有三个产物品类）。这决定了函数签名和测试策略。</p>
+          <div class="opts">
+            <div class="opt">
+              <span class="ot">A. compile_rubric() 内部完成全部编译</span>
+              <span class="od">per-item 循环后调用 acoustic/phrase/gate 编译器，一次性产出 CompileResult。一次调用 = 完整输出。函数签名变大。</span>
+            </div>
+            <div class="opt">
+              <span class="ot">B. 保持独立调用，由上层 orchestration (CompilerIO / CLI) 组装</span>
+              <span class="od">compile_rubric() 只处理 per-item 编译。acoustic/phrase/gate 由调用方分别调用后合并。保持纯函数单一职责。</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    基于 Patch 1 (soft-criteria-authoring-spec-v4-patch-1.md) 和当前 9003 compiler 实现状态 · 2026-07-13
+  </footer>
+</div>
+
+</body>
+</html>

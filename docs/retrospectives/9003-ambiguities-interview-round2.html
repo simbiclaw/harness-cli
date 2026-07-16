@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>访谈 &mdash; 软标准编译器（第二轮）</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5;
+    --paper:  #FFFFFF;
+    --slate:  #141413;
+    --clay:   #D97757;
+    --clay-d: #B85C3E;
+    --oat:    #E3DACC;
+    --olive:  #788C5D;
+    --g100:   #F0EEE6;
+    --g200:   #E6E3DA;
+    --g300:   #D1CFC5;
+    --g500:   #87867F;
+    --g700:   #3D3D3A;
+    --serif: ui-serif, "Noto Serif CJK SC", "Source Han Serif SC", Georgia, "Times New Roman", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Noto Sans CJK SC", Roboto, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ivory);
+    color: var(--slate);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px 100px; }
+
+  /* ── header ─────────────────────────── */
+  header { padding: 56px 0 8px; position: relative; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--g500);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .eyebrow::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); flex: none; }
+  .backlink {
+    position: absolute; top: 60px; right: 0;
+    font-family: var(--mono); font-size: 12px;
+    color: var(--g500); text-decoration: none;
+    letter-spacing: 0.04em;
+  }
+  .backlink:hover { color: var(--clay); }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(34px, 5vw, 50px);
+    line-height: 1.08;
+    letter-spacing: -0.018em;
+    margin: 0 0 10px;
+  }
+  .lede { font-size: 16.5px; color: var(--g700); max-width: 640px; margin: 0 0 30px; }
+
+  /* ── prompt box ─────────────────────── */
+  .promptbox {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    padding: 22px 24px 20px;
+    position: relative;
+  }
+  .promptbox .label {
+    font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--clay); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .promptbox .label::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); flex: none; }
+  .promptbox blockquote {
+    margin: 0; padding: 0;
+    font-family: var(--serif); font-style: italic;
+    font-size: 17.5px; line-height: 1.5; color: var(--slate);
+    max-width: 46em;
+  }
+  .copybtn {
+    position: absolute; top: 18px; right: 18px;
+    font-family: var(--mono); font-size: 11.5px;
+    letter-spacing: 0.04em;
+    background: var(--g100); color: var(--g700);
+    border: 1.5px solid var(--g300); border-radius: 7px;
+    padding: 5px 11px; cursor: pointer;
+  }
+  .copybtn:hover { border-color: var(--clay); color: var(--clay-d); }
+  .copybtn.done { background: var(--olive); border-color: var(--olive); color: #fff; }
+
+  /* ── divider ────────────────────────── */
+  .divider {
+    display: flex; align-items: center; gap: 16px;
+    margin: 44px 0 30px;
+    font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--g500); white-space: nowrap;
+  }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--g300); }
+
+  /* ══ THE ARTIFACT ═════════════════════ */
+  .artifact {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .art-head {
+    padding: 16px 22px;
+    border-bottom: 1.5px solid var(--g200);
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    background: var(--g100);
+  }
+  .art-head .t { font-family: var(--serif); font-weight: 500; font-size: 17px; letter-spacing: -0.01em; }
+  .art-head .s { font-family: var(--mono); font-size: 11.5px; color: var(--g500); }
+
+  .art-body { display: grid; grid-template-columns: 216px 1fr; min-height: 480px; }
+  @media (max-width: 720px) { .art-body { grid-template-columns: 1fr; min-height: 0; } }
+
+  /* rail */
+  .rail {
+    border-right: 1.5px solid var(--g200);
+    padding: 20px 16px;
+    background: var(--ivory);
+  }
+  @media (max-width: 720px) {
+    .rail { border-right: none; border-bottom: 1.5px solid var(--g200); padding: 14px 16px; }
+  }
+  .rail .rail-label {
+    font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--g500); margin-bottom: 12px;
+  }
+  .rail-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 8px; margin: 0 -8px;
+    border-radius: 8px;
+    font-size: 12.5px; color: var(--g500);
+    cursor: default;
+    border: none; background: none; width: calc(100% + 16px);
+    text-align: left; font-family: var(--sans);
+  }
+  .rail-item.done { color: var(--g700); cursor: pointer; }
+  .rail-item.done:hover { background: var(--g100); }
+  .rail-item.current { color: var(--slate); font-weight: 600; background: var(--g100); }
+  .rail-dot {
+    width: 11px; height: 11px; border-radius: 50%; flex: none;
+    border: 2px solid var(--dotc, var(--g300));
+    background: transparent;
+  }
+  .rail-item.done .rail-dot { background: var(--dotc); }
+  .rail-item.current .rail-dot { box-shadow: 0 0 0 3px var(--g200); }
+  .rail-item .rail-q { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rail-item .tick { margin-left: auto; font-size: 11px; color: var(--olive); flex: none; }
+  .rail-meta {
+    margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--g200);
+    font-family: var(--mono); font-size: 11px; color: var(--g500); line-height: 1.8;
+  }
+  .rail-meta b { color: var(--g700); font-weight: 600; }
+  @media (max-width: 720px) {
+    .rail .rail-q, .rail .tick, .rail-meta, .rail .rail-label { display: none; }
+    .rail { display: flex; align-items: center; gap: 10px; }
+    .rail-item { width: auto; padding: 4px; margin: 0; }
+  }
+
+  /* stage */
+  .stage { padding: 28px 30px 30px; position: relative; }
+  @media (max-width: 720px) { .stage { padding: 22px 18px 24px; } }
+  .qcard { animation: qin .28s ease both; }
+  .qcard.leaving { animation: qout .18s ease both; }
+  @keyframes qin  { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @keyframes qout { from { opacity: 1; } to { opacity: 0; transform: translateY(-8px); } }
+
+  .badge {
+    display: inline-block;
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 5px;
+    color: #fff; background: var(--g500);
+    margin-bottom: 4px;
+  }
+  .qnum { font-family: var(--mono); font-size: 11.5px; color: var(--g500); margin-left: 10px; }
+  .qtext {
+    font-family: var(--serif); font-weight: 500;
+    font-size: clamp(20px, 3vw, 25px); line-height: 1.25;
+    letter-spacing: -0.012em;
+    margin: 10px 0 6px; max-width: 34em;
+  }
+  .why {
+    font-size: 13.5px; color: var(--g500); margin: 0 0 22px;
+    display: flex; gap: 8px; align-items: baseline;
+  }
+  .why::before { content: "↳"; color: var(--clay); flex: none; }
+
+  .opts { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 620px) { .opts { grid-template-columns: 1fr; } }
+  .opt {
+    text-align: left;
+    background: var(--ivory);
+    border: 1.5px solid var(--g300);
+    border-radius: 11px;
+    padding: 14px 16px;
+    cursor: pointer;
+    font-family: var(--sans);
+    color: var(--slate);
+    transition: border-color .12s, background .12s, transform .12s;
+  }
+  .opt:hover { border-color: var(--clay); background: var(--paper); transform: translateY(-1px); }
+  .opt.picked { border-color: var(--clay); background: var(--paper); box-shadow: 0 0 0 3px rgba(217,119,87,.15); }
+  .opt .ot { font-weight: 600; font-size: 14.5px; display: block; margin-bottom: 3px; }
+  .opt .od { font-size: 12.5px; color: var(--g500); line-height: 1.45; display: block; }
+
+  .otherrow { display: flex; gap: 8px; margin-top: 12px; }
+  .otherrow input {
+    flex: 1; min-width: 0;
+    font-family: var(--sans); font-size: 14px;
+    padding: 10px 13px;
+    border: 1.5px solid var(--g300); border-radius: 9px;
+    background: var(--ivory); color: var(--slate);
+  }
+  .otherrow input::placeholder { color: var(--g500); }
+  .otherrow input:focus { outline: none; border-color: var(--clay); background: var(--paper); }
+  .otherrow button {
+    font-family: var(--mono); font-size: 12px;
+    padding: 0 16px; border-radius: 9px; cursor: pointer;
+    border: 1.5px solid var(--g300); background: var(--g100); color: var(--g700);
+  }
+  .otherrow button:hover { border-color: var(--clay); color: var(--clay-d); }
+
+  .navrow { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; }
+  .backbtn {
+    font-family: var(--mono); font-size: 12px;
+    background: none; border: none; cursor: pointer;
+    color: var(--g500); padding: 6px 0;
+  }
+  .backbtn:hover { color: var(--clay-d); }
+  .backbtn[disabled] { visibility: hidden; }
+  .navhint { font-family: var(--mono); font-size: 11px; color: var(--g500); }
+
+  /* summary */
+  .sum-h { font-family: var(--serif); font-weight: 500; font-size: 24px; letter-spacing: -0.012em; margin: 4px 0 4px; }
+  .sum-sub { font-size: 14px; color: var(--g500); margin: 0 0 20px; }
+  .dtable { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .dtable-scroll { overflow-x: auto; }
+  .dtable th {
+    font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--g500); font-weight: 500;
+    text-align: left; padding: 8px 12px 8px 0;
+    border-bottom: 1.5px solid var(--g300);
+    white-space: nowrap;
+  }
+  .dtable td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--g200); vertical-align: top; }
+  .dtable tr:last-child td { border-bottom: none; }
+  .dtable .pill {
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: #fff; padding: 2px 7px; border-radius: 4px; white-space: nowrap;
+  }
+  .dtable .topic { color: var(--g500); white-space: nowrap; }
+  .dtable .dec { font-weight: 600; }
+  .dtable .redo {
+    font-family: var(--mono); font-size: 11px; color: var(--g500);
+    background: none; border: none; cursor: pointer; padding: 0;
+  }
+  .dtable .redo:hover { color: var(--clay-d); }
+
+  .genblock { margin-top: 26px; }
+  .genblock .gb-label {
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--clay); margin-bottom: 8px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .genblock .gb-label::before { content: ""; width: 18px; height: 1.5px; background: var(--clay); flex: none; }
+  .genwrap { position: relative; }
+  .genwrap pre {
+    margin: 0;
+    background: var(--slate);
+    color: var(--g200);
+    border-radius: 11px;
+    padding: 18px 20px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .genwrap .copybtn { top: 12px; right: 12px; background: var(--g700); border-color: var(--g700); color: var(--g300); }
+  .genwrap .copybtn:hover { color: var(--paper); border-color: var(--g500); }
+  .genwrap .copybtn.done { background: var(--olive); border-color: var(--olive); color: #fff; }
+  .restart {
+    margin-top: 18px;
+    font-family: var(--mono); font-size: 12px;
+    background: none; border: none; cursor: pointer;
+    color: var(--g500); padding: 0;
+  }
+  .restart:hover { color: var(--clay-d); }
+
+  footer {
+    margin-top: 56px; padding-top: 22px;
+    border-top: 1px solid var(--g300);
+    font-size: 13px; color: var(--g500);
+  }
+  footer a { color: var(--clay); text-decoration-color: var(--oat); text-underline-offset: 3px; }
+  footer a:hover { text-decoration-color: var(--clay); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">识别未知 &middot; 补丁后跟进</div>
+    <a class="backlink" href="9003-ambiguities-interview.html">&#8592; 第一轮访谈</a>
+    <h1>第二轮访谈</h1>
+    <p class="lede">第一轮解决了八项架构决策（Patch 1，D1&ndash;D8）。本轮聚焦于 spec 和 patch 之后仍然模糊的问题 &mdash; 优先处理那些你的回答会改变 9003 编译器构建方式或 9002 消费方式的决策。</p>
+
+    <div class="promptbox">
+      <div class="label">提示词</div>
+      <button class="copybtn" id="copyPrompt">复制提示词</button>
+      <blockquote id="promptText">通读 soft-criteria-authoring-spec-v4.html 和 patch。就软标准编写功能中仍然模糊的任何问题，一次一个问题地访谈我。优先处理那些我的回答会改变架构的问题。</blockquote>
+    </div>
+  </header>
+
+  <div class="divider">Claude 的输出</div>
+
+  <div class="artifact">
+    <div class="art-head">
+      <span class="t">软标准编写 &mdash; spec 访谈（第二轮）</span>
+      <span class="s">argus/9003 &middot; 8 个待解决问题 &middot; 按影响范围排序</span>
+    </div>
+    <div class="art-body">
+      <nav class="rail" id="rail" aria-label="访谈进度"></nav>
+      <div class="stage" id="stage"></div>
+    </div>
+  </div>
+
+  <footer>9003 编译器设计过程的一部分。第一轮产生了 <a href="soft-criteria-authoring-spec-v4-patch-1.md">Patch 1</a>（D1&ndash;D8）。本轮针对实现前仍存在的空白进行访谈。</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var RADII = {
+    arch:  { label: "架构", color: "var(--clay)" },
+    data:  { label: "数据模型", color: "var(--clay-d)" },
+    wf:    { label: "工作流", color: "var(--olive)" },
+    pol:   { label: "润色", color: "var(--g500)" }
+  };
+
+  var QUESTIONS = [
+    {
+      id: "calibration-format",
+      radius: "arch",
+      short: "标定清单的格式",
+      topic: "标定清单（Calibration Manifest）",
+      q: "标定清单的具体格式和注入机制是什么？",
+      why: "Spec 将其描述为一个'独立通道'，包含来自错误案例库和最佳实践的片段，可以'单独、按需、无需编译运行'地注入。但具体格式（YAML 文件？数据库表？JSON？）、文件结构和注入机制（CLI 命令？文件编辑？API？）均未规定。这决定了清单存放在哪里、severity_map 引用如何解析，以及重新锚定是文件操作还是工具调用。",
+      opts: [
+        { t: "INTENTS/_calibration/ 下的版本化 YAML 文件，按路径引用", d: "与 _rubric/ 模式一致。severity_map: '_calibration/emp-sev-v3.yaml'。注入 = 提交新文件或编辑已有文件。简单，可 git 审计，与 rubric 相同的写入时 epoch 纪律。" },
+        { t: "CLI 子命令：接收标注片段并更新编译后的清单", d: "argus calibrate inject --criterion=empathy --fragment=... 。CLI 负责验证、合并、写入清单。工具更多但能防止格式错误的注入。" },
+        { t: "每个维度一个独立的 JSON/YAML 文件，由 QA 负责人手工编辑", d: "清单是人工编写的文档，不是编译器输出。最少工具依赖；最大人工控制。风险：片段格式缺乏结构化验证。" }
+      ]
+    },
+    {
+      id: "facets-extraction",
+      radius: "arch",
+      short: "模型驱动 facet 由谁提取",
+      topic: "Facet 提取边界",
+      q: "model_based facet 由 9003 编译器（编写时）还是 9002 评估器（每次调用运行时）提取？",
+      why: "D5 将 facet 分为 programmatic（声学、短语、时长 &mdash; 无需模型）和 model_based（对话摘要、客户意图、坐席策略、情绪倾向 &mdash; 需要 LLM）。如果编译器提取，9003 需要模型访问权限，facets 一次性编写完成。如果评估器提取，9003 只做声明，9002 在每次调用时执行提取。这是一个隔离边界决策：它决定了 model_based facet 提取是纯声明（安全、确定性）还是智能体步骤（模型访问、非确定性）。",
+      opts: [
+        { t: "编译器声明；评估器在运行时提取", d: "9003 只写入 facet 声明（名称 + 描述 + 提取方法）。9002 的 S2 提议者调用模型逐次提取。9003 保持无模型依赖；facet 适应每次通话内容。" },
+        { t: "编译器在编写时一次性提取", d: "9003 在编译期间调用模型，生成 facet 提取模板（提示词、schema）。9002 将其作为确定性提取脚本使用。facet 随 rubric 版本固定。" },
+        { t: "混合：编译器提取模板；评估器填充值", d: "9003 生成绑定 rubric 上下文的提取提示模板。9002 每次调用时实例化。结合编译时质量控制和运行时适应性。" }
+      ]
+    },
+    {
+      id: "facet-extraction-pipeline",
+      radius: "arch",
+      short: "Facet 提取在流水线中的位置",
+      topic: "Facet 提取的流水线位置",
+      q: "Facet 从 call log 中提取，放在 9002 流水线的哪一步？是 S2 之前的独立预处理步骤，还是嵌入 S2 内部按需提取？",
+      why: "call log 包含 transcript + acoustic 原始数据。每个 item 的编译产物声明了它需要哪些 facets（programmatic 和 model_based）。但提取动作本身放在哪里？作为独立预处理步骤意味着一次批量提取（所有 item 需要的全部 facets 一次算完、一次模型调用），S2 拿到的是已提取好的 facets；嵌入 S2 按需提取意味着每个 item 被评估时才触发提取。这个决策直接影响模型调用次数（一次 vs 多次）、模块边界（提取器是独立模块还是 S2 内部逻辑）、以及 I1 隔离（提取器调模型，必须放在 io/ 层）。",
+      opts: [
+        { t: "方案 A：S2 之前的独立预处理步骤（Facet Extractor）", d: "call log → Facet Extractor → facets → S2。programmatic 并行批量计算，model_based 一次模型调用批量提取。S2 收到的输入是结构化 facets，不再是原始 call log。高效（只调一次模型），但提取器需要模型访问 → 必须放在 io/ 层。" },
+        { t: "方案 B：嵌入 S2 内部，按需提取", d: "S2 遍历 items 时，遇到需要 model_based facet 的 item 才调模型提取。灵活，但多个 item 可能需要同一 facet（如 dialogue_summary），造成重复模型调用。隔离简单：提取逻辑就是 S2 的一部分，已在隔离区内。" },
+        { t: "混合：programmatic 独立预处理 + model_based 在 S2 内批量", d: "programmatic facets 在 Facet Extractor 中提前算好（无模型调用，可放 core/）。model_based facets 在 S2 内部但一次性批量提取——S2 先收集所有 items 需要的 model_based facets，调一次模型全部提取，再逐 item 评估。" }
+      ]
+    },
+    {
+      id: "discovery-contract",
+      radius: "arch",
+      short: "9002 如何发现编译器输出",
+      topic: "运行时加载合约",
+      q: "9002 评估器在运行时如何发现并加载编译器的输出？",
+      why: "D1 说'运行时按维度批量加载 rules_criteria'。D3 说'运行时独立加载 gates 用于路由决策'。但发现机制 &mdash; 9002 如何知道要加载什么、从哪里加载、以什么顺序加载 &mdash; 并未规定。这是两个系统（9003 编译器和 9002 评估器）之间的接口。搞错了意味着一方改动会悄无声息地破坏另一方。",
+      opts: [
+        { t: "基于约定：启动时扫描 _rubric/ 目录结构", d: "9002 遍历 _rubric/rules_criteria/{dimension}/，加载所有 item-*.yaml 文件，evidence/ 和 gates/ 同理。简单，无需清单文件。但如果目录结构改变会很脆弱。" },
+        { t: "显式清单：编译器输出 _rubric/_manifest.yaml 列出所有节点", d: "9002 读取一个清单文件，其中声明了每个节点的路径、类型和版本。编译器是存在哪些内容的权威来源。多了一个文件，但使合约显式化且可版本化。" },
+        { t: "使用 v6 已定义的分类读取器：按 category 枚举加载", d: "9002 的三个分类读取器（rubric、facts、history）已经知道如何加载各自的类别。rules_criteria = rubric 读取器，evidence = rubric 读取器（不同子类），gates = rubric 读取器。复用已有加载逻辑，只需添加路径。" }
+      ]
+    },
+    {
+      id: "evidence-role",
+      radius: "data",
+      short: "evidence 目录的角色",
+      topic: "Evidence 目录角色",
+      q: "evidence/ 目录是运行时依赖还是人类可读文档？",
+      why: "D4 说 trigger.spec 直接内联了声学/短语阈值 &mdash; 节点是自包含的。但 evidence/ 目录仍然存在于 INTENTS/_rubric/ 输出树中。如果它不是运行时依赖，就不应该出现在运行时参照路径中（会污染评估器的工作集）。如果它确实是运行时依赖，D4 的'自包含'主张就需要限定：评估器从 evidence/ 中加载了什么节点中没有内联的内容？",
+      opts: [
+        { t: "仅文档 &mdash; 将 evidence/ 从 _rubric/ 移到 docs/", d: "D4 是正确的：节点完全自包含。evidence/ 文件仅作为 QA 负责人理解测量了哪些指标的人类参考。移到 docs/reference/evidence/，使其永远不会出现在运行时加载路径中。" },
+        { t: "运行时依赖（共享引用）&mdash; 保留在 _rubric/ 中", d: "尽管 trigger.spec 内联了阈值，评估器仍加载 evidence/ 条目以验证内联值与规范框架版本是否匹配。作为交叉检查，而非主要数据源。保留在 _rubric/ 中作为版本化 rubric。" },
+        { t: "分离：阈值内联（节点中），指标元数据在 evidence/（运行时）", d: "节点内联阈值（如 'speaking_rate > 120 wpm'）。evidence/ 存储指标元数据（单位、描述、测量方法），供评估器加载以生成错误消息和漂移检测。两者都是具有不同角色的运行时产物。" }
+      ]
+    },
+    {
+      id: "human-edit-coherence",
+      radius: "data",
+      short: "人工编辑的一致性验证",
+      topic: "人工编辑一致性",
+      q: "当人工编辑编译器输出文件并设置 edited_by_human: true 时，什么来验证该编辑与其余自动编译输出仍然一致？",
+      why: "D8 说编译器在重新编译时跳过 edited_by_human: true 的文件。但人可以编辑 item-22.yaml 的 trigger 来与 item-11.yaml 的 corroborator 引用矛盾，或者更改 deduction_weight 破坏维度的评分算术。没有一致性验证器，沉默的不一致会积累。有了验证器，我们需要定义跨文件'一致'意味着什么。",
+      opts: [
+        { t: "仅结构验证 &mdash; schema + 交叉引用完整性", d: "验证器检查每个人工编辑的文件仍符合 AuthoredNode schema，且所有 node_id 引用指向存在的节点。检测断开的链接但不检测语义矛盾。成本低，可自动化。" },
+        { t: "完全一致性检查 &mdash; 以'仅验证'模式重新运行编译器", d: "编译器加载所有文件（包括人工编辑的）并检查不变量：维度权重总和、corroborator 独立类别、gate 子集覆盖。标记警告供人工审查。成本更高但能捕获语义漂移。" },
+        { t: "基于信任：无自动验证；人工编辑者对一致性负责", d: "edited_by_human: true 意味着人工承担责任。doc-gardener 技能定期扫描明显的断裂（悬空引用）。无编译时验证。最简单；依赖做出编辑的同一个人工判断。" }
+      ]
+    },
+    {
+      id: "human-version-schema",
+      radius: "data",
+      short: "human_version 字段 schema",
+      topic: "human_version 的 schema",
+      q: "每个 item YAML 的 human_version 部分包含哪些具体字段？",
+      why: "D7 说每个 item-XX.yaml 有四个部分，包括 human_version（原始人工标准）。但 spec 仅提到'保留原始 rubric 上下文（类别、通过/不通过/NA 标准）'。它是原始二进制项文本的逐字复制，还是结构化提取？答案决定了编译器是解析人工 rubric 还是仅复制 &mdash; 以及 9002 能否在运行时使用 human_version（例如，在机器判定旁边显示原始标准）。",
+      opts: [
+        { t: "逐字复制：原始项文本作为单个字符串", d: "human_version: { item_id: 22, text: '情绪处理：坐席应能识别客户情绪变化...' }。编译器不经解析直接复制。简单，无损，无解释风险。" },
+        { t: "结构化提取：解析为类别、标准、示例", d: "human_version: { item_id, category, pass_standard, fail_standard, na_condition, examples: [...] }。编译器将原始文本解析为字段。使 9002 能够显示'为什么未通过'及原始标准。风险：解析器错误。" },
+        { t: "两者兼有：原始文本 + 结构化提取并列", d: "human_version: { raw: '...', parsed: { category, standard, ... } }。原始文本是权威；解析字段是尽力而为，可能为 null。有结构化数据时提供给 9002，没有时回退到原始文本。" }
+      ]
+    },
+    {
+      id: "residue-runtime",
+      radius: "wf",
+      short: "残差清单的运行时消费",
+      topic: "残差清单的运行时使用",
+      q: "9002 评估器如何在运行时消费 ResidueManifest？",
+      why: "Spec 说残差清单'路由到人工队列并播种流水线的逐标准逃逸率监控'。但具体的消费合约 &mdash; 要加载的文件、要提取的数据、要采取的行动 &mdash; 并未规定。这决定了清单是被动文档（由人工阅读）还是评估器路由逻辑的主动输入。",
+      opts: [
+        { t: "被动：清单是 QA 负责人的文档", d: "9002 不加载清单。人工 QA 负责人阅读它以理解机器无法评判的内容。逃逸率监控手工播种。最简单；清单是可交付物，而非输入。" },
+        { t: "主动：9002 加载清单并用于路由决策", d: "9002 在启动时读取 ResidueManifest。对于 disposition: 'human_review' 的每一行，该项的任何发现自动路由到人工队列。对于 dimension_coverage_gap 行，整个维度的发现被标记。清单直接控制路由。" },
+        { t: "主动但间接：清单播种逃逸率监控配置", d: "9002 加载清单以配置哪些标准获得激进的逃逸采样（通过 escape_tier）以及哪些被延迟。不直接控制路由 &mdash; 路由仍是评估器的决策 &mdash; 但清单设置了漂移检测器使用的采样策略。" }
+      ]
+    }
+  ];
+
+  var answers = new Array(QUESTIONS.length).fill(null);
+  var current = 0;
+  var rail = document.getElementById("rail");
+  var stage = document.getElementById("stage");
+
+  function answeredCount() {
+    return answers.filter(function (a) { return a !== null; }).length;
+  }
+
+  function esc(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function renderRail() {
+    var html = '<div class="rail-label">访谈进度</div>';
+    QUESTIONS.forEach(function (q, i) {
+      var r = RADII[q.radius];
+      var cls = "rail-item" + (i === current ? " current" : "") + (answers[i] ? " done" : "");
+      html += '<button type="button" class="' + cls + '" data-i="' + i + '" style="--dotc:' + r.color + '"' +
+        (answers[i] ? '' : ' tabindex="-1"') + '>' +
+        '<span class="rail-dot"></span><span class="rail-q">' + esc(q.short) + '</span>' +
+        (answers[i] ? '<span class="tick">&#10003;</span>' : '') + '</button>';
+    });
+    html += '<div class="rail-meta">已回答 <b>' + answeredCount() + '</b> / ' + QUESTIONS.length + ' 题<br>' +
+      '<span style="color:var(--clay)">&#9679;</span> 架构 &nbsp;' +
+      '<span style="color:var(--clay-d)">&#9679;</span> 数据模型<br>' +
+      '<span style="color:var(--olive)">&#9679;</span> 工作流 &nbsp;' +
+      '<span style="color:var(--g500)">&#9679;</span> 润色</div>';
+    rail.innerHTML = html;
+    rail.querySelectorAll(".rail-item.done").forEach(function (el) {
+      el.addEventListener("click", function () { go(parseInt(el.dataset.i, 10)); });
+    });
+  }
+
+  function renderQuestion() {
+    var q = QUESTIONS[current];
+    var r = RADII[q.radius];
+    var picked = answers[current];
+    var html = '<div class="qcard">' +
+      '<span class="badge" style="background:' + r.color + '">' + esc(r.label) + '</span>' +
+      '<span class="qnum">第 ' + (current + 1) + ' 题 / 共 ' + QUESTIONS.length + ' 题</span>' +
+      '<h2 class="qtext">' + esc(q.q) + '</h2>' +
+      '<p class="why">' + esc(q.why) + '</p>' +
+      '<div class="opts">';
+    q.opts.forEach(function (o, oi) {
+      var isPicked = picked && !picked.custom && picked.text === o.t;
+      html += '<button type="button" class="opt' + (isPicked ? ' picked' : '') + '" data-oi="' + oi + '">' +
+        '<span class="ot">' + esc(o.t) + '</span><span class="od">' + esc(o.d) + '</span></button>';
+    });
+    html += '</div>' +
+      '<div class="otherrow">' +
+      '<input type="text" id="otherInput" placeholder="其他 &mdash; 输入你自己的答案&hellip;" value="' +
+        (picked && picked.custom ? esc(picked.text) : '') + '">' +
+      '<button type="button" id="otherGo">确认 &#8629;</button></div>' +
+      '<div class="navrow">' +
+      '<button type="button" class="backbtn" id="backBtn"' + (current === 0 ? ' disabled' : '') + '>&#8592; 上一题</button>' +
+      '<span class="navhint">选择一张卡片以继续</span>' +
+      '</div></div>';
+    stage.innerHTML = html;
+
+    stage.querySelectorAll(".opt").forEach(function (el) {
+      el.addEventListener("click", function () {
+        var o = q.opts[parseInt(el.dataset.oi, 10)];
+        answers[current] = { text: o.t, custom: false };
+        el.classList.add("picked");
+        renderRail();
+        setTimeout(function () { go(current + 1); }, 240);
+      });
+    });
+    var input = stage.querySelector("#otherInput");
+    function submitOther() {
+      var v = input.value.trim();
+      if (!v) { input.focus(); return; }
+      answers[current] = { text: v, custom: true };
+      renderRail();
+      go(current + 1);
+    }
+    stage.querySelector("#otherGo").addEventListener("click", submitOther);
+    input.addEventListener("keydown", function (e) { if (e.key === "Enter") submitOther(); });
+    stage.querySelector("#backBtn").addEventListener("click", function () { go(current - 1); });
+  }
+
+  function buildFollowupPrompt() {
+    var lines = [
+      "以下是第二轮访谈中确定的决策 &mdash; 请用这些约束更新",
+      "9003-implement-soft-criteria-compiler ExecPlan：",
+      ""
+    ];
+    QUESTIONS.forEach(function (q, i) {
+      var a = answers[i];
+      lines.push((i + 1) + ". " + q.topic + "：" + (a ? a.text : "（未回答 &mdash; 请自行判断）") +
+        (a && a.custom ? " [我自己的措辞 &mdash; 如有不清楚请询问]" : ""));
+    });
+    lines.push("");
+    lines.push("这些决策在 Patch 1（D1&ndash;D8）的基础上进一步细化了 spec。");
+    lines.push("将每一项作为新的 Decision Log 条目更新到计划中。");
+    lines.push("如果任何决策与已有的 D1&ndash;D8 冲突，在更新计划之前先标记出来。");
+    return lines.join("\n");
+  }
+
+  function renderSummary() {
+    var rows = "";
+    QUESTIONS.forEach(function (q, i) {
+      var r = RADII[q.radius];
+      var a = answers[i];
+      rows += "<tr>" +
+        '<td><span class="pill" style="background:' + r.color + '">' + esc(r.label) + '</span></td>' +
+        '<td class="topic">' + esc(q.topic) + '</td>' +
+        '<td class="dec">' + (a ? esc(a.text) + (a.custom ? ' <span style="font-weight:400;color:var(--g500)">（你的措辞）</span>' : '') : '<span style="color:var(--g500)">&mdash;</span>') + '</td>' +
+        '<td><button type="button" class="redo" data-i="' + i + '">编辑</button></td>' +
+        "</tr>";
+    });
+    stage.innerHTML = '<div class="qcard">' +
+      '<span class="badge" style="background:var(--olive)">访谈完成</span>' +
+      '<h2 class="sum-h">八个空白，零个假设。</h2>' +
+      '<p class="sum-sub">以下每个答案都回应了 spec + Patch 1 未规定的内容。没有这些决策，9003 编译器将在实现时被迫猜测每一个问题。</p>' +
+      '<div class="dtable-scroll"><table class="dtable"><thead><tr>' +
+      '<th>影响范围</th><th>问题</th><th>决策</th><th></th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<div class="genblock">' +
+      '<div class="gb-label">生成的后续提示词</div>' +
+      '<div class="genwrap"><button type="button" class="copybtn" id="copyGen">复制</button>' +
+      '<pre id="genPre">' + esc(buildFollowupPrompt()) + '</pre></div>' +
+      '</div>' +
+      '<button type="button" class="restart" id="restartBtn">&#8634; 重新开始</button>' +
+      '</div>';
+
+    stage.querySelectorAll(".redo").forEach(function (el) {
+      el.addEventListener("click", function () { go(parseInt(el.dataset.i, 10)); });
+    });
+    wireCopy(stage.querySelector("#copyGen"), function () { return buildFollowupPrompt(); });
+    stage.querySelector("#restartBtn").addEventListener("click", function () {
+      answers = new Array(QUESTIONS.length).fill(null);
+      go(0);
+    });
+  }
+
+  function go(idx) {
+    var card = stage.querySelector(".qcard");
+    var doRender = function () {
+      current = idx;
+      renderRail();
+      if (current >= QUESTIONS.length) renderSummary();
+      else renderQuestion();
+    };
+    if (card) {
+      card.classList.add("leaving");
+      setTimeout(doRender, 160);
+    } else {
+      doRender();
+    }
+  }
+
+  function wireCopy(btn, getText) {
+    btn.addEventListener("click", function () {
+      var text = getText();
+      var done = function () {
+        var orig = btn.textContent;
+        btn.textContent = "已复制 &#10003;";
+        btn.classList.add("done");
+        setTimeout(function () { btn.textContent = orig; btn.classList.remove("done"); }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+      } else {
+        fallbackCopy(text); done();
+      }
+    });
+  }
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  wireCopy(document.getElementById("copyPrompt"), function () {
+    return document.getElementById("promptText").textContent;
+  });
+
+  renderRail();
+  renderQuestion();
+})();
+</script>
+
+</body>
+</html>

@@ -1,5 +1,6 @@
 # Secrets — never commit.
 doc/PRD
+.history/
 .env
 .env.local
 .env.*.local

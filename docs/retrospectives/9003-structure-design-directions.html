@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two design directions &mdash; 操作化产物结构</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5;
+    --paper:  #FFFFFF;
+    --slate:  #141413;
+    --clay:   #D97757;
+    --clay-d: #B85C3E;
+    --oat:    #E3DACC;
+    --olive:  #788C5D;
+    --g100:   #F0EEE6;
+    --g200:   #E6E3DA;
+    --g300:   #D1CFC5;
+    --g500:   #87867F;
+    --g700:   #3D3D3A;
+    --serif: ui-serif, "Noto Serif CJK SC", "Source Han Serif SC", Georgia, "Times New Roman", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Noto Sans CJK SC", Roboto, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--ivory);
+    color: var(--slate);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px 110px; }
+  @media (max-width: 480px) { .wrap { padding: 0 16px 90px; } }
+
+  header.page { padding: 56px 0 8px; position: relative; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--g500); display: flex; align-items: center; gap: 12px; margin-bottom: 18px;
+  }
+  .eyebrow::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); flex-shrink: 0; }
+  .backlink {
+    position: absolute; top: 60px; right: 0;
+    font-family: var(--mono); font-size: 12px; color: var(--g500); text-decoration: none;
+  }
+  .backlink:hover { color: var(--clay); }
+  @media (max-width: 640px) { .backlink { position: static; display: inline-block; margin-bottom: 14px; } }
+  h1 {
+    font-family: var(--serif); font-weight: 500;
+    font-size: clamp(32px, 5vw, 48px); line-height: 1.08;
+    letter-spacing: -0.018em; margin: 0 0 12px;
+  }
+  .lede { font-size: 16px; color: var(--g700); max-width: 640px; margin: 0 0 34px; }
+
+  .prompt-card {
+    background: var(--paper); border: 1.5px solid var(--g300); border-radius: 14px;
+    padding: 22px 26px 20px; position: relative;
+  }
+  .prompt-card .label {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--clay); margin-bottom: 12px;
+  }
+  .prompt-card blockquote {
+    margin: 0; font-family: var(--serif); font-style: italic;
+    font-size: 17.5px; line-height: 1.55; color: var(--slate); max-width: 62ch;
+  }
+  .copy-btn {
+    position: absolute; top: 18px; right: 18px; font-family: var(--mono);
+    font-size: 11px; letter-spacing: 0.04em; padding: 6px 12px;
+    border: 1.5px solid var(--g300); border-radius: 999px;
+    background: var(--ivory); color: var(--g700); cursor: pointer;
+    transition: border-color 120ms, color 120ms;
+  }
+  .copy-btn:hover { border-color: var(--clay); color: var(--clay); }
+  .copy-btn.copied { border-color: var(--olive); color: var(--olive); }
+  @media (max-width: 520px) { .copy-btn { position: static; margin-top: 14px; display: inline-block; } }
+
+  .divider {
+    display: flex; align-items: center; gap: 16px; margin: 52px 0 40px;
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--g500); white-space: nowrap;
+  }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--g300); }
+
+  .art-intro { font-size: 15px; color: var(--g700); max-width: 660px; margin: 0 0 14px; }
+  .art-intro strong { color: var(--slate); }
+  .same-data {
+    font-family: var(--mono); font-size: 11.5px; color: var(--g500);
+    background: var(--g100); border: 1px solid var(--g200); border-radius: 8px;
+    padding: 10px 14px; margin: 0 0 46px; line-height: 1.7;
+  }
+  .same-data b { color: var(--g700); font-weight: 600; }
+
+  .direction { margin: 0 0 64px; }
+  .dir-head {
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 6px;
+  }
+  .dir-head .num {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em;
+    color: var(--clay); font-weight: 600;
+  }
+  .dir-head h2 {
+    font-family: var(--serif); font-weight: 500; font-size: 24px;
+    letter-spacing: -0.012em; margin: 0;
+  }
+  .dir-says {
+    font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--g700); margin: 0 0 16px;
+  }
+  .dir-says::before { content: "这个方向的主张: "; font-style: normal; font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--g500); margin-right: 6px; }
+
+  .frame {
+    background: var(--paper); border: 1.5px solid var(--g300); border-radius: 14px; overflow: hidden;
+  }
+  .frame-bar {
+    display: flex; align-items: center; gap: 7px; padding: 9px 14px;
+    border-bottom: 1.5px solid var(--g200); background: var(--g100);
+  }
+  .frame-bar .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--g300); }
+  .frame-bar .url {
+    font-family: var(--mono); font-size: 10.5px; color: var(--g500);
+    margin-left: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .frame-body { overflow-x: auto; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .chip {
+    font-family: var(--mono); font-size: 11.5px; padding: 6px 12px;
+    border-radius: 999px; border: 1.5px solid var(--g300);
+    background: var(--paper); cursor: pointer; color: var(--g700);
+    transition: border-color 120ms, background 120ms, color 120ms; text-align: left;
+  }
+  .chip .k { font-weight: 600; letter-spacing: 0.05em; }
+  .chip.steal .k { color: var(--olive); }
+  .chip.skip .k { color: var(--clay-d); }
+  .chip:hover { border-color: var(--g500); }
+  .chip.steal.on { border-color: var(--olive); background: #F1F3EC; }
+  .chip.skip.on  { border-color: var(--clay); background: #FBEFE9; }
+  .chip.on .k::after { content: " ✓"; }
+  .chip-hint { font-size: 12px; color: var(--g500); margin-top: 8px; }
+
+  /* ═══ DIRECTION 1 &mdash; Uniform ═══ */
+  .d1 {
+    background: #1B1B19; color: #D8D6CE; font-family: var(--mono);
+    font-size: 12px; padding: 18px 20px 20px; min-width: 580px;
+  }
+  .d1 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 680px) { .d1 .cols { grid-template-columns: 1fr; } }
+  .d1 .col-h {
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 6px 0 8px; border-bottom: 1px solid #33322F; margin-bottom: 10px;
+  }
+  .d1 .col-h.simple { color: var(--olive); }
+  .d1 .col-h.complex { color: var(--clay); }
+  .d1 .code-block {
+    background: #232320; border-radius: 6px; padding: 12px 14px;
+    font-size: 11px; line-height: 1.65; white-space: pre-wrap; word-break: break-word;
+    color: #A8A69E; max-height: 340px; overflow-y: auto;
+  }
+  .d1 .code-block .k { color: #7fb3e8; }
+  .d1 .code-block .s { color: #9ed79e; }
+  .d1 .code-block .c { color: #6E6D66; font-style: italic; }
+  .d1 .code-block .f { color: #e8c07a; }
+  .d1 .code-block .null { color: #6E6D66; }
+  .d1 .label-strip {
+    display: flex; gap: 8px; margin-bottom: 12px; font-size: 10px;
+    letter-spacing: 0.08em; color: #6E6D66;
+  }
+  .d1 .label-strip span { padding: 2px 8px; border-radius: 4px; border: 1px solid #33322F; }
+
+  /* ═══ DIRECTION 2 &mdash; Tiered ═══ */
+  .d2 {
+    background: var(--ivory); padding: 24px 28px 28px; min-width: 300px;
+  }
+  @media (max-width: 560px) { .d2 { padding: 18px 16px 22px; } }
+  .d2 .tier-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 24px; }
+  .d2 .tier-table th {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em;
+    text-transform: uppercase; text-align: left; color: var(--g500);
+    padding: 8px 10px 8px 0; border-bottom: 1.5px solid var(--g300);
+  }
+  .d2 .tier-table td {
+    padding: 8px 10px 8px 0; border-bottom: 1px solid var(--g200); vertical-align: top;
+  }
+  .d2 .tier-table .tier-name { font-weight: 600; }
+  .d2 .tier-table .tier-name.l1 { color: var(--olive); }
+  .d2 .tier-table .tier-name.l2 { color: var(--clay-d); }
+  .d2 .tier-table .tier-name.l3 { color: var(--clay); }
+  .d2 .code-block {
+    background: #1B1B19; border-radius: 6px; padding: 12px 14px;
+    font-family: var(--mono); font-size: 11px; line-height: 1.6;
+    white-space: pre-wrap; word-break: break-word; color: #A8A69E;
+    max-height: 300px; overflow-y: auto; margin-top: 8px;
+  }
+  .d2 .code-block .k { color: #7fb3e8; }
+  .d2 .code-block .s { color: #9ed79e; }
+  .d2 .code-block .c { color: #6E6D66; font-style: italic; }
+  .d2 .code-block .f { color: #e8c07a; }
+  .d2 .pair-label {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em;
+    color: var(--g500); text-transform: uppercase; margin: 18px 0 6px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .d2 .pair-label::after { content: ""; flex: 1; height: 1px; background: var(--g200); }
+
+  .react-card {
+    background: var(--paper); border: 1.5px solid var(--g300); border-radius: 14px;
+    padding: 26px 28px 26px; margin-top: 8px;
+  }
+  @media (max-width: 480px) { .react-card { padding: 20px 16px; } }
+  .react-card .label {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--clay); margin-bottom: 10px;
+  }
+  .react-card h3 {
+    font-family: var(--serif); font-weight: 500; font-size: 23px;
+    letter-spacing: -0.012em; margin: 0 0 8px;
+  }
+  .react-card p { font-size: 14.5px; color: var(--g700); max-width: 640px; margin: 0 0 18px; }
+  .pick-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .pick {
+    font-family: var(--mono); font-size: 12px; padding: 8px 14px;
+    border-radius: 999px; border: 1.5px solid var(--g300);
+    background: var(--ivory); color: var(--g700); cursor: pointer;
+    transition: border-color 120ms, background 120ms, color 120ms;
+  }
+  .pick:hover { border-color: var(--g500); }
+  .pick.on { border-color: var(--slate); background: var(--slate); color: var(--ivory); }
+  .reply-wrap { position: relative; }
+  .reply {
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.75;
+    background: var(--g100); border: 1px solid var(--g200); border-radius: 10px;
+    padding: 16px 18px; color: var(--g700); white-space: pre-wrap;
+    word-break: break-word; min-height: 96px; margin: 0;
+  }
+  .copy-reply {
+    position: absolute; top: 10px; right: 10px; font-family: var(--mono);
+    font-size: 11px; padding: 5px 11px; border: 1.5px solid var(--g300);
+    border-radius: 999px; background: var(--paper); color: var(--g700);
+    cursor: pointer; transition: border-color 120ms, color 120ms;
+  }
+  .copy-reply:hover { border-color: var(--clay); color: var(--clay); }
+  .copy-reply.copied { border-color: var(--olive); color: var(--olive); }
+  .react-foot { font-size: 12.5px; color: var(--g500); margin-top: 14px; }
+
+  footer {
+    margin-top: 90px; border-top: 1.5px solid var(--g300);
+    padding-top: 28px; font-size: 13px; color: var(--g500);
+  }
+  footer a { color: var(--clay); text-decoration-color: var(--oat); text-underline-offset: 3px; }
+  footer a:hover { text-decoration-color: var(--clay); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="page">
+    <a class="backlink" href="item-18-example.yaml">← 查看 Item 18 示例</a>
+    <div class="eyebrow">操作化设计 &middot; 编译器输出格式</div>
+    <h1>两种设计方向</h1>
+    <p class="lede">
+      25 个原始 rubric item 复杂度差异巨大&mdash;&mdash;从 Item 1（检查是否说了"您好"）到 Item 18（判断解释的逻辑链和灵活适应性）。
+      <strong>已选定方向 1：统一结构。</strong>YAML 自身的特征&mdash;&mdash;不适用的键直接不出现&mdash;&mdash;足以弥合简单与复杂 Item 的差异，无需显式 tier 字段。
+    </p>
+    <div class="prompt-card">
+      <div class="label">核心问题</div>
+      <blockquote id="prompt-text">原始的 25 个人工标准，有的很简单（Item 1），有的很复杂（Item 18、20、21），有的介于中间。采用同一种四层操作化产物结构，是否合适？还是应该按复杂度分级？</blockquote>
+      <button class="copy-btn" id="copy-prompt" type="button">复制问题</button>
+    </div>
+  </header>
+
+  <div class="divider">两种设计方向</div>
+
+  <p class="art-intro">
+    同样的 25 个原始 rubric item，两种编译输出策略。每个方向下展示<strong>两个极端的 Item</strong>（最简单的 Item 1 和最复杂的 Item 18）在对应策略下的产物形态。
+    点击每个方向下方的 <strong>steal</strong> / <strong>skip</strong> 标签来标记你认可和拒绝的设计细节；你的选择会自动汇集成底部回复。
+  </p>
+  <div class="same-data">
+    <b>共享数据：</b> 25 个原始 rubric item &middot; 3 个复杂度层级 &middot;
+    简单层 7 项（Item 1, 2, 4, 5, 8, 10, 27）&middot;
+    中等层 8 项（Item 3, 9, 12, 13, 14, 19, 23, 25）&middot;
+    复杂层 10 项（Item 11, 15, 16, 17, 18, 20, 21, 22, 24, 26）&middot;
+    D10 定义的四层链：human_version → machine_criterion → signals → facets
+  </div>
+
+  <!-- ═══════════════ DIRECTION 1 ═══════════════ -->
+  <div class="direction">
+    <div class="dir-head"><span class="num">方向 1 / 2</span><h2>统一结构：所有 Item 同一个 schema</h2></div>
+    <p class="dir-says">&ldquo;一个 schema 处理所有情况。简单 Item 的某些层为 null，但结构完整。编译器逻辑简单，消费者（9002 评估器）只需理解一种格式。&rdquo;</p>
+    <div class="frame">
+      <div class="frame-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">INTENTS/_rubric/rules_criteria/&lt;dimension&gt;/item-XX.yaml</span></div>
+      <div class="frame-body">
+        <div class="d1">
+          <div class="label-strip"><span>统一 schema</span><span>所有 25 个 item</span><span>同一结构</span><span>允许 null</span></div>
+          <div class="cols">
+            <div>
+              <div class="col-h simple">Item 1 · 起接语 · 简单层</div>
+              <div class="code-block"><span class="c"># 四层结构完整，但层2-4为最小形态</span>
+<span class="k">human_version</span>:
+  item_number: 1
+  original_text: <span class="s">"有起接语且完整/外呼明确身份"</span>
+  pass_standard: <span class="s">"标准起接 '您好。'"</span>
+  fail_standard: <span class="null">""</span>
+  na_condition: <span class="s">"系统原因导致未能听到起接语"</span>
+
+<span class="k">machine_criterion</span>:
+  criterion_id: <span class="s">"mc-item-01"</span>
+  scoring_scale: <span class="s">"1-10"</span>
+  gap_type: <span class="null">null</span>           <span class="c">← 无 gap：纯合规层</span>
+  auto_final_allowed: <span class="k">true</span>    <span class="c">← confidence 1.0，可自动终审</span>
+  applicability_gate:
+    spec: <span class="s">"transcript_contains_opening"</span>
+
+<span class="k">signals</span>:
+  fail:
+    - id: <span class="s">"F1"</span>
+      description: <span class="s">"起接语缺失"</span>
+      severity: <span class="s">"major"</span>
+  excellence: <span class="null">[]</span>     <span class="c">← 无卓越信号：合规即满分</span>
+
+<span class="k">facets</span>:
+  programmatic:
+    - facet_name: <span class="s">"greeting_match"</span>
+      enables_signals: [<span class="s">"F1"</span>]
+      indicator: <span class="s">"匹配 '您好'"</span>
+      calculation: <span class="s">"regex match"</span>
+  model_based: <span class="null">[]</span>      <span class="c">← 空：不需要模型</span></div>
+            </div>
+            <div>
+              <div class="col-h complex">Item 18 · 思路清晰 · 复杂层</div>
+              <div class="code-block"><span class="c"># 与 Item 1 完全相同的 schema 结构，
+# 区别在于每一层都是充实的</span>
+<span class="k">human_version</span>:
+  item_number: 18
+  original_text: <span class="s">"思路清晰，能根据客户理解程度..."</span>
+  pass_standard: <span class="s">"针对不同的用户理解能力..."</span>
+  fail_standard: <span class="s">"思路混乱、发散或完全无方向..."</span>
+  na_condition: <span class="s">"无"</span>
+
+<span class="k">machine_criterion</span>:
+  criterion_id: <span class="s">"mc-item-18"</span>
+  scoring_scale: <span class="s">"1-10"</span>
+  gap_type: <span class="s">"perceiver"</span>     <span class="c">← 感知者差距</span>
+  auto_final_allowed: <span class="k">false</span>  <span class="c">← AUTH-9：禁止自动终审</span>
+  applicability_gate: <span class="null">null</span>
+
+<span class="k">signals</span>:
+  fail:
+    - id: <span class="s">"F1"</span>
+      description: <span class="s">"解释缺乏逻辑链"</span>
+      severity: <span class="s">"major"</span>
+    - id: <span class="s">"F2"</span> <span class="c"># ... 共4个 fail signals</span>
+      description: <span class="s">"不引用系统资源"</span>
+      severity: <span class="s">"minor"</span>
+    <span class="c"># ... 更多 fail signals</span>
+  excellence:
+    - id: <span class="s">"E1"</span>
+      description: <span class="s">"客户困惑后调整策略"</span>
+    <span class="c"># ... 共3个 excellence signals</span>
+
+<span class="k">facets</span>:
+  programmatic:       <span class="c"># 3 个</span>
+    - facet_name: <span class="s">"resource_keyword_hits"</span>
+      enables_signals: [<span class="s">"F2"</span>, <span class="s">"E2"</span>]
+      indicator: <span class="s">"..."</span>
+      calculation: <span class="s">"..."</span>
+    <span class="c"># ... 更多 programmatic facets</span>
+  model_based:        <span class="c"># 3 个，各含完整 prompt</span>
+    - facet_name: <span class="s">"explanation_logic_chain"</span>
+      enables_signals: [<span class="s">"F1"</span>, <span class="s">"F3"</span>]
+      prompt: |
+        <span class="s">"你是一个质检分析助手。</span>
+        <span class="s"> 分析坐席的解释是否遵循了</span>
+        <span class="s"> 结构化的逻辑链..."</span>
+    <span class="c"># ... 更多 model_based facets</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="chips" data-dir="1">
+      <button class="chip steal on" type="button" data-label="统一 schema 的消费端简单性（D1）"><span class="k">steal</span> &middot; 9002 评估器只需解析一种格式</button>
+      <button class="chip steal" type="button" data-label="允许 null/空数组来表示'不适用'（D1）"><span class="k">steal</span> &middot; null 表示不适用，语义清晰</button>
+      <button class="chip skip" type="button" data-label="简单 Item 被迫填充大量 null 字段（D1）"><span class="k">skip</span> &middot; Item 1 有 50% 的字段是 null</button>
+      <button class="chip skip" type="button" data-label="所有 Item 都被推到 1-10 评分（D1）"><span class="k">skip</span> &middot; 简单合规 Item 不需要 scoring_scale: 1-10</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════ DIRECTION 2 ═══════════════ -->
+  <div class="direction">
+    <div class="dir-head"><span class="num">方向 2 / 2</span><h2>分级结构：按复杂度分层，不同层不同 schema</h2></div>
+    <p class="dir-says">&ldquo;不是所有 Item 都需要四层。简单的做简单的事，复杂的做复杂的事。编译器按层决定输出什么，消费者按层决定如何评估。&rdquo;</p>
+    <div class="frame">
+      <div class="frame-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">INTENTS/_rubric/rules_criteria/&lt;dimension&gt;/item-XX.yaml</span></div>
+      <div class="frame-body">
+        <div class="d2">
+          <table class="tier-table">
+            <thead><tr><th>层级</th><th>适用于</th><th>Item 数</th><th>产物结构</th><th>评分模式</th><th>Auto-final</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="tier-name l1">T1 · 合规层</td>
+                <td>词法/阈值匹配即可判断的 Item</td>
+                <td>7</td>
+                <td>human_version + deterministic_checks（无 signals/facets）</td>
+                <td>二元 PASS/FAIL</td>
+                <td>✅ 允许</td>
+              </tr>
+              <tr>
+                <td class="tier-name l2">T2 · 判断层</td>
+                <td>需要语义理解但 gap 可控的 Item</td>
+                <td>8</td>
+                <td>human_version + machine_criterion + signals + facets（1-2 个 model_based）</td>
+                <td>1-10</td>
+                <td>⚠️ Manifest 覆盖后</td>
+              </tr>
+              <tr>
+                <td class="tier-name l3">T3 · 感知者层</td>
+                <td>存在 perceiver/coverage gap 的 Item</td>
+                <td>10</td>
+                <td>全四层（human_version + machine_criterion + signals + facets），额外 gap 声明和 escape 策略</td>
+                <td>1-10</td>
+                <td>❌ 禁止</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="pair-label">T1 产物示例：Item 1 · 起接语</div>
+          <div class="code-block"><span class="c"># T1 合规层 &mdash; 无 machine_criterion，无 signals，无 facets
+# 只有 human_version + deterministic_checks</span>
+<span class="k">tier</span>: <span class="s">"compliance"</span>
+<span class="k">human_version</span>:
+  item_number: 1
+  pass_standard: <span class="s">"您好"</span>
+  fail_standard: <span class="null">""</span>
+  na_condition: <span class="s">"系统原因导致未能听到起接语"</span>
+
+<span class="k">deterministic_checks</span>:
+  - check_id: <span class="s">"greeting"</span>
+    form: <span class="s">"lexical"</span>
+    spec: <span class="s">"agent_first_turn CONTAINS '您好'"</span>
+    confidence: <span class="f">1.0</span>
+    applicability_gate:
+      spec: <span class="s">"transcript_contains_opening"</span>
+    verdict: <span class="s">"PASS if match else FAIL"</span></div>
+
+          <div class="pair-label">T3 产物示例：Item 18 · 思路清晰（同方向 1 的右侧，此处为引用）</div>
+          <div class="code-block"><span class="c"># T3 感知者层 &mdash; 全四层结构
+# 与方向 1 的 Item 18 产物相同</span>
+<span class="k">tier</span>: <span class="s">"perceiver"</span>
+<span class="k">human_version</span>: { ... }
+<span class="k">machine_criterion</span>:
+  scoring_scale: <span class="s">"1-10"</span>
+  gap_type: <span class="s">"perceiver"</span>
+  auto_final_allowed: <span class="k">false</span>
+<span class="k">signals</span>:
+  fail: [{ id: <span class="s">"F1"</span>, description: <span class="s">"解释缺乏逻辑链"</span>, severity: <span class="s">"major"</span> }, ...]
+  excellence: [{ id: <span class="s">"E1"</span>, ... }, ...]
+<span class="k">facets</span>:
+  programmatic: [<span class="c"># 3 个</span>]
+  model_based: [<span class="c"># 3 个，各含完整 prompt</span>]</div>
+        </div>
+      </div>
+    </div>
+    <div class="chips" data-dir="2">
+      <button class="chip steal on" type="button" data-label="三级分层对应不同的评估模式（D2）"><span class="k">steal</span> &middot; 三级分层：合规/判断/感知者，各对应不同评估模式</button>
+      <button class="chip steal" type="button" data-label="T1 合规层不做 1-10 评分（D2）"><span class="k">steal</span> &middot; T1 合规层只做二元判定，不做 1-10</button>
+      <button class="chip steal on" type="button" data-label="tier 字段让消费者一眼知道如何处理（D2）"><span class="k">steal</span> &middot; tier 字段让 9002 一眼知道评估策略</button>
+      <button class="chip skip" type="button" data-label="三个 schema 增加了编译器复杂度（D2）"><span class="k">skip</span> &middot; 编译器需要三套输出逻辑，增加复杂度</button>
+      <button class="chip skip" type="button" data-label="tier 分类边界可能模糊（D2）"><span class="k">skip</span> &middot; 部分 Item 可能跨 tier，分类边界模糊</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════ HOW TO REACT ═══════════════ -->
+  <div class="react-card">
+    <div class="label">如何反馈</div>
+    <h3>选择一个方向，标记你要 steal 和 skip 的细节</h3>
+    <p>
+      你不需要写设计文档&mdash;&mdash;这正是这个页面的目的。选一个你认为<em>态度正确</em>的方向，
+      再从另一个方向中挑出值得保留的细节。点击方向按钮和上面的 steal/skip 标签；回复会自动生成。
+    </p>
+    <div class="pick-row" id="pick-row">
+      <button class="pick on" type="button" data-dir="1" data-name="方向 1（统一结构）">D1 · 统一结构</button>
+      <button class="pick" type="button" data-dir="2" data-name="方向 2（分级结构）">D2 · 分级结构</button>
+    </div>
+    <div class="reply-wrap">
+      <pre class="reply" id="reply">选择方向 1（统一结构）。
+Steal: 统一 schema 的消费端简单性（D1）; 允许 null/空数组来表示'不适用'（D1）; tier 字段让消费者一眼知道如何处理（D2）; T1 合规层只做二元判定，不做 1-10（D2）。
+然后更新 9003 编译器的 AuthoredNode schema，并在 item-18-example.yaml 旁补充 item-01-example.yaml 作为极简案例。</pre>
+      <button class="copy-reply" id="copy-reply" type="button">复制回复</button>
+    </div>
+    <p class="react-foot">
+      将以上内容粘贴回对话中。Claude 会将 steal 项融入你选择的方向，产出融合后的设计&mdash;&mdash;
+      这比试图用文字描述你不知道的设计偏好要快得多。
+    </p>
+  </div>
+
+  <footer>
+    9003 编译器设计过程的一部分 &middot; 基于 <a href="soft-criteria-authoring-spec-v4-patch-1.md">Patch 1</a>（D1&ndash;D10）&middot;
+    参考示例：<a href="item-18-example.yaml">item-18-example.yaml</a>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  function copyText(text, btn, idleLabel) {
+    function done() {
+      btn.classList.add('copied');
+      var prev = btn.textContent;
+      btn.textContent = '已复制';
+      setTimeout(function () { btn.classList.remove('copied'); btn.textContent = idleLabel || prev; }, 1600);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallback(); });
+    } else { fallback(); }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+  }
+
+  var promptBtn = document.getElementById('copy-prompt');
+  var promptText = document.getElementById('prompt-text').textContent.trim();
+  promptBtn.addEventListener('click', function () { copyText(promptText, promptBtn, '复制问题'); });
+
+  var picks = Array.prototype.slice.call(document.querySelectorAll('.pick'));
+  var chips = Array.prototype.slice.call(document.querySelectorAll('.chip'));
+  var replyEl = document.getElementById('reply');
+
+  function currentDirection() {
+    var on = picks.filter(function (p) { return p.classList.contains('on'); })[0];
+    return on ? on.getAttribute('data-name') : null;
+  }
+
+  function buildReply() {
+    var dir = currentDirection();
+    var steals = [], skips = [];
+    chips.forEach(function (c) {
+      if (!c.classList.contains('on')) return;
+      var label = c.getAttribute('data-label');
+      if (c.classList.contains('steal')) steals.push(label);
+      else skips.push(label);
+    });
+    var lines = [];
+    lines.push('选择' + (dir || '[选择一个方向]') + '。');
+    if (steals.length) lines.push('Steal: ' + steals.join('; ') + '。');
+    if (skips.length) lines.push('Skip: ' + skips.join('; ') + '。');
+    if (!steals.length && !skips.length) {
+      lines.push('（点击每个方向下方的 steal/skip 标签来填充此回复。）');
+    }
+    lines.push('然后更新 9003 编译器的 AuthoredNode schema，并补充简单 Item 的操作化示例。');
+    replyEl.textContent = lines.join('\n');
+  }
+
+  picks.forEach(function (p) {
+    p.addEventListener('click', function () {
+      picks.forEach(function (q) { q.classList.remove('on'); });
+      p.classList.add('on'); buildReply();
+    });
+  });
+  chips.forEach(function (c) {
+    c.addEventListener('click', function () { c.classList.toggle('on'); buildReply(); });
+  });
+
+  var preselect = [
+    '统一 schema 的消费端简单性（D1）',
+    'T1 合规层只做二元判定，不做 1-10（D2）'
+  ];
+  chips.forEach(function (c) {
+    if (preselect.indexOf(c.getAttribute('data-label')) !== -1) c.classList.add('on');
+  });
+  buildReply();
+
+  var replyBtn = document.getElementById('copy-reply');
+  replyBtn.addEventListener('click', function () { copyText(replyEl.textContent, replyBtn, '复制回复'); });
+})();
+</script>
+
+</body>
+</html>

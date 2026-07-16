@@ -1,0 +1,170 @@
+---
+# _rubric/rules/c21-active-flexible-marketing.yaml
+# Item 21 — active flexible marketing (observable marketing quality)
+#
+# Compiled by: 9003 soft-criteria compiler
+# Inputs: rubric_com_hotline.md :: Item 21, 营销触发-reconciled.yaml (marketing_scripts only)
+# Dimension: 业务引导 (Commercial Guidance), weight: 1x
+# Gap type: calibration_surface_form
+# auto_final_allowed: false (AUTH-9)
+
+rule_id: "C21-001"
+rule_name: "Active flexible marketing — quality of commercial guidance"
+version: "2.0.0"
+last_updated: "2026-07-15"
+source_item: "21"
+source_document: "rubric_com_hotline.md"
+companion_document: "营销触发-reconciled.yaml"
+gap_type: "calibration_surface_form"
+auto_final_allowed: false  # AUTH-9: manifest must cover failure surface first
+
+dimension: "业务引导"
+dimension_weight: 1.0
+deduction_weight: 1.0
+
+severity_map:
+  ref: "calibration://manifest/epoch-000/severity/c21"
+  manifest_epoch: null
+
+signals:
+  # --- C4: SIG-A split into lexical (A1) + model_based (A2) ---
+  - id: "C21-SIG-A1"
+    name: "trigger_adjacent_marketing"
+    form: "ordered_relation"
+    checkable: true
+    required_evidence: ["transcript_turn_pair", "rubric_lookup"]
+    spec: >
+      agent_marketing_turn PRECEDES_BY customer_trigger_keyword WITHIN 3_turns
+      WHERE agent_marketing_turn = utterance matching any marketing_script
+        pattern from {S2,S3,S4,S5,S6,S9,S11,S12,S15,S16,S17,S18}
+      AND customer_trigger_keyword = utterance matching a trigger keyword
+        from 营销触发-reconciled.yaml::trigger_keywords
+
+  - id: "C21-SIG-A2"
+    name: "context_adaptation_quality"
+    form: "model_based"
+    checkable: false
+    required_evidence: ["transcript_turn_pair", "model_call"]
+    spec: "model_judgment(agent_marketing_utterance, customer_trigger_turns) -> context_adaptation_score"
+
+  - id: "C21-SIG-B"
+    name: "specific_recommendation"
+    form: "lexical"
+    checkable: true
+    required_evidence: ["transcript_turn"]
+    spec: >
+      utterance_contains({建议, 推荐, 帮您办理, 为您办理, 给您申请, 给您开通})
+      AND NOT utterance_contains({您可以选择, 你自己选, 您自己决定, 您考虑,
+      您看哪个方便, 都可以的, 都行的})
+
+  # --- W3: SIG-C honest about limitations, remove 方面, add 好处/优势 ---
+  - id: "C21-SIG-C"
+    name: "benefit_articulation"
+    form: "lexical"
+    checkable: true
+    required_evidence: ["transcript_turn"]
+    spec: >
+      recommendation_turn WITHIN 5_turns OF utterance_contains({因为,
+      这样就能, 可以帮您, 就不用, 省得, 方便, 省时, 省钱, 省事,
+      不用麻烦, 节省, 提高效率, 避免, 好处, 优势})
+    # NOTE: Gate checks lexical benefit-indicator presence only. Cannot
+    # distinguish context-specific from generic benefits. That distinction
+    # is deferred to A2 (model_based).
+
+  # --- W4: SIG-D uses exhaustive dismissive_set, no adjectives ---
+  - id: "C21-SIG-D"
+    name: "objection_non_dismissal"
+    form: "lexical"
+    checkable: true
+    required_evidence: ["transcript_turn_pair"]
+    spec: >
+      IF customer_turn_contains_objection THEN
+        agent_response NOT IN dismissive_set
+        AND length(agent_response) >= 5
+      WHERE dismissive_set = {好的那算了, 那算了, 好的, 嗯, 哦, 行吧, 随便你}
+
+  # --- C5: SIG-E uses only 12 marketing scripts, excludes non-marketing ---
+  - id: "C21-SIG-E"
+    name: "script_deviation"
+    form: "threshold"
+    checkable: true
+    required_evidence: ["transcript_turn", "rubric_lookup"]
+    spec: >
+      jaccard_similarity(agent_marketing_utterance,
+        closest_marketing_script) < 0.70
+      WHERE reference_marketing_scripts = marketing_scripts from
+        营销触发-reconciled.yaml: {S2,S3,S4,S5,S6,S9,S11,S12,S15,S16,S17,S18}
+
+# --- m3: Use S01/S04 IDs, not P31/P32 ---
+applicability_gate:
+  depends_on:
+    - item: "20"
+      condition: "Item 20 is NOT NA AND Item 20 signal S01 = 1 AND Item 20 signal S04 = 1"
+  spec: >
+    Item 21 evaluates quality of marketing and only activates when Item 20
+    confirms an opportunity was present (S01) and the agent responded (S04).
+    If Item 20 is NA or hard-fails, Item 21 returns NA.
+
+# --- m4: Item 20 hard-fail -> Item 21 auto-NA ---
+# Documented: When Item 20 hard-fails (complete absence of marketing behavior),
+# Item 21 unconditionally returns NA via the applicability_gate above.
+
+corroborators:
+  - source: "acoustic_measurement"
+    independence_class: "independent"
+    weight: 1.0
+
+  - source: "phrase_lexicon"
+    independence_class: "independent"
+    weight: 1.0
+
+  - source: "model_judgment"
+    independence_class: "correlated"
+    weight: 0.4  # W_C PROVISIONAL
+
+# --- W7: Scoring synthesis ---
+# Two-layer architecture:
+# Layer 1 (S3 gate): A1, B, C, D, E produce binary pass/fail/abstain evidence.
+#   These verify observable marketing behavior occurred but do NOT alone
+#   determine the criterion score.
+# Layer 2 (S2 quarantined): A2 + model_judgment corroborator provide holistic
+#   context-adaptation assessment. Model proposes in S2; S4a score() is pure
+#   and never receives model output as direct input. Per I1: model_based
+#   verdict is quarantined — pure stages re-derive from grounded evidence.
+# Corroboration aggregator (pure S4b): weights by independence class.
+#   Independent signals weight 1.0; correlated weight W_C=0.4;
+#   redundant contribute zero (D5: soft+soft=0).
+# Final verdict (I3): raw = score(facts, rubric), adjusted = adjust(raw, history).
+
+residue_declared: >
+  Seven residue classes: (a) context-specificity of benefits — SIG-C checks
+  lexical presence only, not whether benefits are tailored; deferred to A2;
+  (b) tonal quality; (c) timing judgment; (d) creativity and adaptation
+  quality beyond script deviation; (e) customer receptivity; (f) product
+  aptness; (g) follow-through commitment. All remain in the
+  calibration_surface_form gap. When the calibration manifest covers them,
+  AUTH-9 may permit auto-final.
+
+agreement:
+  tau: 0.8
+  kappa_sample_plan:
+    sample_size: 30
+    sampling_strategy: "stratified — 15 perceived-quality (1分) + 15 perceived-perfunctory (0分)"
+    recompute_interval: "weekly"
+    evaluation_method: "Cohen's kappa between Argus verdict and 2 independent human reviewers"
+  escape_sample_plan:
+    sample_size: 20
+    sampling_strategy: "random sample from auto-final calls (once AUTH-9 is cleared)"
+    recompute_interval: "weekly"
+  escape_ceiling: 0.05
+  current_kappa: null
+
+data_dependency:
+  connected: false
+  defer_disposition: "Referent data from 营销触发-reconciled.yaml is a compiled rubric artifact, not external data. Deferral is on the calibration_surface_form axis (AUTH-9), not on data availability."
+
+iteration_policy: "re-ground via write-time epoch commit only; no rule edits from Argus output"
+
+# B-C: hard_fail_rule absent. Item 21 is a quality spectrum, not binary.
+# Dimension hard-fail owned by Item 20. When Item 20 hard-fails,
+# Item 21 auto-NA per applicability_gate.

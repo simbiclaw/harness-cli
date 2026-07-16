@@ -1,0 +1,752 @@
+# Item 20 — 操作化产物 (v2 — recompiled per D1-D12, adversarial review fixes C1-C3, W1-W2, W5-W6, m1)
+#
+# v2 changes from v1:
+#   C1/C2: Source unified to 营销触发-reconciled.yaml — 10 unified triggers T001-T010.
+#          Eliminates conflicting T001-T005 vs VAS-001-VAS-005 definitions.
+#   C3: E-biz applicability gate allows reward (pass) while preventing punishment (NA).
+#       T008 (年报/政务网/电子营业执照) keywords now sourced from reconciled YAML.
+#       Gate: e-biz + agent DID recommend -> score pass; e-biz + agent did NOT -> NA.
+#   W1/W2: S04 script detection is lexical with an explicit acknowledgment pre-filter.
+#          Agent turns that are ONLY acknowledgment (好的已经办好了, 可以的, etc.)
+#          are excluded before product-name matching.
+#   W5: S06 VIP service detection separated: lexical resistance detection
+#       (gate-checkable: 不需要, 别推荐了, 不用了, 算了) from model-based proactive
+#       inquiry detection (deferred, with failure_pattern documenting 5+ ambiguous cases).
+#   W6: Missing keywords now resolved via T008, T009, T010 from reconciled source.
+#   m1: failure_pattern added to S06 model_based facet documenting false-positive
+#       and false-negative cases.
+#
+# 来源: rubric_com_hotline.md Items 20 · 营销触发-reconciled.yaml
+# 编译日期: 2026-07-16 · 编译器版本: 9003-v2
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 层 1 — human_version: 原始人工主观判断（逐字保留，不改编）
+# ══════════════════════════════════════════════════════════════════════════════
+human_version:
+  item_number: 20
+  category: "技能技巧"
+  original_text: |
+    能准确快速抓住营销机会并加以引导
+  pass_standard: |
+    能准确快速抓取客户的潜在需求或可以给用户推荐我司产品、业务的机会，
+    并有针对性的给用户推荐(如子证书，解锁推荐移动证书)；
+    对于部门规定的营销节点正确引导（一般只考虑到一级营销即可）；
+    企业介质KEY无法使用，或是旧版KEY如握奇飞天，来咨询办理介质证书，灵活积极推荐移动证书；
+    客户表达了只有一个证书可以招投标使用的情况，客服向其引导推介了子证书；
+    客户表达了年报要用证书，或者政务网要用证书等多认使用的情况，
+    客服向其引导推介了子证书或授权领证；
+    客户办理移动证书业务，客服向其引导了授权领证；
+    客服在获悉客户以电子营业执照登录年报、政务网等，
+    主动向其引导推介数字证书。
+  fail_standard: |
+    对用户表达中明显的潜在营销机会置之不理；
+    未主动推荐客户使用本公司的相关产品，如已有key未用时也没建议使用；
+    无key普通方式操作有问题时未建议新领；
+    企业来电咨询子证书和个体户证书年费内证书到期问题的，
+    客服未正向引导，例如直接告知不需收费之类的；
+    客户表达了只有一个证书可以招投标使用的情况，客服没有引导推介子证书；
+    客户表达了年报要用证书，或者政务网要用证书等多认使用的情况，
+    客服未向其引导推介了子证书；
+    在获悉了客户以普通方式登录年报、政务网等，
+    客服没有引导企业用证书操作年报；
+    客户办理证书解锁业务，客服未向其引导推介移动证书；
+  na_condition: |
+    电话中没有合适的营销机会，或对方已表现出很反感，或为用户主动询问；
+    客服在获悉客户以电子营业执照登录年报、政务网等，
+    未主动向其引导业务，客服未向其引导了授权领证。
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 层 2 — machine_criterion: 机器可执行的判定标准
+# ══════════════════════════════════════════════════════════════════════════════
+machine_criterion:
+  criterion_id: "mc-item-20"
+  scoring_scale: "0/1"
+  gap_type: "mixed"                               # values for lexical trigger detection at confidence 1.0; perceiver for agent action
+  gap_rationale: |
+    可观测（values 部分）：客户话轮中是否存在 trigger_keywords（词法匹配，confidence 1.0），
+    坐席后续话轮中是否出现对应的 service_to_promote 关键词（词法匹配，confidence 1.0）。
+    不可直接观测（perceiver 部分）：坐席的推荐是主动挖掘需求还是被动应答，推荐是否"有针对性"，
+    词法层面无法完全区分机械套用话术与真正的营销意识——存在感知者差距。
+    gap_type 取 "mixed" 因两部分均可 gate 验证但置信度不同：
+      - 触发检测和推荐动作检测：values（confidence 1.0，lexical）
+      - 推荐质量和针对性：perceiver（需 agreement gate 校准）
+  auto_final_allowed: true                         # gated on kappa (only when criterion kappa >= tau)
+  auto_final_gate: "gated_on_kappa"
+  escape_tier: "standard"
+  applicability_gate:
+    condition: |
+      电话中没有合适的营销机会，或对方已表现出很反感，或为用户主动询问；
+      客服在获悉客户以电子营业执照登录年报、政务网等，
+      未主动向其引导业务，客服未向其引导了授权领证。
+    spec: |
+      NOT any_trigger_detected
+      OR customer_sentiment_overtly_negative
+      OR customer_explicitly_refused
+      OR customer_proactively_asked
+      OR (electronic_business_license_scenario AND NOT agent_proactively_recommended)
+    # C3 fix: The applicability gate MUST allow reward while preventing punishment.
+    #   IF e-biz scenario AND agent DID recommend:
+    #     Item 20 can score pass (item is applicable, scored normally).
+    #   IF e-biz scenario AND agent did NOT recommend:
+    #     Item 20 = NA (exempt -- not a failure, not a pass).
+    #   T008 detection is lexical (年报/政务网/电子营业执照/普通方式.*登录/营业执照.*登录),
+    #   sourced from 营销触发-reconciled.yaml T008.
+    #   agent_proactively_recommended is determined by agent_recommendation_detection
+    #   facet (lexical, with acknowledgment pre-filter per W1/W2).
+
+  dimension:
+    name: "业务引导"
+    weight: 1
+    deduction_weight: 1.0                          # weight: 1x
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 层 3 — signals: gate-checkable FAIL / EXCELLENCE 信号
+#
+# B-E: Signal Decomposition (D12)
+# 每个 signal 从其来源的 fail_standard / pass_standard 子句中分解而来。
+# 每个 signal 必须通过 gate-checkable 测试：
+#   Q1: proposer 是否能在 transcript 中找到一个 span 作为此 signal 的证据？
+#   Q2: gate 是否能确定性验证该 span 满足 signal 的 specification？
+# 未通过测试的 signal -> 拒绝（AUTH-1 扩展：禁止形容词 signal）。
+# ══════════════════════════════════════════════════════════════════════════════
+signals:
+
+  fail:
+    - id: "F1"
+      description: |
+        触发机会被忽略——客户话轮命中 T001-T010 中任一 trigger_keywords，
+        但坐席在触发后的实质性话轮中（经 acknowledgment 预过滤后）
+        未出现任何对应的 service_to_promote 关键词。
+      severity: "major"
+      decomposed_from: |
+        fail_standard: "对用户表达中明显的潜在营销机会置之不理"
+        操作化：将"置之不理"转化为可检查的二阶段验证：
+        Stage 1 (触发检测): customer_turns 命中任一 trigger_keyword 集合（confidence 1.0, lexical）。
+        Stage 2 (推荐检测): 触发后的 agent_turns 中——经过 acknowledgment 预过滤后——
+        未出现该 trigger 对应的 service_to_promote 中任意关键词（confidence 1.0, lexical）。
+        两个 stage 均可 gate 确定性验证，无感知者差距。
+        W1/W2 应用：acknowledgment 预过滤排除仅含确认性内容的话轮。
+      gate_checkable_test:
+        proposer_can_find_span: |
+          定位客户话轮中命中 trigger_keywords 的 span，
+          标记其时间戳和对应的 trigger_id 集合。
+          来源: 营销触发-reconciled.yaml T001-T010 的 trigger_keywords。
+        gate_can_verify: |
+          检查坐席在触发时间戳之后的所有话轮中，
+          经过 acknowledgment 预过滤后（排除仅含
+          好的/好的已经办好了/可以的/嗯/对/是 等确认性话轮），
+          是否包含与触发 trigger_id 对应 service_to_promote
+          （子证书/移动证书/印章定制/标书代写/VIP服务/加急/数字证书/续期/授权领证）
+          中的任意关键词。
+          匹配数为 0 -> F1 激活。这是 confidence 1.0 的 compliance 级检查。
+
+    - id: "F2"
+      description: |
+        费用/到期相关营销机会错误引导——客户表达证书到期或年费相关咨询（T009），
+        坐席使用消极话术（如直接告知"不需收费"），而非正向引导推荐续期。
+      severity: "major"
+      decomposed_from: |
+        fail_standard: "企业来电咨询子证书和个体户证书年费内证书到期问题的，
+        客服未正向引导，例如直接告知不需收费之类的"
+        操作化：将"未正向引导"转化为负向引导检测。
+        不仅检查是否缺少推荐（F1 覆盖），还检查是否出现了特定的消极话术模式。
+        这是独立于 F1 的信号——即使坐席在其他场景做了推荐，此处消极引导仍计为缺陷。
+      gate_checkable_test:
+        proposer_can_find_span: |
+          定位客户话轮中命中 T009 trigger_keywords
+          （到期/年费/续期/续费/过期/快.*到期）的 span。
+        gate_can_verify: |
+          在触发 T009 后的坐席话轮中，检查是否匹配
+          negative_guidance_patterns（不需收费/不用交费/不需要费用/不用再办等）。
+          如匹配 -> F2 激活。这是 confidence 1.0 的 compliance 级检查。
+
+  excellence:
+    - id: "E1"
+      description: |
+        针对性推荐——坐席的推荐与触发的营销场景精准匹配。
+        每个 trigger_id 映射到唯一的 service_to_promote 集合；
+        坐席推荐的服务属于该映射集中的至少一项。
+      decomposed_from: |
+        pass_standard: "并有针对性的给用户推荐"
+        操作化：将"有针对性"转化为可检查的 trigger->service 匹配映射。
+        来源: 营销触发-reconciled.yaml 中每个 trigger 的 service_to_promote 字段。
+        T001 -> 子证书
+        T002 -> 移动证书
+        T003 -> 印章定制服务
+        T004 -> 标书代写服务
+        T005 -> VIP服务
+        T006 -> VIP精细化服务
+        T007 -> 加急处理服务
+        T008 -> 数字证书
+        T009 -> 续期/移动证书
+        T010 -> 授权领证
+      gate_checkable_test:
+        proposer_can_find_span: |
+          定位客户话轮的触发 keywords（确定 trigger_id 集合），
+          以及坐席话轮中含有 service_to_promote 关键词的 span。
+        gate_can_verify: |
+          检查坐席推荐的服务关键词是否属于该触发 trigger_id 映射的
+          service_to_promote 集合。全部触发 id 至少有一个被正确匹配 -> E1 候选。
+          词法验证，无感知者差距。
+
+    - id: "E2"
+      description: |
+        利益点说明——坐席在推荐服务后，进一步说明了该服务的好处或必要性
+        （如"操作更加方便""介质容易老化""提前定制"等）。
+      decomposed_from: |
+        pass_standard: "有针对性的给用户推荐" 的延伸要求。
+        推荐不仅仅是说出产品名称，还要让客户了解为什么需要。
+        操作化：将隐含的"说明利益点"转化为可检查的 benefit_patterns 匹配。
+      gate_checkable_test:
+        proposer_can_find_span: |
+          定位坐席推荐话轮后的下一个话轮或同一话轮后半段，
+          检查是否包含利益点说明。
+        gate_can_verify: |
+          检查坐席推荐后的话轮是否匹配 benefit_patterns
+          （更加方便/容易老化/提前/不用担心/不用装驱动/手机扫码等）。
+          有匹配 -> E2 候选。
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 层 4 — facets: signal-shaped 证据输入
+#
+# D5/D9: facets 是 signal-shaped — 每个 facet 声明 enables_signals。
+# Programmatic: indicator + calculation + output_schema
+# Model_based: facet_name + prompt + output_schema
+# ══════════════════════════════════════════════════════════════════════════════
+facets:
+  programmatic:
+    - facet_name: "trigger_detection"
+      enables_signals: [F1, F2, E1]
+      indicator: "客户话轮是否命中 T001-T010 中任一 trigger_keywords"
+      calculation: |
+        # 来源: 营销触发-reconciled.yaml (10 unified triggers T001-T010)
+        # C1/C2 fix: 使用统一的 10 个 trigger 定义，消除 T001-T005 与 VAS-001-VAS-005 的冲突
+        # W6 fix: T008, T009, T010 均已补全
+
+        triggers = {
+            "T001": {
+                "opportunity": "证书发行增值服务 - 子证书",
+                "keywords": [r"多人使用", r"多台电脑用", r"一个人用不了",
+                             r"投标和年报冲突", r"只有一个证书",
+                             r"年报.*证书", r"政务网.*证书"]
+            },
+            "T002": {
+                "opportunity": "证书发行增值服务 - 移动证书",
+                "keywords": [r"介质证书", r"旧版KEY", r"老KEY", r"证书老化",
+                             r"驱动装不上", r"电脑才能用", r"证书解锁",
+                             r"密码忘记", r"忘记密码", r"U盘", r"握奇",
+                             r"飞天", r"解锁", r"KEY.*不能用", r"KEY.*无法"]
+            },
+            "T003": {
+                "opportunity": "印章定制",
+                "keywords": [r"电子章", r"法人章", r"签字章", r"手写签名",
+                             r"公章不一致", r"不带数字的公章", r"简易公章",
+                             r"实物章", r"电子签名", r"印章", r"盖章"]
+            },
+            "T004": {
+                "opportunity": "招投标全流程服务 - 标书代写",
+                "keywords": [r"做标书", r"电子签名环节", r"标书要投",
+                             r"标书制作", r"不会做标书", r"制标书需求",
+                             r"标书", r"投标", r"代写", r"电子保函",
+                             r"政采云客户端上制作"]
+            },
+            "T005": {
+                "opportunity": "VIP服务 - 平台入驻/商品上架",
+                "keywords": [r"入驻", r"商品上架", r"开标解密",
+                             r"供应商入驻", r"平台入驻", r"协议签署",
+                             r"协助开标", r"VIP服务"]
+            },
+            "T006": {
+                "opportunity": "VIP精细化服务指导",
+                "keywords": [r"还是不明白", r"太复杂了", r"你能不能帮我弄",
+                             r"听不懂", r"不会操作", r"帮我操作",
+                             r"不会弄", r"复杂"]
+            },
+            "T007": {
+                "opportunity": "非工作时间加急处理",
+                "keywords": [r"急", r"加急", r"能不能快点", r"今天就要",
+                             r"马上要", r"很着急", r"非工作时间"]
+            },
+            "T008": {
+                "opportunity": "数字证书使用场景引导 (年报/政务网)",
+                "keywords": [r"年报", r"政务网", r"普通方式.*登录",
+                             r"营业执照.*登录", r"电子营业执照",
+                             r"没有.*证书", r"不用.*证书"]
+            },
+            "T009": {
+                "opportunity": "证书到期/年费提醒",
+                "keywords": [r"证书到期", r"到期", r"年费", r"续期",
+                             r"续费", r"过期", r"快.*到期"]
+            },
+            "T010": {
+                "opportunity": "移动证书业务办理",
+                "keywords": [r"办理.*移动证书", r"办.*移动证书",
+                             r"申请.*移动证书", r"移动证书.*怎么办",
+                             r"移动证书.*怎么申请", r"授权领证"]
+            }
+        }
+
+        customer_turns = [t for t in transcript if t.speaker == "customer"]
+
+        detections = {}
+        for tid, tdata in triggers.items():
+            matches = []
+            for kw in tdata["keywords"]:
+                for turn in customer_turns:
+                    m = re.search(kw, turn.text)
+                    if m:
+                        matches.append({
+                            "keyword": kw,
+                            "matched_text": m.group(0),
+                            "turn_index": turn.turn_index,
+                            "timestamp_ms": turn.start_ms
+                        })
+            if matches:
+                detections[tid] = {
+                    "opportunity": tdata["opportunity"],
+                    "triggered": True,
+                    "matches": matches,
+                    "first_trigger_ms": min(m["timestamp_ms"] for m in matches)
+                }
+
+        any_trigger = len(detections) > 0
+        earliest_trigger_ms = min(
+            (d["first_trigger_ms"] for d in detections.values()),
+            default=None
+        )
+        triggered_ids = list(detections.keys())
+
+        return {
+            "any_trigger_detected": any_trigger,
+            "triggered_ids": triggered_ids,
+            "detections": detections,
+            "earliest_trigger_ms": earliest_trigger_ms
+        }
+      output_schema:
+        any_trigger_detected: bool
+        triggered_ids: "list[str]"
+        detections: "dict[str, {opportunity: str, triggered: bool, matches: list, first_trigger_ms: float}]"
+        earliest_trigger_ms: "float | None"
+
+    - facet_name: "agent_recommendation_detection"
+      enables_signals: [F1, E1, E2]
+      indicator: "坐席话轮中是否出现 service_to_promote 关键词（经 acknowledgment 预过滤）"
+      calculation: |
+        # 来源: 营销触发-reconciled.yaml T001-T010 service_to_promote 字段
+        # W1/W2 fix: S04 (标书代写引导) 使用 lexical 检测 + acknowledgment 预过滤
+        # W1/W2 fix: acknowledgment 预过滤排除纯粹确认性话轮
+        # W5 fix: S06 (VIP服务套餐介绍) 词汇部分在此处理（推荐关键词检测），
+        #         抗拒检测在 customer_resistance_detection 中分离处理
+
+        # service_to_promote 关键词集（按 trigger_id 索引）
+        service_keywords = [
+            # T001 -- 子证书
+            (r"子证书", ["T001"]),
+            (r"再申领.*证书", ["T001"]),
+            (r"母证书", ["T001"]),
+            # T002, T010 -- 移动证书
+            (r"移动证书", ["T002", "T010"]),
+            (r"手机扫码", ["T002"]),
+            (r"授权领证", ["T010"]),
+            # T003 -- 印章定制
+            (r"印章定制", ["T003"]),
+            (r"定制.*章", ["T003"]),
+            (r"法人章", ["T003"]),
+            (r"签字章", ["T003"]),
+            # T004 -- 标书代写 (S04 lexical)
+            (r"标书代写", ["T004"]),
+            (r"代写.*标书", ["T004"]),
+            (r"安排.*代写", ["T004"]),
+            (r"渠道商", ["T004"]),
+            # T005, T006 -- VIP服务
+            (r"VIP服务", ["T005", "T006"]),
+            (r"商品上架", ["T005"]),
+            (r"VIP精细化", ["T006"]),
+            (r"流程指导", ["T006"]),
+            # T007 -- 加急
+            (r"加急处理", ["T007"]),
+            # T008 -- 数字证书
+            (r"数字证书", ["T008"]),
+            (r"证书操作", ["T008"]),
+            (r"领.*证书", ["T008"]),
+            # T009 -- 续期
+            (r"续期", ["T009"]),
+            (r"续费", ["T009"]),
+            (r"证书.*续", ["T009"]),
+        ]
+
+        # W1/W2: acknowledgment 预过滤模式
+        # 排除纯粹确认性话轮（不包含实质推荐内容）
+        acknowledgment_patterns = [
+            r"^(好的|好[。，]?|嗯[。，]?|对[。，]?|是[。，]?|可以[。，]?|行[。，]?|收到[。，]?|明白[。，]?|知道了[。，]?)$",
+            r"^好的已经办好了[。，]?",
+            r"^好的[。，]?已经",
+            r"^可以的[。，]?$",
+        ]
+
+        agent_turns = [t for t in transcript if t.speaker == "agent"]
+
+        def is_pure_acknowledgment(text):
+            text_stripped = text.strip()
+            return any(re.match(p, text_stripped) for p in acknowledgment_patterns)
+
+        substantive_turns = [t for t in agent_turns if not is_pure_acknowledgment(t.text)]
+
+        # 在实质性话轮中匹配 service keywords
+        recommendations = {}
+        for keyword_pat, trigger_ids in service_keywords:
+            for turn in substantive_turns:
+                m = re.search(keyword_pat, turn.text)
+                if m:
+                    for tid in trigger_ids:
+                        if tid not in recommendations:
+                            recommendations[tid] = []
+                        recommendations[tid].append({
+                            "keyword": keyword_pat,
+                            "matched_text": m.group(0),
+                            "turn_index": turn.turn_index,
+                            "timestamp_ms": turn.start_ms
+                        })
+
+        recommended_services = list(recommendations.keys())
+
+        return {
+            "any_recommendation_made": len(recommendations) > 0,
+            "recommended_trigger_ids": recommended_services,
+            "recommendations": recommendations,
+            "substantive_agent_turn_count": len(substantive_turns),
+            "acknowledgment_turns_excluded": len(agent_turns) - len(substantive_turns),
+            "agent_proactively_recommended": len(recommendations) > 0
+        }
+      output_schema:
+        any_recommendation_made: bool
+        recommended_trigger_ids: "list[str]"
+        recommendations: "dict[str, list[{keyword, matched_text, turn_index, timestamp_ms}]]"
+        substantive_agent_turn_count: int
+        acknowledgment_turns_excluded: int
+        agent_proactively_recommended: bool
+
+    - facet_name: "customer_resistance_detection"
+      enables_signals: [F1]
+      indicator: "客户是否明确拒绝了营销推荐（纯词汇检测，gate-checkable）"
+      calculation: |
+        # W5 fix: 纯粹的词汇抗拒检测（gate-checkable）
+        # 与 model_based proactive_inquiry_detection 完全分离
+        # 此 facet 仅检测明确的拒绝词汇，不涉及语义理解
+
+        resistance_patterns = [
+            r"不需要",
+            r"别推荐了",
+            r"不用了",
+            r"算了",
+            r"不用推荐",
+            r"不需要推荐",
+            r"别说了",
+            r"不用.*介绍",
+            r"不要.*推荐",
+            r"不用.*了[。，]?",
+        ]
+
+        customer_turns = [t for t in transcript if t.speaker == "customer"]
+        resistance_turns = []
+        for turn in customer_turns:
+            for pat in resistance_patterns:
+                m = re.search(pat, turn.text)
+                if m:
+                    resistance_turns.append({
+                        "pattern": pat,
+                        "matched_text": m.group(0),
+                        "turn_index": turn.turn_index,
+                        "timestamp_ms": turn.start_ms
+                    })
+                    break
+
+        return {
+            "customer_explicitly_refused": len(resistance_turns) > 0,
+            "resistance_count": len(resistance_turns),
+            "resistance_turns": resistance_turns,
+            "first_resistance_ms": resistance_turns[0]["timestamp_ms"] if resistance_turns else None
+        }
+      output_schema:
+        customer_explicitly_refused: bool
+        resistance_count: int
+        resistance_turns: "list[{pattern, matched_text, turn_index, timestamp_ms}]"
+        first_resistance_ms: "float | None"
+
+    - facet_name: "e_biz_scenario_detection"
+      enables_signals: [F1]
+      indicator: "客户是否在使用电子营业执照登录（T008 场景）——用于 C3 applicability gate"
+      calculation: |
+        # C3 fix: T008 关键词来源于 营销触发-reconciled.yaml
+        # 检测客户是否在使用电子营业执照（vs 数字证书）进行年报/政务网操作
+        # 当 e_biz 场景 + agent 未推荐 -> NA（C3 豁免）
+        # 当 e_biz 场景 + agent 已推荐 -> 可以正常评分
+
+        e_biz_patterns = [
+            r"电子营业执照",
+            r"普通方式.*登录",
+            r"营业执照.*登录",
+            r"没有.*证书",
+            r"不用.*证书",
+        ]
+
+        # 数字证书使用场景——客户在问/使用证书（与 e_biz 区分）
+        cert_use_patterns = [
+            r"证书.*登录",
+            r"用证书",
+            r"证书.*登",
+        ]
+
+        customer_turns = [t for t in transcript if t.speaker == "customer"]
+        e_biz_matches = []
+        cert_use_matches = []
+
+        for turn in customer_turns:
+            for pat in e_biz_patterns:
+                m = re.search(pat, turn.text)
+                if m:
+                    e_biz_matches.append({
+                        "pattern": pat,
+                        "matched_text": m.group(0),
+                        "turn_index": turn.turn_index,
+                        "timestamp_ms": turn.start_ms
+                    })
+                    break
+            for pat in cert_use_patterns:
+                m = re.search(pat, turn.text)
+                if m:
+                    cert_use_matches.append({
+                        "pattern": pat,
+                        "matched_text": m.group(0),
+                        "turn_index": turn.turn_index,
+                        "timestamp_ms": turn.start_ms
+                    })
+                    break
+
+        # 纯 e_biz 场景：有 e_biz 关键词且无证书使用关键词
+        e_biz_detected = len(e_biz_matches) > 0 and len(cert_use_matches) == 0
+
+        return {
+            "electronic_business_license_scenario": e_biz_detected,
+            "e_biz_matches": e_biz_matches,
+            "cert_use_matches": cert_use_matches,
+            "has_both_e_biz_and_cert": len(e_biz_matches) > 0 and len(cert_use_matches) > 0
+        }
+      output_schema:
+        electronic_business_license_scenario: bool
+        e_biz_matches: "list[{pattern, matched_text, turn_index, timestamp_ms}]"
+        cert_use_matches: "list[{pattern, matched_text, turn_index, timestamp_ms}]"
+        has_both_e_biz_and_cert: bool
+
+    - facet_name: "renewal_guidance_detection"
+      enables_signals: [F2]
+      indicator: "坐席在证书到期/年费场景中是否使用了消极话术（反向引导）"
+      calculation: |
+        # T009 触发场景下，坐席是否使用消极话术（如"不需收费"）
+        # 独立于 F1 检测——即使坐席在其他场景做了推荐，此处的消极引导仍计为缺陷
+
+        negative_guidance_patterns = [
+            r"不需收费",
+            r"不用交费",
+            r"不需要费用",
+            r"不用再办",
+            r"不收费",
+            r"不需要办",
+            r"不用办",
+            r"免费.*不用",
+        ]
+
+        # 正向引导模式（对比用）
+        positive_guidance_patterns = [
+            r"续期",
+            r"续费",
+            r"办理.*续",
+            r"建议.*续",
+            r"可以.*续",
+        ]
+
+        agent_turns = [t for t in transcript if t.speaker == "agent"]
+        negative_hits = []
+        positive_hits = []
+
+        for turn in agent_turns:
+            for pat in negative_guidance_patterns:
+                m = re.search(pat, turn.text)
+                if m:
+                    negative_hits.append({
+                        "pattern": pat,
+                        "matched_text": m.group(0),
+                        "turn_index": turn.turn_index
+                    })
+                    break
+            for pat in positive_guidance_patterns:
+                m = re.search(pat, turn.text)
+                if m:
+                    positive_hits.append({
+                        "pattern": pat,
+                        "matched_text": m.group(0),
+                        "turn_index": turn.turn_index
+                    })
+                    break
+
+        return {
+            "has_negative_guidance": len(negative_hits) > 0,
+            "has_positive_guidance": len(positive_hits) > 0,
+            "negative_hits": negative_hits,
+            "positive_hits": positive_hits
+        }
+      output_schema:
+        has_negative_guidance: bool
+        has_positive_guidance: bool
+        negative_hits: "list[{pattern, matched_text, turn_index}]"
+        positive_hits: "list[{pattern, matched_text, turn_index}]"
+
+  model_based:
+    - facet_name: "proactive_inquiry_detection"
+      enables_signals: [E1]
+      prompt: |
+        你是一个质检分析助手。判断坐席的营销推荐是否为主动发掘，
+        而非被动回应客户的直接询问。
+
+        ## 任务
+        在一次通话中，坐席向客户推荐了某个产品或服务。
+        你需要判断：**这次推荐是坐席主动发掘的机会，
+        还是客户先提出了明确需求后坐席的被动回应？**
+
+        ## 判断标准
+
+        ### 主动发掘的特征（可评为"主动"）
+        1. 客户只是描述了问题/困难（如"驱动装不上""年报怎么报"），
+           坐席主动识别出这是营销机会并进行推荐。
+        2. 客户未直接询问产品/服务，坐席在解决问题后主动追加推荐。
+        3. 客户表达了某个需求（如"需要一个证书"），
+           坐席推荐了额外或升级服务（如推荐子证书/移动证书而非仅响应需求）。
+
+        ### 被动回应的特征（评为"被动"）
+        1. 客户直接询问产品/服务（如"你们有没有移动证书"），坐席回答。
+        2. 客户说"我想办个XX"，坐席仅确认办理流程。
+        3. 坐席仅回应客户的直接问题，无主动挖掘。
+
+        ## 已知失败模式 (failure_pattern, m1 fix)
+        以下是在校准中确认的 5 个或以上模糊/误判案例，
+        评估时请特别注意避免重复此类错误：
+
+        FP1: 客户说"你们那个什么VIP服务怎么收费"后，坐席仅告知价格。
+            误判风险：坐席仅提供了价格说明，未主动推荐其他服务。
+            这不是主动推荐——这是被动回应客户的直接问价。
+            Correct: proactive_detected=false, confidence=high.
+
+        FP2: 客户说"证书过期了"，坐席说"可以办续期"。
+            误判风险：需结合语境判断。如果客户是直接问"我要续期"，
+            坐席回应是正常服务，不是主动营销。
+            但如果客户说"过期了没法用"后，坐席从续期延伸到推荐移动证书，
+            则可视为主动发掘。
+
+        FP3: 坐席说"你可以办个移动证书，很方便"但客户从头到尾未表达需求。
+            误判风险：这可能是硬推销（机械话术），不视为主动发掘。
+            需要检查客户是否在前文中表达了相关困扰。
+
+        FN1: 客户问"有没有能不用电脑的证书"，坐席推荐移动证书。
+            误判风险：客户已经明确表达了移动证书的需求，
+            坐席的推荐是正常回应，容易被误判为主动发掘。
+            实际上这是被动回应（客户提出了明确产品需求）。
+            Correct: proactive_detected=false.
+
+        FN2: 客户在描述多个使用场景（"我和同事都要用"）后，
+            坐席说"建议您办个子证书"。
+            误判风险：客户没有直接问"子证书"，
+            但坐席从场景描述中识别出需求。这是主动发掘。
+            Correct: proactive_detected=true, confidence=high.
+
+        FN3: 客户说"能不能帮我操作一下"，坐席说"我们可以提供VIP精细化服务指导"。
+            误判风险：客户在请求帮助（T006 场景），坐席推荐付费服务。
+            需要判断客户是单纯求助还是愿意付费。
+            Correct: proactive_detected=true if agent offered option without pressuring.
+
+        ## 输出格式
+        ```json
+        {
+          "proactive_detected": true,
+          "proactive_reasoning": "客户描述'我和同事都要用'后，
+          坐席主动建议子证书，客户未直接询问子证书产品。",
+          "confidence": "high",
+          "failure_pattern_matched": "FN2_similar",
+          "agent_triggered_signal": "customer_scenario_description"
+        }
+        ```
+        confidence: "high" | "medium" | "low" | "ambiguous"
+        failure_pattern_matched: "FP1" | "FP2" | "FP3" | "FN1" | "FN2" | "FN3" | "no_match"
+
+        ## 输入数据
+        - triggered_ids: {triggered_ids}
+        - 检测到的营销机会: {detections_description}
+        - 坐席推荐内容: {recommendations_description}
+
+        ## 对话片段
+        以下是与营销机会相关的前后对话上下文：
+        {marketing_relevant_dialogue}
+      output_schema:
+        proactive_detected: bool
+        proactive_reasoning: str
+        confidence: str
+        failure_pattern_matched: str
+        agent_triggered_signal: str
+
+    - facet_name: "recommendation_accuracy"
+      enables_signals: [E1, E2]
+      prompt: |
+        你是一个质检分析助手。判断坐席的推荐是否准确匹配了客户的营销触发场景。
+
+        ## 任务
+        基于客户表达的需求（trigger_keywords 命中的具体场景），
+        判断坐席推荐的服务是否准确。
+
+        ## 正确的 trigger->service 映射（来源: 营销触发-reconciled.yaml）
+        - T001 (多人使用/投标冲突/只有一个证书) -> 子证书
+        - T002 (介质证书/旧KEY/驱动问题/证书解锁/密码忘记) -> 移动证书
+        - T003 (电子章/法人章/签字章/印章) -> 印章定制服务
+        - T004 (做标书/投标/代写) -> 标书代写服务
+        - T005 (入驻/商品上架/协议签署/协助开标) -> VIP服务
+        - T006 (太复杂/听不懂/不会操作) -> VIP精细化服务
+        - T007 (急/加急/今天就要) -> 加急处理服务
+        - T008 (年报/政务网/普通方式/电子营业执照) -> 数字证书
+        - T009 (证书到期/年费/续期) -> 续期/移动证书
+        - T010 (移动证书业务咨询) -> 授权领证
+
+        ## 评估标准
+        - "accurate": 坐席推荐的 service 与触发场景的推荐 service 一致
+        - "suboptimal": 坐席推荐了相关但不完全准确的服务（如 T002 触发但只推荐了换KEY 而非移动证书）
+        - "wrong": 坐席推荐的 service 与触发场景无关
+        - "partial_coverage": 多个 trigger 触发，坐席只回应了部分
+
+        ## 输出格式
+        ```json
+        {
+          "accuracy": "accurate",
+          "triggered_ids": ["T001", "T002"],
+          "agent_recommended_services": ["子证书"],
+          "correctly_handled": ["T001"],
+          "missed_triggers": ["T002"],
+          "accuracy_evidence": "客户表达了多证书需求和介质证书问题（T001+T002），
+          坐席推荐了子证书（正确匹配 T001），但未推荐移动证书（遗漏 T002）",
+          "accuracy_assessment": "partial_coverage"
+        }
+        ```
+        accuracy: "accurate" | "suboptimal" | "wrong" | "partial_coverage"
+        accuracy_assessment: "full_coverage" | "partial_coverage" | "none"
+
+        ## 输入
+        - 触发检测结果: {triggered_ids}
+        - 坐席推荐检测结果: {recommended_trigger_ids}
+        - 推荐详情: {recommendations_description}
+
+        ## 对话上下文
+        {marketing_relevant_dialogue}
+      output_schema:
+        accuracy: str
+        triggered_ids: "list[str]"
+        agent_recommended_services: "list[str]"
+        correctly_handled: "list[str]"
+        missed_triggers: "list[str]"
+        accuracy_evidence: str
+        accuracy_assessment: str

@@ -1,0 +1,384 @@
+# Item 18 — 操作化产物示例 (v2 — recompiled per D1-D12)
+#
+# v2 changes from v1:
+#   D11: Uniform structure — no tier field; keys not applicable simply absent.
+#   D12: Signal Decomposition (B-E) — each signal explicitly traces to a
+#        pass_standard or fail_standard clause, and passes the gate-checkable
+#        test: "Can a proposer find a transcript span, and can a gate verify it?"
+#        F3 reworded: "死板套用模板" (adjective) → "未结合客户具体情况" (observable).
+#
+# 来源: rubric_com_hotline.md · 编译日期: 2026-07-16 · 编译器版本: 9003-v2
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 层 1 — human_version: 原始人工主观判断（逐字保留，不改编）
+# ══════════════════════════════════════════════════════════════════════════════
+human_version:
+  item_number: 18
+  category: "技能技巧"
+  original_text: |
+    思路清晰，能根据客户理解程度，灵活的给予合理的处理办法，
+    解释说明和操作指导
+  pass_standard: |
+    针对不同的用户理解能力、操作能力、所属环境适时调整自己的说话方式、
+    指导方法，给予合理的处理办法、解释说明和操作指导；
+    善于使用资源（例如客服系统、业务手册等）
+  fail_standard: |
+    思路混乱、发散或完全无方向；
+    没有考虑到用户的立场以及理解能力、操作能力、所属环境，
+    按照自己的思路进行指导；
+    处理或解释死板（不能结合客户实际、主观；
+    不能根据客户的具体情况和疑虑进行灵活解释；
+    不善于使用资源；
+    考虑问题不周，对关联业务判断不足，造成客户肯定会在后续问题
+  na_condition: "无"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 层 2 — machine_criterion: 机器可执行的判定标准
+# ══════════════════════════════════════════════════════════════════════════════
+machine_criterion:
+  criterion_id: "mc-item-18"
+  scoring_scale: "1-10"
+  gap_type: "perceiver"
+  gap_rationale: |
+    可观测：解释是否有逻辑顺序、是否引用系统资源、客户困惑后是否调整策略。
+    不可直接观测：坐席是否"真正理解了客户"的认知状态。表面适应行为与真正的理解
+    之间存在感知者差距——机器只能看到前者。
+  auto_final_allowed: false               # AUTH-9: perceiver gap
+  escape_tier: "aggressive"
+  applicability_gate: null                 # 此 item 无 NA 条件
+
+  dimension:
+    name: "问题理解与解决"
+    weight: 3
+    deduction_weight: 0.12
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 层 3 — signals: gate-checkable FAIL / EXCELLENCE 信号
+#
+# B-E: Signal Decomposition (D12)
+#
+# 每个 signal 从其来源的 fail_standard / pass_standard 子句中分解而来。
+# 每个 signal 必须通过 gate-checkable 测试：
+#   Q1: proposer 是否能在 transcript 中找到一个 span 作为此 signal 的证据？
+#   Q2: gate 是否能确定性验证该 span 满足 signal 的 specification？
+# 未通过测试的 signal → 拒绝（AUTH-1 扩展：禁止形容词 signal）。
+# ══════════════════════════════════════════════════════════════════════════════
+signals:
+
+  fail:
+    - id: "F1"
+      description: |
+        解释跳过关键步骤——坐席从问题陈述直接跳到解决方案，
+        中间未出现诊断步骤（确认问题性质、说明原因）。
+      severity: "major"
+      decomposed_from: |
+        fail_standard: "思路混乱、发散或完全无方向"
+        操作化：将"无方向"分解为可检查的步骤缺失。Gate 验证：
+        explanation_span 是否包含 (诊断 → 原因 → 方案) 的至少两个环节。
+        缺失任一环节 → F1 激活。
+      gate_checkable_test:
+        proposer_can_find_span: "定位坐席的解释话轮序列，标记其中包含的推理步骤类型"
+        gate_can_verify: "检查步骤序列中是否存在 (诊断|原因|方案) 之间的跳跃"
+
+    - id: "F2"
+      description: |
+        全程未引用系统资源——坐席在所有话轮中均未出现
+        '客服系统'、'业务手册'、'知识库'、'帮您查'、'系统中' 等关键词。
+      severity: "minor"
+      decomposed_from: |
+        fail_standard: "不善于使用资源"
+        操作化：将"不善于使用资源"转化为可计数的词法特征。Gate 验证：
+        agent_turns 中 resource_keyword 命中次数 = 0。这是 confidence 1.0
+        的 compliance 级检查。
+      gate_checkable_test:
+        proposer_can_find_span: "无需 proposer——词法匹配在 facet 中直接完成"
+        gate_can_verify: "int(resource_keyword_hits) == 0 → F2 激活"
+
+    - id: "F3"
+      description: |
+        未结合客户具体情况——坐席的指导全程使用通用模板话术，
+        未出现对客户描述的具体细节的引用（如客户说了'我用的是IE11'，
+        坐席仍给出通用浏览器兼容指导而非针对IE11的具体方案）。
+      severity: "major"
+      decomposed_from: |
+        fail_standard: "处理或解释死板（不能结合客户实际、主观；
+        不能根据客户的具体情况和疑虑进行灵活解释）"
+        操作化：将"死板"（形容词）替换为可观测的"未引用客户具体情况"。
+        将"不能灵活解释"替换为"指导未随客户反馈改变"（与 E1 对应）。
+        Gate 验证：agent 的解释话轮中是否包含对 customer 在先话轮中
+        提到的具体信息（产品名、版本号、错误码、操作步骤）的回引。
+      gate_checkable_test:
+        proposer_can_find_span: "定位客户描述了具体细节的话轮，检查后续坐席话轮是否回引这些细节"
+        gate_can_verify: "字符串匹配：客户的 {产品名|版本号|错误码} 是否出现在坐席后续解释中"
+
+    - id: "F4"
+      description: |
+        未纠正客户错误认知——客户表达了与业务/产品事实不符的认知
+        （如'证书有存储功能'），坐席未予纠正或照单全收继续指导。
+      severity: "minor"
+      decomposed_from: |
+        fail_standard: "考虑问题不周，对关联业务判断不足，造成客户肯定会在后续问题"
+        以及补充例证："未确认清楚企业问题，查客服系统发现过期就直接引导延期"
+        操作化：将"考虑不周"转化为"客户表达错误认知时坐席未回应"。
+        这是一个可定位的事件对：(客户错误陈述, 坐席沉默或照单全收)。
+      gate_checkable_test:
+        proposer_can_find_span: "定位客户话轮中与领域知识库冲突的陈述"
+        gate_can_verify: "检查后续坐席话轮是否包含纠正性语言（'实际上是...'）或缺失纠正"
+
+  excellence:
+    - id: "E1"
+      description: |
+        客户表现困惑后，坐席改变了指导策略——从快速概述切换为逐步拆解，
+        或从技术术语切换为日常用语，或在困惑后使用了类比。
+      decomposed_from: |
+        pass_standard: "针对不同的用户理解能力、操作能力、所属环境
+        适时调整自己的说话方式、指导方法"
+        操作化：将"适时调整"转化为可观测的策略变化事件。
+        对比困惑点前后坐席话轮的特征差异（话轮长度、词汇复杂度、是否包含类比）。
+      gate_checkable_test:
+        proposer_can_find_span: "定位客户困惑时间戳（来自 customer_confusion_cues facet），标记困惑前后的坐席话轮对"
+        gate_can_verify: "对比前后话轮的 (word_count, technical_term_count, analogy_presence)，任一维度变化 → E1 候选"
+
+    - id: "E2"
+      description: |
+        主动引用系统资源并告知客户——坐席不仅查询了系统，
+        而且在对话中明确告知客户'我帮您在XX系统中查一下'。
+      decomposed_from: |
+        pass_standard: "善于使用资源（例如客服系统、业务手册等）"
+        操作化：将"善于使用"转化为可计数的主动告知模式。
+        不仅检查是否命中了资源关键词，更检查是否告知了客户自己在查。
+      gate_checkable_test:
+        proposer_can_find_span: "无需 proposer——词法匹配 (proactive_resource 模式)"
+        gate_can_verify: "int(proactive_resource_hits) > 0 → E2 候选"
+
+    - id: "E3"
+      description: |
+        每一步说明了操作目的——客户在整个指导过程中无需追问
+        '为什么要这样做'。坐席在给出每一步操作的同时，解释了该步的目的。
+      decomposed_from: |
+        pass_standard: "给予合理的处理办法、解释说明和操作指导"
+        操作化：将"合理的解释说明"转化为"每个操作步骤均伴有目的说明"。
+        检查坐席话轮中操作指令和目的说明的配对密度。
+      gate_checkable_test:
+        proposer_can_find_span: "定位坐席的指导话轮，标记其中的 (操作指令, 目的说明) 对"
+        gate_can_verify: "count(目的说明伴随操作指令) / count(操作指令) → 覆盖率 → E3 候选"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 层 4 — facets: signal-shaped 证据输入
+#
+# D5/D9: facets 是 signal-shaped — 每个 facet 声明 enables_signals。
+# Programmatic: indicator + calculation + output_schema
+# Model_based: facet_name + prompt + output_schema
+# (与 v1 相比，facets 层内容不变——v1 已经符合 D9 signal-shaped 结构)
+# ══════════════════════════════════════════════════════════════════════════════
+facets:
+  programmatic:
+    - facet_name: "resource_keyword_hits"
+      enables_signals: [F2, E2]
+      indicator: "坐席话轮中是否出现系统资源类关键词，以及是否为主动告知式"
+      calculation: |
+        resource_patterns = [r"客服系统", r"业务手册", r"知识库", r"帮您查",
+                             r"帮你看", r"我查一下", r"我帮您确认", r"系统中", r"后台"]
+        proactive_patterns = [r"我帮您在.*查", r"我在系统.*帮您", r"我帮你看一下.*系统",
+                              r"稍等.*我查"]
+        agent_turns = [t for t in transcript if t.speaker == "agent"]
+        all_hits = [t for t in agent_turns if any(p in t.text for p in resource_patterns)]
+        proactive_hits = [t for t in agent_turns if any(p in t.text for p in proactive_patterns)]
+        return {"total_resource_hits": len(all_hits),
+                "proactive_resource_hits": len(proactive_hits),
+                "hit_timestamps": [t.start_ms for t in all_hits],
+                "proactive_hit_timestamps": [t.start_ms for t in proactive_hits]}
+      output_schema:
+        total_resource_hits: int
+        proactive_resource_hits: int
+        hit_timestamps: "list[float]"
+        proactive_hit_timestamps: "list[float]"
+
+    - facet_name: "explanation_turn_structure"
+      enables_signals: [F1]
+      indicator: "坐席解释段的话轮数、平均词数和步骤类型分布"
+      calculation: |
+        # 识别解释段：连续的非提问、非确认类 agent 话轮
+        def is_explanation_turn(turn):
+            if turn.word_count < 5: return False
+            if turn.text.endswith("吗") or turn.text.endswith("?"): return False
+            if turn.text in ["好的", "嗯", "对", "是的", "可以"]: return False
+            return True
+        agent_turns = [t for t in transcript if t.speaker == "agent"]
+        explanation_turns = [t for t in agent_turns if is_explanation_turn(t)]
+        fragmented = (len(explanation_turns) > 5 and
+                      statistics.mean([t.word_count for t in explanation_turns]) < 15)
+        return {"explanation_turn_count": len(explanation_turns),
+                "avg_words_per_turn": round(statistics.mean([t.word_count for t in explanation_turns]), 1) if explanation_turns else 0,
+                "fragmented": fragmented}
+      output_schema:
+        explanation_turn_count: int
+        avg_words_per_turn: float
+        fragmented: bool
+
+    - facet_name: "customer_specificity_reference"
+      enables_signals: [F3]
+      indicator: "坐席话轮是否回引了客户在先话轮中提到的具体信息"
+      calculation: |
+        # 提取客户话轮中的具体实体（产品名、版本号、错误码、操作步骤）
+        customer_entities = extract_entities(customer_turns)  # {entity, turn_index, timestamp}
+        # 检查后续坐席话轮是否引用了这些实体
+        references = []
+        for entity in customer_entities:
+            subsequent_agent_turns = [t for t in agent_turns if t.start_ms > entity.timestamp]
+            matched = [t for t in subsequent_agent_turns if entity.value in t.text]
+            references.append({"entity": entity.value, "customer_turn": entity.turn_index,
+                               "agent_referenced": len(matched) > 0,
+                               "reference_turns": [t.index for t in matched]})
+        specificity_score = len([r for r in references if r["agent_referenced"]]) / max(len(references), 1)
+        return {"references": references, "specificity_score": round(specificity_score, 2)}
+      output_schema:
+        references: "list[{entity, customer_turn, agent_referenced, reference_turns}]"
+        specificity_score: float
+
+    - facet_name: "customer_confusion_cues"
+      enables_signals: [F4, E1]
+      indicator: "客户话轮中的困惑表达和长沉默事件"
+      calculation: |
+        confusion_patterns = [r"我不太明白", r"没听懂", r"什么意思", r"你再.*说一遍",
+                              r"到底.*怎么", r"还是.*不懂", r"不明白", r"我没听清",
+                              r"能.*再说.*吗", r"能.*重复.*吗"]
+        customer_turns = [t for t in transcript if t.speaker == "customer"]
+        confusion_turns = [t for t in customer_turns if any(p in t.text for p in confusion_patterns)]
+        long_silences = [{"after_turn_at_ms": transcript[i].end_ms,
+                          "silence_duration_ms": transcript[i+1].start_ms - transcript[i].end_ms}
+                         for i in range(len(transcript) - 1)
+                         if (transcript[i].speaker == "agent" and
+                             transcript[i+1].start_ms - transcript[i].end_ms > 3000)]
+        return {"confusion_turn_count": len(confusion_turns),
+                "confusion_timestamps_ms": [t.start_ms for t in confusion_turns],
+                "long_silence_count": len(long_silences),
+                "long_silences": long_silences}
+      output_schema:
+        confusion_turn_count: int
+        confusion_timestamps_ms: "list[float]"
+        long_silence_count: int
+        long_silences: "list[{after_turn_at_ms, silence_duration_ms}]"
+
+  model_based:
+    - facet_name: "explanation_logic_chain"
+      enables_signals: [F1, F3]
+      prompt: |
+        你是一个质检分析助手。分析坐席的解释是否遵循了结构化逻辑链。
+
+        ## 任务
+        检查坐席的解释：(1) 是否有 A→B→C 逻辑递进；(2) 是否结合了客户的具体情况。
+
+        ## 检查要点
+        1. 坐席是否先诊断/确认问题再给出方案？正确顺序：确认问题 → 说明原因 → 给出步骤。
+        2. 是否有跳跃——跳过了关键中间步骤直接给结论？
+        3. 是否出现了矛盾——前面和后面说的冲突？
+        4. 解释是否引用了客户描述的具体细节（而非仅用通用话术）？
+
+        ## 输出格式
+        ```json
+        {
+          "has_logic_chain": true,
+          "steps_identified": ["诊断驱动版本", "说明兼容性原因", "给出更新+兼容方案"],
+          "ordering": "correct",
+          "skips_or_jumps": [],
+          "contradictions": [],
+          "customer_specific": true,
+          "customer_specific_evidence": "坐席引用了客户说的'IE11'来针对性说明兼容模式",
+          "overall_coherence": "coherent"
+        }
+        ```
+        ordering: "correct" | "reversed" | "no_discernible_order"
+        overall_coherence: "coherent" | "fragmented" | "scattered"
+
+        ## 坐席解释片段
+        {agent_explanation_turns}
+      output_schema:
+        has_logic_chain: bool
+        steps_identified: "list[str]"
+        ordering: str
+        skips_or_jumps: "list[str]"
+        contradictions: "list[str]"
+        customer_specific: bool
+        customer_specific_evidence: str
+        overall_coherence: str
+
+    - facet_name: "adaptation_to_customer"
+      enables_signals: [F3, E1]
+      prompt: |
+        你是一个质检分析助手。判断坐席是否在客户困惑后调整了指导策略。
+
+        ## 任务
+        对比困惑点前后的坐席话轮特征变化。核心问题：**坐席的策略是否因客户的反馈而改变？**
+
+        ## 检查要点
+        1. 定位困惑点（参考 confusion_timestamps_ms 和 long_silences）。
+        2. 困惑点后的 1-2 个坐席话轮中，是否出现了策略变化：
+           - 步骤拆解、词汇简化、使用类比、放慢节奏、切换角度
+        3. 如果坐席仅重复原话，标记为未调整。
+
+        ## 输出格式
+        ```json
+        {
+          "confusion_confirmed": true,
+          "confusion_timestamps_ms": [12500],
+          "adaptation_attempted": true,
+          "adaptations": [{
+            "after_confusion_at_ms": 12500,
+            "adaptation_type": "step_decomposition",
+            "agent_turn_index": 14,
+            "before_strategy": "一口气说完四个步骤",
+            "after_strategy": "拆成两步，每步等客户确认",
+            "evidence": "坐席从'您先更新驱动然后打开IE设置兼容模式再登录'变为'我们先做第一步：更新驱动。您找到驱动下载页面了吗？'"
+          }],
+          "overall_adaptive": true
+        }
+        ```
+        adaptation_type: "step_decomposition" | "simplified_vocabulary" | "analogy" | "slower_pace" | "angle_switch" | "none"
+
+        ## 输入
+        - confusion_timestamps_ms: {confusion_timestamps_ms}
+        - long_silences: {long_silences}
+        ## 对话
+        {full_dialogue}
+      output_schema:
+        confusion_confirmed: bool
+        confusion_timestamps_ms: "list[float]"
+        adaptation_attempted: bool
+        adaptations: "list[{after_confusion_at_ms, adaptation_type, agent_turn_index, before_strategy, after_strategy, evidence}]"
+        overall_adaptive: bool
+
+    - facet_name: "customer_misconception_handling"
+      enables_signals: [F4]
+      prompt: |
+        你是一个质检分析助手。识别客户是否表达了与业务事实不符的认知，以及坐席是否纠正。
+
+        ## 常见错误认知
+        - "证书有存储功能" / "证书里存了我的资料"
+        - "年检就是年报" / "工商局发的证"
+        - "USB-KEY就是U盘"
+        - 其他与数字证书业务知识冲突的陈述
+
+        ## 输出格式
+        ```json
+        {
+          "misconceptions_found": [{
+            "customer_said": "我的证书里存了我的资料",
+            "timestamp_ms": 45200,
+            "is_correct": false,
+            "correct_information": "证书本身不存储用户数据，它是一个加密身份凭证"
+          }],
+          "agent_corrected": false,
+          "correction_style": "ignored",
+          "evidence": "客户在45秒处说'证书里存了我的资料'，坐席未回应直接继续指导"
+        }
+        ```
+        correction_style: "positive_reframe" | "direct_denial" | "ignored"
+
+        ## 对话
+        {full_dialogue}
+      output_schema:
+        misconceptions_found: "list[{customer_said, timestamp_ms, is_correct, correct_information}]"
+        agent_corrected: bool
+        correction_style: str
+        evidence: str
