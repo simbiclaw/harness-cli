@@ -442,7 +442,7 @@ The machine rubric is not a faithful translation of the human rubric — it is a
 <li><b>Binary → continuous bridge (§2.6-A).</b> Binary items are <em>evidence weighed into</em> a 1–10 dimension score, not the verdict. Triggers → grounded findings → pure <code>score()</code> re-derives the dimension number; the calibration manifest sets the deduction weights and the severity mapping. Two calls that both fail an item for different severities are distinguished by the manifest, not the binary.</li>
 <li><b>NA → applicability gate (§2.6-B, AUTH-7).</b> An NA condition compiles into a trigger <code>applicability_gate</code>: condition unmet → trigger does not fire → the item is not counted as evidence for or against the dimension. NA is a structural feature of binary rubrics with no continuous counterpart; it must be compiled, not dropped.</li>
 <li><b>Hard-threshold synthesis (§2.6-C).</b> "Problem Resolution &lt; 7 = IMMEDIATE FAIL" has no single-item human equivalent. The compiler <em>synthesizes</em> the routing rule from a <b>subset</b> of binary items that collectively indicate severe failure — a many-to-one gate, not a copied threshold.</li>
-<li><b>Value extraction (§2.6-D, Item 4).</b> Parse concrete values from checklist text: named phrases → <code>lexical</code> triggers, numeric thresholds → <code>threshold</code> triggers, at confidence 1.0. The gap here is specificity, not kind — the compiler extracts values, it does not merely infer forms from principles.</li>
+<li><b>Value extraction (§2.6-D, Item 4).</b> Parse concrete values from checklist text: named phrases → lexical signals, numeric thresholds → threshold signals, at confidence 1.0. <span class="p1-note">trigger.spec removed; values now enrich machine_criterion and signals (Patch 1 D10)</span> The gap here is specificity, not kind — the compiler extracts values, it does not merely infer forms from principles.</li>
 <li><b>Calibration coverage (Item 22, AUTH-9).</b> A surface-form-sensitive judgment criterion may <em>not</em> auto-finalize unless the calibration manifest covers its failure surface. Without company fragments, the deflect-before-acknowledge pattern scores as helpful assistance — a systematic false positive.</li>
 <li><b>Escape tier by gap type (Item 16).</b> A proxy-only criterion (a cognitive state with only lagging structural indicators) gets the most aggressive escape sampling in the rubric. <code>escape_tier</code> is a function of gap type, not a hand-set default: silent misdiagnosis is invisible to every structural check.</li>
 <li><b>Dimension-coverage gap (Item 24, AUTH-10).</b> When a human criterion measures something <em>no</em> dimension covers — consequential business harm (callback inevitability, unnecessary cost, incomplete resolution) — the compiler emits <code>lookup</code> triggers with <code>data_dependency</code> declarations, <b>defers to human until the source is connected</b>, and flags a <code>dimension_coverage_gap</code> manifest row (possibly proposing a new <em>Business Impact</em> sub-dimension).</li>
@@ -457,12 +457,12 @@ The machine rubric is not a faithful translation of the human rubric — it is a
 <table class="grid">
   <thead><tr><th style="width:26%">Reference step (§04)</th><th style="width:14%">Verdict</th><th style="width:60%">In this architecture</th></tr></thead>
   <tbody>
-    <tr><td class="mono">1 · Decompose into orthogonal dimensions</td><td><span class="vd trans">transfers</span></td><td>Kept, with a sharper operationalizability test: a dimension is admissible only if it reduces to a structurally checkable trigger. If it can't, it is <em>residue</em> (A4), not a criterion — and is declared, not forced.</td></tr>
-    <tr><td class="mono">2 · Replace adjectives with failure signatures</td><td><span class="vd xform">transforms</span></td><td>The signature is compiled into a <code>_rubric/rules/</code> node carrying <code>required_evidence</code> + <code>fail_condition</code> (lexical / ordered-relation / threshold / lookup) — a falsifiable rule, not rubric prose in a skill file. An adjective trigger is rejected at authoring (AUTH-1).</td></tr>
+    <tr><td class="mono">1 · Decompose into orthogonal dimensions</td><td><span class="vd trans">transfers</span></td><td>Kept, with a sharper operationalizability test: a dimension is admissible only if it reduces to a structurally checkable signal. If it can't, it is <em>residue</em> (A4), not a criterion — and is declared, not forced.</td></tr>
+    <tr><td class="mono">2 · Replace adjectives with failure signatures</td><td><span class="vd xform">transforms</span></td><td>The signature is decomposed into <code>signals</code> (FAIL + EXCELLENCE) — observable, gate-checkable patterns each backed by programmatic or model_based <code>facets</code> — a falsifiable rule, not rubric prose in a skill file. <span class="p1-note">trigger.spec removed; replaced by machine_criterion + signals + facets four-layer chain (Patch 1 D10)</span> An adjective signal is rejected at authoring (AUTH-1).</td></tr>
     <tr><td class="mono">3 · Weight by baseline performance</td><td><span class="vd repl">replaced</span></td><td>That heuristic budgets an LLM judge's attention; the gate has no attention budget. The deduction weight comes from the human rubric on the anchor; corroboration weight comes from the independence class (D2), not from baseline scores.</td></tr>
     <tr><td class="mono">4 · Set hard thresholds</td><td><span class="vd xform">transforms</span></td><td>Per-criterion minimum becomes the §6 κ-gate τ; "IMMEDIATE FAIL" critical dimensions map to compliance-layer criteria that resolve at <code>grounding_confidence 1.0</code>. Thresholds live on the wire, not in evaluator prose.</td></tr>
     <tr><td class="mono">5 · Calibrate with few-shot examples</td><td><span class="vd repl">replaced</span></td><td>Replaced by the §6 agreement instrument: continuous Argus-vs-human κ on a rolling sample, versioned with the rubric, with a drift detector. The reference's one-shot, in-file calibration is the informal ancestor of this.</td></tr>
-    <tr><td class="mono">6 · Make criteria active, not passive</td><td><span class="vd trans">transfers</span></td><td>Strongest transfer. An active check ("find the acknowledgment span; verify it precedes the resolution span") <em>is</em> the §4 applicability check — an ordered-relation trigger. Active phrasing is exactly what makes a signature compilable.</td></tr>
+    <tr><td class="mono">6 · Make criteria active, not passive</td><td><span class="vd trans">transfers</span></td><td>Strongest transfer. An active check ("find the acknowledgment span; verify it precedes the resolution span") <em>is</em> the §4 applicability check — a gate-checkable signal with ordered-relation structure. Active phrasing is exactly what makes a signature compilable into signals.</td></tr>
     <tr><td class="mono">7 · Iterate the rubric itself</td><td><span class="vd forbid">forbidden as written</span></td><td>Free iteration against the evaluator's own output is the C5 co-degradation loop. Replaced by drift-detector-triggered re-grounding through a write-time human-confirmed commit (S6). Rules may change — only via a producer-owned commit that mints a new epoch, never by editing against Argus output (A7).</td></tr>
   </tbody>
 </table>
@@ -481,11 +481,11 @@ The machine rubric is not a faithful translation of the human rubric — it is a
 <p>Run once per soft criterion. Output is a single <code>_rubric/rules/</code> node (category = <code>rules_criteria</code>, layer = <code>judgment</code>), authored into the tree at write time. Compliance criteria do not need this procedure — they are already lexical/lookup at <code>confidence 1.0</code>.</p>
 
 <div class="astep"><span class="aid">A1</span><span class="atitle">Decompose to orthogonal dimensions</span>
-<p>Apply the independence, exhaustiveness, and operationalizability tests. Add the residue-or-trigger test: for each dimension, can it be stated as a structural check on transcript spans / acoustic thresholds / lookups? If yes → candidate trigger. If no → it is residue; record it for A4 and stop trying to force it.</p></div>
+<p>Apply the independence, exhaustiveness, and operationalizability tests. Add the residue-or-signal test: for each dimension, can it be stated as a structural check on transcript spans / acoustic thresholds / lookups? If yes → candidate signal for B-E decomposition. If no → it is residue; record it for A4 and stop trying to force it.</p></div>
 
-<div class="astep"><span class="aid">A2</span><span class="atitle">Compile each signature to a trigger</span>
-<p>Translate the failure signature into a <code>trigger</code> with an explicit <code>form ∈ {lexical, ordered_relation, threshold, lookup}</code> and a <code>spec</code> S3 can evaluate deterministically. Example: "empathy" → "acknowledgment_span PRECEDES resolution_span within turn". No adjectives survive into the trigger.</p>
-<div class="arepl"><b>WIRES TO</b> Finding meta-verification in §4 of the pipeline; the trigger is what <code>anchor_applicable</code> checks against.</div></div>
+<div class="astep"><span class="aid">A2</span><span class="atitle">Decompose each signature into gate-checkable signals <span class="p1-note">(was "Compile each signature to a trigger" — trigger.spec removed, Patch 1 D10)</span></span>
+<p>Decompose the failure signature into <code>signals</code> (FAIL + EXCELLENCE), each naming an observable pattern a proposer can find a transcript span for and a gate can deterministically verify. <span class="p1-note">The old <code>form ∈ {lexical, ordered_relation, threshold, lookup}</code> enumeration is replaced by the four-layer chain: human_version → machine_criterion → signals → facets, where each signal's checkability is determined by its extraction method (programmatic vs model_based) and verified by the B-F audit. (Patch 1 D10, D12)</span> Example: "empathy" → FAIL signal "no acknowledgment before resolution" with ordered-relation evidence shape. No adjectives survive into the signal description.</p>
+<div class="arepl"><b>WIRES TO</b> Finding meta-verification in §4 of the pipeline; the signal is what <code>anchor_applicable</code> checks against.</div></div>
 
 <div class="astep"><span class="aid">A3</span><span class="atitle">Classify corroborators by independence (D2)</span>
 <p>Declare which other expertise signals back this criterion and their <code>independence_class</code>. Acoustic threshold entries are <span class="ic ind">independent</span>; exemplar/case matches are <span class="ic cor">correlated</span>. Declaring a soft text signal — another model-judged <code>rules_criteria</code> item — as a corroborator is <span class="ic red">redundant</span> and forbidden (AUTH-4): it is the §6.4 voting prohibition in costume.</p>
@@ -563,10 +563,11 @@ The machine rubric is not a faithful translation of the human rubric — it is a
   <span class="c">// no `human_confirmed` field: confirmation is write-time ownership (ADR-0003)</span>
   <span class="k">"authored_by"</span>: <span class="s">"qa_lead_22"</span>,        <span class="c">// producer that owns this file</span>
   <span class="k">"dimension"</span>: <span class="s">"empathy"</span>,            <span class="c">// the subjective concept being operationalized</span>
-  <span class="k">"required_evidence"</span>: {              <span class="c">// v6 M6 — falsifiable; what must be present</span>
-    <span class="k">"form"</span>: <span class="s">"ordered_relation"</span>,      <span class="c">// lexical | ordered_relation | threshold | lookup</span>
-    <span class="k">"spec"</span>: <span class="s">"ack_span PRECEDES resolution_span WITHIN turn"</span>,
-    <span class="k">"checkable"</span>: <span class="k">true</span>             <span class="c">// validator rejects if false (AUTH-1)</span>
+  <span class="k">"required_evidence"</span>: {              <span class="c">// v6 M6 — falsifiable; replaced by signals + facets (Patch 1 D10)</span>
+    <span class="k">"signal_id"</span>: <span class="s">"F1_ack_before_resolve"</span>,
+    <span class="k">"description"</span>: <span class="s">"acknowledgment_span PRECEDES resolution_span WITHIN turn"</span>,
+    <span class="k">"checkable"</span>: <span class="k">true</span>,            <span class="c">// B-F audit verified; programmatic facet</span>
+    <span class="k">"extraction_method"</span>: <span class="s">"programmatic"</span> <span class="c">// lexical check on span ordering</span>
   },
   <span class="k">"fail_condition"</span>: {                 <span class="c">// v6 M6 — falsifiable; what counts as a violation</span>
     <span class="k">"spec"</span>: <span class="s">"no ack_span, OR ack_span FOLLOWS resolution_span"</span>
@@ -591,7 +592,7 @@ The machine rubric is not a faithful translation of the human rubric — it is a
     <span class="k">"spec"</span>: <span class="s">"turn contains emotional-content marker"</span>   <span class="c">// gate false ⇒ trigger does not fire, contributes nothing</span>
   },
   <span class="k">"severity_map"</span>: <span class="s">"calibration:emp-sev-v3"</span>,  <span class="c">// rev.4 — REFERENCE into the manifest epoch; standalone injections re-anchor it, no recompile (B-A)</span>
-  <span class="k">"data_dependency"</span>: <span class="k">null</span>,             <span class="c">// rev.4 — for lookup triggers: e.g. {"source":"callback_logs","connected":false} ⇒ defer (B-D/Item24)</span>
+  <span class="k">"data_dependency"</span>: <span class="k">null</span>,             <span class="c">// rev.4 — for data-dependent signals: e.g. {"source":"callback_logs","connected":false} ⇒ defer (B-D/Item24, Patch 1 D10)</span>
   <span class="k">"gap_type"</span>: <span class="s">"calibration_surface_form"</span>, <span class="c">// rev.4 — values | perceiver | proxy | calibration_surface_form | coverage</span>
   <span class="k">"escape_tier"</span>: <span class="s">"aggressive"</span>,        <span class="c">// rev.4 — standard | aggressive; a function of gap_type, not hand-set (Item16)</span>
   <span class="k">"deduction"</span>: <span class="f">0.3</span>,                  <span class="c">// A6 — rubric weight; not scaled by corroboration</span>
@@ -619,7 +620,7 @@ The machine rubric is not a faithful translation of the human rubric — it is a
     { <span class="k">"kind"</span>: <span class="s">"dimension_coverage_gap"</span>,  <span class="c">// rev.4 — NO dimension measures this (Item 24)</span>
       <span class="k">"source_items"</span>: [<span class="s">"item-24"</span>],
       <span class="k">"measures"</span>: <span class="s">"consequential business harm — callback inevitability, unnecessary cost, incomplete resolution"</span>,
-      <span class="k">"compiled_to"</span>: [<span class="s">"lookup-biz-0007"</span>],       <span class="c">// lookup triggers with data_dependency</span>
+      <span class="k">"compiled_to"</span>: [<span class="s">"signal-biz-0007"</span>],       <span class="c">// data-dependent signals with data_dependency (Patch 1 D10)</span>
       <span class="k">"data_dependency"</span>: { <span class="k">"source"</span>: <span class="s">"callback_logs+ticket_status"</span>, <span class="k">"connected"</span>: <span class="k">false</span> },
       <span class="k">"disposition"</span>: <span class="s">"defer_until_source_connected"</span>,
       <span class="k">"proposes"</span>: <span class="s">"new sub-dimension: Business Impact"</span> }
@@ -639,10 +640,10 @@ The machine rubric is not a faithful translation of the human rubric — it is a
 <table class="grid">
   <thead><tr><th style="width:20%">Generic dimension</th><th style="width:34%">Structural signature (what a trigger can check)</th><th style="width:30%">Stays residue (→ manifest)</th><th style="width:16%">Verdict</th></tr></thead>
   <tbody>
-    <tr><td class="mono">Empathy &amp; Tone</td><td><code>ordered_relation</code>: ack_span PRECEDES resolution_span · <code>lexical</code>: acknowledgment reuses customer's own problem-nouns · corroborated by <span class="ic ind">acoustic</span> prosody measurement</td><td>"substantive vs scripted", "genuine not performative", register-matching</td><td><span class="vd xform">mostly compiles</span></td></tr>
-    <tr><td class="mono">Problem Resolution</td><td><code>threshold</code>: action + reference-number + timeline all-three present · <code>lexical</code>: root-cause explanation span present</td><td>whether the underlying problem was <em>actually</em> solved / customer left confident — the part beyond the three artifacts</td><td><span class="vd xform">partly compiles</span></td></tr>
-    <tr><td class="mono">Procedural Accuracy</td><td><code>lookup</code>: every stated fact matches source-of-truth · <code>lexical</code>: required disclosures present · <code>ordered_relation</code>: identity verified BEFORE account details — <b>compliance layer, confidence 1.0</b></td><td>"verification done smoothly without making the customer feel suspected"</td><td><span class="vd trans">crosses to compliance</span></td></tr>
-    <tr><td class="mono">Proactive Value</td><td><code>ordered_relation</code>: interaction does NOT end immediately at resolution · weak presence-check for an unprompted offer</td><td>"genuinely better off", "genuinely useful" — value judgments with no structural form</td><td><span class="vd forbid">barely compiles</span></td></tr>
+    <tr><td class="mono">Empathy &amp; Tone</td><td>ordered-relation signal: ack_span PRECEDES resolution_span · lexical signal: acknowledgment reuses customer's own problem-nouns · corroborated by <span class="ic ind">acoustic</span> prosody measurement</td><td>"substantive vs scripted", "genuine not performative", register-matching</td><td><span class="vd xform">mostly compiles</span></td></tr>
+    <tr><td class="mono">Problem Resolution</td><td>threshold signal: action + reference-number + timeline all-three present · lexical signal: root-cause explanation span present</td><td>whether the underlying problem was <em>actually</em> solved / customer left confident — the part beyond the three artifacts</td><td><span class="vd xform">partly compiles</span></td></tr>
+    <tr><td class="mono">Procedural Accuracy</td><td>lookup signal: every stated fact matches source-of-truth · lexical signal: required disclosures present · ordered-relation signal: identity verified BEFORE account details — <b>compliance layer, confidence 1.0</b></td><td>"verification done smoothly without making the customer feel suspected"</td><td><span class="vd trans">crosses to compliance</span></td></tr>
+    <tr><td class="mono">Proactive Value</td><td>ordered-relation signal: interaction does NOT end immediately at resolution · weak presence-check for an unprompted offer</td><td>"genuinely better off", "genuinely useful" — value judgments with no structural form</td><td><span class="vd forbid">barely compiles</span></td></tr>
   </tbody>
 </table>
 
@@ -658,13 +659,13 @@ The machine rubric is not a faithful translation of the human rubric — it is a
 <pre style="margin-top:0.8rem;">PER-ITEM COMPILE PATTERN (Claude Code, once inputs land):
   for each item in specific_rubric (27):
     dim   = align.md[item]                         # bind to dimension (B-A)
-    form  = extract_values(item.text)              # phrases→lexical, numbers→threshold (B-D)
+    form  = extract_values(item.text)              # phrases→lexical signals, numbers→threshold signals (B-D, Patch 1 D10)
     gate  = compile_na(item.na_condition)          # → applicability_gate (B-B)
     sev   = manifest.severity_ref(item) if manifest else None   # reference; absent ⇒ AUTH-9 withholds auto-final (B-A)
     gap   = classify_gap(item, dim)                # values|perceiver|proxy|calibration_surface_form|coverage
     tier  = aggressive if gap in {proxy, coverage} else standard   # (Item16)
     if no dimension adequately covers item:        # (Item24)
-        emit lookup + data_dependency; defer_until_source_connected
+        emit signal with data_dependency; defer_until_source_connected
         write dimension_coverage_gap row
     elif surface_form_sensitive(item) and not calibration.covers(item):   # (Item22)
         emit node but forbid auto_final (AUTH-9)
@@ -679,7 +680,7 @@ Deliverables for Claude Code: (1) the compiler+validator per §7, (2) the 27 com
 <h2><span class="num">§4 · PROHIBITIONS</span>What the validator must refuse</h2>
 
 <ol class="spec">
-  <li><b>No adjective triggers.</b> <del class="patch-1"><code>trigger.checkable == false</code></del> <span class="p1-note">trigger removed; checkable concept moves to machine_criterion (Patch 1 D10)</span> or a <code>spec</code> containing an evaluative adjective ("empathetic", "polished") → reject. A trigger names a structural check, never a conclusion.</li>
+  <li><b>No adjective signals.</b> <del class="patch-1"><code>trigger.checkable == false</code></del> <span class="p1-note">trigger removed; checkable concept moves to machine_criterion (Patch 1 D10)</span> or a signal description containing an evaluative adjective ("empathetic", "polished") → reject. A signal names a structural check, never a conclusion.</li>
   <li><b>No undeclared residue.</b> A judgment-layer entry without <del class="patch-1"><code>residue_declared</code></del> <code>gap_rationale</code> <span class="p1-note">renamed (Patch 1 §6)</span> → reject. The gap must be named where it can be audited.</li>
   <li><b>No ungated soft entry.</b> A judgment-layer entry without an <code>agreement</code> plan → reject. Nothing soft auto-finalizes without a κ-gate.</li>
   <li><b>No soft⊕soft corroborator.</b> A corroborator with <code>independence_class: "redundant"</code> (another model-judged text signal) → reject. Manufactured consensus is not corroboration (D5 / §6.4).</li>
@@ -688,7 +689,7 @@ Deliverables for Claude Code: (1) the compiler+validator per §7, (2) the 27 com
   <li><b>No compile without a manifest.</b> A compile run over a human rubric that has any non-fully-compilable dimension must emit a <code>ResidueManifest</code> row for it → reject the run if the manifest is missing. Dropping the residue silently is the one failure this spec exists to prevent.</li>
   <li><b>No soft entry without an escape plan.</b> rev. 4: a judgment-layer entry whose <code>agreement</code> block lacks <code>escape_sample_plan</code>/<code>escape_ceiling</code> → reject. κ alone is blind to auto-passed calls; the auto-pass tail must be planned at authoring time (pipeline §6, D11).</li>
   <li><b>No NA condition without a compiled gate (AUTH-7).</b> rev. 4: a source item that carries an NA condition but whose node has no <code>applicability_gate</code> → reject. An uncompiled NA silently turns "not applicable" into "fail" (B-B).</li>
-  <li><b>No lookup trigger without a data-dependency declaration, and it must defer while unconnected (AUTH-8).</b> rev. 4: a <code>lookup</code> trigger citing out-of-band data (callback logs, ticket status) with no <code>data_dependency</code>, or one whose source is <code>connected: false</code> that does <em>not</em> defer to human → reject (Item 24).</li>
+  <li><b>No data-dependent signal without a data-dependency declaration, and it must defer while unconnected (AUTH-8).</b> rev. 4: a signal citing out-of-band data (callback logs, ticket status) with no <code>data_dependency</code> declaration, or one whose source is <code>connected: false</code> that does <em>not</em> defer to human → reject (Item 24). <span class="p1-note">was "No lookup trigger"; trigger.spec removed (Patch 1 D10)</span></li>
   <li><b>No auto-final on an uncalibrated surface-form criterion (AUTH-9).</b> rev. 4: a judgment node flagged <code>gap_type: "calibration_surface_form"</code> that permits auto-final while the calibration manifest does not cover its failure surface → reject. Without company fragments the criterion produces systematic false-positive passes (Item 22).</li>
   <li><b>No unmapped item forced into a dimension (AUTH-10).</b> rev. 4: an item that <code>align.md</code> maps to no adequate dimension but which is compiled into the nearest dimension anyway, instead of emitting a <code>dimension_coverage_gap</code> row → reject. Silent miscoding is worse than an honest defer (Item 24).</li>
 </ol>
@@ -696,10 +697,10 @@ Deliverables for Claude Code: (1) the compiler+validator per §7, (2) the 27 com
 <!-- ════════ §5 ════════ -->
 <h2><span class="num">§5 · FIXTURES</span>Authoring-time red/green — the validator floor</h2>
 
-<h3>AUTH-1 — adjective trigger</h3>
+<h3>AUTH-1 — adjective signal</h3>
 <div class="fixture">
-  <div class="cell red"><div class="label">RED · must reject</div><p>Entry with <del class="patch-1"><code>trigger.spec: "agent should sound empathetic"</code>, <code>checkable: false</code></del> <span class="p1-note">trigger.spec removed; AUTH-1 now checks machine_criterion for non-structural content (Patch 1 D10)</span>. Validator must refuse — no structural check.</p></div>
-  <div class="cell green"><div class="label">GREEN · must accept</div><p><del class="patch-1"><code>trigger.form: "ordered_relation"</code>, a span-precedence spec, <code>checkable: true</code></del> <span class="p1-note">machine_criterion + signals replace trigger.form/checkable (Patch 1 D10)</span> → validates.</p></div>
+  <div class="cell red"><div class="label">RED · must reject</div><p>Entry with <del class="patch-1"><code>trigger.spec: "agent should sound empathetic"</code>, <code>checkable: false</code></del> <span class="p1-note">trigger.spec removed; AUTH-1 now checks signals and machine_criterion for non-structural content (Patch 1 D10)</span>. Signal description containing evaluative adjective without concrete referent → reject. Validator must refuse — no structural check.</p></div>
+  <div class="cell green"><div class="label">GREEN · must accept</div><p><del class="patch-1"><code>trigger.form: "ordered_relation"</code>, a span-precedence spec, <code>checkable: true</code></del> <span class="p1-note">machine_criterion + signals replace trigger.form/checkable (Patch 1 D10)</span>. Signal "ack_span PRECEDES resolution_span WITHIN turn" with programmatic facet → validates.</p></div>
 </div>
 
 <h3>AUTH-2 — undeclared residue</h3>
@@ -740,7 +741,7 @@ Deliverables for Claude Code: (1) the compiler+validator per §7, (2) the 27 com
 
 <h3>AUTH-8 — lookup without data-dependency / non-deferring (rev. 4)</h3>
 <div class="fixture">
-  <div class="cell red"><div class="label">RED · must reject</div><p>Item 24 business-harm node emits a <code>lookup</code> trigger over callback logs with no <code>data_dependency</code>, <em>or</em> with <code>connected: false</code> but <code>disposition</code> ≠ defer. Refuse: it would score a business outcome it cannot observe.</p></div>
+  <div class="cell red"><div class="label">RED · must reject</div><p>Item 24 business-harm node emits a signal over callback logs with no <code>data_dependency</code> declaration, <em>or</em> with <code>connected: false</code> but <code>disposition</code> ≠ defer. <span class="p1-note">was "lookup trigger" (Patch 1 D10)</span> Refuse: it would score a business outcome it cannot observe.</p></div>
   <div class="cell green"><div class="label">GREEN · must accept</div><p><code>data_dependency: {source, connected:false}</code> + <code>disposition: "defer_until_source_connected"</code> + a <code>dimension_coverage_gap</code> row → validates.</p></div>
 </div>
 

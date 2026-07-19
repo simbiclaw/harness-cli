@@ -15,7 +15,7 @@ Patch 1 (D1–D12) defined the operationalized artifact structure and the per-it
 
 ## Surprise 1: Hidden companion document dependency
 
-**What happened:** Compiling Items 20/21 required two companion documents (营销触发.md, 营销话术.md) that are not declared anywhere in the rubric or the compiler procedure. The rubric text alone — "对用户表达中明显的潜在营销机会置之不理" — does not enumerate what those opportunities are. The trigger keywords live entirely outside the rubric, in companion documents.
+**What happened:** Compiling Items 20/21 required a companion document (营销话术.md) that is not declared anywhere in the rubric or the compiler procedure. The rubric text alone — "对用户表达中明显的潜在营销机会置之不理" — does not enumerate what those opportunities are. The standard scripts live entirely outside the rubric, in a companion document.
 
 **Compiler gap:** No mechanism exists to (a) declare which companion documents an Item needs, (b) verify those documents are present and version-pinned before compilation begins, or (c) report missing companion documents to the human.
 
@@ -26,9 +26,6 @@ Add a pre-compile step that checks a `companion_docs` declaration per Item. The 
 ```yaml
 item_20:
   companion_docs:
-    - path: "docs/PRD/eval/营销触发.md"
-      sha: "<pinned at compilation epoch>"
-      role: "trigger_keywords"
     - path: "docs/PRD/eval/营销话术.md"
       sha: "<pinned at compilation epoch>"
       role: "standard_scripts"
@@ -40,7 +37,7 @@ The companion document manifest is defined once by the human when an Item is fir
 
 ## Surprise 2: Source document contradiction — halt and await human decision
 
-**What happened:** 营销触发.md contained two conflicting keyword definitions (T001-T005 vs. VAS-001-VAS-005) with only 7 shared keywords across 49+ combined. The compiler silently selected the first set, producing a compilation that was internally consistent but objectively incomplete. The adversarial reviewer was the first to flag this.
+**What happened:** A companion document contained two conflicting keyword definitions (T001-T005 vs. VAS-001-VAS-005) with only 7 shared keywords across 49+ combined. The compiler silently selected the first set, producing a compilation that was internally consistent but objectively incomplete. The adversarial reviewer was the first to flag this.
 
 **Compiler gap:** The compiler has no source validation step. When companion documents contain internal contradictions, the compiler cannot resolve them autonomously — the choice of which keyword set is authoritative is a domain decision, not a technical one.
 
@@ -203,8 +200,142 @@ POST-COMPILE (global):
 
 ---
 
+## Claude Code Execution Architecture — GAN-Inspired Multi-Agent Loop
+
+### Motivation
+
+Patch-2 defines a compiler pipeline with four phases (pre-compile, per-item compile, post-compile self-audit, adversarial review) and a feedback mechanism (Surprise 6: the adversarial reviewer found problems the compiler should have caught). The natural execution substrate is Claude Code's dynamic workflow with Planner → Generator → Evaluator multi-agent loop — a GAN-inspired architecture where a Generator produces compilations and an Evaluator adversarially drives them toward stronger outputs through a feedback loop.
+
+### Prompt comparison: delegation vs. prescription
+
+Two prompts were evaluated for the same task:
+
+**Prompt 1 — Delegation (Claude designs the workflow):**
+
+```
+ultracode: implement the Patch-2 compiler pipeline from docs/retrospectives/soft-criteria-authoring-spec-v4-patch-2.md.
+```
+
+**Prompt 2 — Prescription (human designs the architecture):**
+
+```
+use a workflow to build Planner + Generator + Evaluator multi-agent loop per patch 2:
+1) Planner dispatches Items to independent Generator subagents
+2) Evaluator reviews first-done-first
+3) Feedback loop drives Generator toward stronger outputs
+4) /goal: don't stop until all adversarial review findings addressed
+```
+
+| Dimension | Prompt 1 (Delegation) | Prompt 2 (Prescription) |
+|:---|:---|:---|
+| Orchestration topology | Claude chooses — likely linear `pipeline(items, compile, audit, review)` | Human-specified Planner→Generator→Evaluator triangle with feedback loop |
+| Improvement mechanism | None built in. Each Item passes through once; defects are recorded, not fixed | Feedback loop: Evaluator → Generator fix → Evaluator re-review → CONFIRMED |
+| Termination condition | Workflow completes when all items pass through all stages | `/goal` — stops only when all adversarial findings are addressed |
+| Token efficiency | Lower overhead per run, but defects require human re-prompting | Higher overhead per run, but defects are auto-fixed within the loop |
+| Adversarial alignment | Partial — review happens but doesn't drive improvement | Full — directly implements "A implements, B falsifies" from CLAUDE.md |
+
+**Recommendation:** Prompt 2 is the correct architecture for Patch-2 because (a) Patch-2 itself was born from adversarial review (Surprise 6), so the GAN loop is methodologically consistent; (b) the Planner directly solves Surprise 3 (cross-Item dependency ordering); (c) the feedback loop directly solves Surprise 4 (hidden model dependencies the compiler doesn't catch itself).
+
+---
+
+### Refined architecture v2 — token-optimized, feedback loop preserved
+
+Initial Prompt 2 had five sources of redundancy. The v2 refinement eliminates them without weakening the feedback loop:
+
+| Redundancy | Problem | v2 Fix |
+|:---|:---|:---|
+| Generator self-audit ≈ Evaluator re-check | Same YAML checked twice by two agents (>70% overlap) | Eliminate self-audit. Evaluator is the **single quality gate** — all 8 checks consolidated there |
+| Companion doc validation repeated per-Item | Multiple Items depend on the same companion document — validated independently | Planner validates ALL companion docs once at startup, extracts shared data, passes as `args` to Generators |
+| Global adversarial reviewer ≈ Evaluator (double-count) | `/goal` requires Evaluator CONFIRMED AND separate global reviewer | Eliminate separate global reviewer. Evaluator runs a final global consistency pass once after all Items CONFIRMED |
+| Feedback loop triggers full recompile | One signal's exclusion set broken → entire A1-A7 + B-A..B-G re-run | Evaluator returns **targeted fix lists** (per-signal, per-gate). Generator fixes only the named issues; does not recompile the whole Item |
+| Simple Items treated as heavyweight | Item 01 (check for "您好") gets same Generator overhead as Item 20 (11 triggers, cross-doc deps) | Planner batches structurally simple Items (01-07 procedural accuracy) into one Generator; one subagent context serves 7 Items |
+
+**Net token impact:**
+
+| Path | Saving mechanism | Estimate |
+|:---|:---|:--:|
+| First-pass compile | Eliminated duplicate companion doc reads; simple Item batching | ~15–20% |
+| Feedback round (per Item) | Targeted fixes + Evaluator re-reviews only changed signals | ~45–55% per round |
+| Global phase | Evaluator consistency pass replaces separate global reviewer | ~10% |
+
+---
+
+### Final execution prompt
+
+```
+use a workflow to build Planner + Generator + Evaluator loop per Patch-2.
+Keep the feedback loop but eliminate redundancy:
+
+ARCHITECTURE:
+1) PLANNER (one agent, runs once):
+   - Validate ALL companion documents at startup (shared, not per-Item)
+   - Extract shared data: standard scripts from 营销话术.md
+   - Scan cross-Item dependencies (Surprise 3), mark which Items depend on which
+   - Batch structurally simple Items (01-07 procedural accuracy) into one Generator
+   - Dispatch independent Items immediately; hold dependent Items until their
+     prerequisite signal IDs are locked by the Evaluator
+
+2) GENERATOR (one subagent per Item or per batch):
+   - Receives shared companion doc data from Planner (no re-reading files)
+   - Compiles ONLY: A1-A7 + B-A through B-F (gate-checkability) + B-G + gap classification
+   - Emits Item YAML + signal IDs
+   - Does NOT self-audit — the Evaluator is the single quality gate
+   - On fix round: receives a targeted fix list from Evaluator, fixes ONLY those
+     specific signals/gates — does NOT recompile the entire Item
+
+3) EVALUATOR (one agent, reviews first-done-first):
+   - ALL quality checks consolidated here (no duplication with Generator):
+     a. Gate-checkability Q1/Q2 per signal (BLOCK)
+     b. AUTH-1 adjective scan (BLOCK)
+     c. Hidden model dependencies — declared checkable but Q2 fails (BLOCK)
+     d. Exclusion set adversarial test — Surprise 5 (WARN → fix list)
+     e. Trigger completeness vs companion doc keywords (WARN)
+     f. Signal coverage — every clause has at least one signal (WARN)
+     g. Gap classification correctness (BLOCK)
+     h. Cross-Item consistency — dependent Item's signal refs match locked IDs (BLOCK)
+   - Returns one of: CONFIRMED | FIXES_NEEDED (with targeted fix list) | AWAITING_STEERING
+   - After ALL Items CONFIRMED: runs a final global consistency pass (once, not per-Item):
+     checks ResidueManifest completeness, dimension-level coherence, no orphan signals
+
+FEEDBACK LOOP:
+   Generator → Evaluator → FIXES_NEEDED → Generator fixes only targeted issues
+   → Evaluator re-reviews only changed signals → repeat
+   Max 3 rounds per Item. After 3 rounds without CONFIRMED → flag as AWAITING_STEERING.
+
+/goal don't stop until all Items have CONFIRMED verdicts from the Evaluator
+AND the global consistency pass passes
+AND the ResidueManifest covers every lossy compilation.
+```
+
+---
+
+### Design decisions
+
+**Decision: Eliminate self-audit; Evaluator is the single quality gate.**
+
+**Rationale:** `Source: Prompt 1 vs Prompt 2 comparison` — the self-audit pass (Surprise 6) and the Evaluator's adversarial review check the same properties: gate-checkability, AUTH-1, model dependencies, exclusion set behavior, gap classification. Running both means the same YAML is inspected twice by different agents with >70% overlap in checklist. Consolidating into the Evaluator removes the duplication without losing coverage — the Evaluator's checks are a strict superset of self-audit. Generator is now purely constructive; Evaluator is purely critical. The separation of concerns is cleaner: Generator doesn't grade its own homework.
+
+**Decision: Planner is the single I/O boundary for companion documents.**
+
+**Rationale:** `Source: Surprise 1 (companion doc dependency)` — multiple Items depend on the same companion documents (Items 20 and 21 both consume `营销话术.md`). Validating and extracting data once at the Planner level prevents N Generators from independently re-reading and re-validating the same files. Shared extraction is an `args` handoff: the workflow passes extracted data to each Generator, so Generators never touch the filesystem for companion documents. Each Generator's context window is smaller because it receives pre-parsed data rather than raw file content.
+
+**Decision: Targeted fixes over full recompile in feedback rounds.**
+
+**Rationale:** `Source: Surprise 4 (gate-checkability failures), Surprise 5 (exclusion set pragmatics)` — when the Evaluator identifies a problem (e.g., signal S03's exclusion set over-fires on "我建议您可以选择"), the fix is localized to that signal's `exclusion_set` field. Re-running A1 (dimension decomposition), A3 (corroborator classification), A5 (agreement seeding), and A6 (deduction weight) produces the same outputs — none of these stages depend on the exclusion set. The Generator in fix mode receives `{signal_id: "S03", field: "exclusion_set", issue: "...", suggested_fix: "..."}` and applies a surgical edit. The Evaluator in re-review mode checks only the changed signals, not the entire Item. This makes feedback rounds O(changed_signals) instead of O(all_signals).
+
+**Decision: Simple Items batched; complex Items isolated.**
+
+**Rationale:** Items 01-07 (procedural accuracy: greeting, address terms, hold procedure, closing) have a shared structure — each is a single lexical check against a small vocabulary with no cross-Item dependencies and no companion document requirements. Batching them into one Generator subagent means one context window serves 7 Items instead of 7 subagent spawns each with full framework context. Complex Items (20, 21) with cross-document dependencies, model-judged signals, and exclusion set pragmatics still get dedicated Generators because their compilation logic doesn't share context with other Items.
+
+**Decision: Max 3 feedback rounds per Item.**
+
+**Rationale:** `Source: verification-floor.md adversarial verification loop` — the feedback loop is a GAN: Generator and Evaluator are adversarial. Without a bound, a non-convergent Item (e.g., an exclusion set with irreducible Chinese pragmatics ambiguity) could loop indefinitely. Three rounds is the cap: round 1 finds issues, round 2 verifies fixes, round 3 is the last chance. After 3 rounds without CONFIRMED, the Item is flagged as AWAITING_STEERING — the ambiguity requires a human decision (Surprise 2 pattern). This bound also caps token spend: worst-case per Item is first-pass compile + 3 fix rounds, not unbounded.
+
+---
+
 ## Changelog
 
 | Date | Change | Source |
 |------|--------|--------|
+| 2026-07-17 | Claude Code execution architecture added. GAN-inspired Planner→Generator→Evaluator multi-agent loop with feedback design. Prompt 1 (delegation) vs Prompt 2 (prescription) comparison. Refined architecture v2 with five token-saving optimizations: consolidated quality gate, shared companion doc extraction, targeted fixes over full recompile, simple Item batching, bounded feedback rounds. Final execution prompt documented. | Prompt comparison experiment; adversarial review of architecture design |
 | 2026-07-16 | Patch 2 created. Six surprises and recommendations documented: companion document manifest (S1), pre-compile source validation with halt-on-conflict (S2), dependency-aware topological compilation (S3), B-F Gate-Checkability Audit (S4), pragmatic adversarial test generation for exclusion sets (S5), compiler self-audit pass (S6). Updated compiler pipeline diagram and AuthoredNode schema. | Adversarial review of Item 20/21 v1 compilations; Items 20/21 v2 re-compilation and re-review |
