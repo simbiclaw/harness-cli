@@ -37,6 +37,9 @@ htmlcov/
 # Verifier subagent run logs (kept locally, not committed).
 .claude/verifier-runs/
 
+# Brainstorming / visual companion artifacts.
+.superpowers/
+
 # OS / editor.
 .DS_Store
 .idea/
