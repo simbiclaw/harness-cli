@@ -44,7 +44,14 @@ Replace the v0 placeholder AGENTS.md with the CLAUDE.md-style navigation protoco
 
 ### M1 — L2 semantic anchor extraction + dual-channel routing engine
 
-Read all L2 `intent_manifest.json` files via the protocol in AGENTS.md. Extract `description` fields as semantic anchors, embed them, and cache. Implement cosine-matching dispatch: S_max ≥ T → matched channel, S_max < T → deviation channel. Compute and report deviation rate per run.
+Read all L2 `intent_manifest.json` files via the protocol in AGENTS.md. Extract `description` fields as semantic anchors, embed them (bge-m3), and cache. Implement cosine-matching dispatch: S_max ≥ T → matched channel, S_max < T → deviation channel. Compute and report deviation rate per run.
+
+**Notes — see `docs/references/audio2tree-pipeline-design.md` §2 for the full routing flow and §5 for L2 manifest schema.**
+
+- **L2 anchors come from manifest.json, not AGENTS.md.** AGENTS.md teaches agents how to find them via `find`/`jq`. The extraction script reads manifest files at runtime. If a description changes between runs, only re-embed that one L2 (hash check).
+- **Dual-channel dispatch is the core architectural innovation.** A call is never force-assigned to a mismatched L2. The deviation pool is a first-class output, not an error bucket. Deviation rate = |D_deviation| / |D_total| is computed and reported on stdout after every run — this is the management metric that tells Curated whether the manual taxonomy is keeping up with real customer needs.
+- **Pipeline mapping reference:** S2 stage in the design session — L1 classification (cosine to L1 descriptions) runs first, then L2 routing within the assigned L1. Two cosine passes, not one. L1 descriptions also come from manifest.json files at the L1 directory level.
+- **Threshold T = 0.60 initial.** This is human-calibrated after the first batch run — not a fixed constant. Store in pipeline config, not hardcoded.
 
 `Acceptance Test:` `tests/test_routing.py::test_matched_channel` — given a Request semantically close to an existing L2 description (cos > 0.60), the router assigns it to that L2. `tests/test_routing.py::test_deviation_channel` — given a Request semantically distant from all L2 descriptions (cos < 0.60), the router routes it to the deviation pool rather than force-assigning. `tests/test_routing.py::test_deviation_rate_computed` — after processing a batch, deviation rate = |deviation| / |total| is correctly reported.
 
@@ -52,11 +59,26 @@ Read all L2 `intent_manifest.json` files via the protocol in AGENTS.md. Extract 
 
 Implement programmatic facet extractors (acoustic features, turn stats, pause metrics from .structural.json) and model-based facet extractors (LLM-powered signal detection for rubric Items). Every extracted facet must carry an `item_signal` trace field. Gate-checkable facets (lexical, threshold, lookup) are tagged `checkable: true`. Model-only facets (semantic judgment requiring NLU) are tagged `checkable: false`. Apply the B-F gate-checkability audit from Patch-2 to every model-based facet.
 
+**Notes — see `docs/references/audio2tree-pipeline-design.md` §3 for the full facet-to-Item/Signal mapping table and quarantine boundary rules.**
+
+- **The facet taxonomy IS the rubric taxonomy, reversed.** Don't ask "what can we extract." Ask "what does the rubric need to measure." The 25 Items × 4 Dimensions mapping table from the design session is the reference: every model-based facet must trace to at least one Item.Signal. If a proposed facet can't name its Item.Signal, it doesn't belong in the extractor.
+- **Programmatic vs model-based split is a quarantine boundary (I1).** Programmatic facets (acoustic, turn stats, pause metrics) are deterministic — they live in `core/`. Model-based facets (LLM-extracted signals) touch the model — they live in `io/`. Same fence as the 9002 runtime pipeline. The B-F gate-checkability audit from Patch-2 runs on every model-based facet: Q1 (can proposer find a span?) → Q2 (can gate deterministically verify that span?) → tag as checkable, split, or model_only.
+- **Start with the subset of facets that are gate-checkable.** Items 01-07 (procedural accuracy) are almost entirely lexical — greeting, address terms, hold, closing. These are the lowest-risk facets to implement first. Semantic facets (knowledge_accuracy, emotion_sync, tone_friendliness) come later and default to checkable=false.
+- **Facet extraction is additive.** Phase 1 extracts Request only. Phase 2 adds criteria-shaped facets to the same Request objects. The Request text doesn't change — only the metadata attached to it grows.
+
 `Acceptance Test:` `tests/test_facets.py::test_programmatic_facets_computed` — given a .structural.json fixture, all programmatic facets (f0_mean, speaking_rate, turn_count, etc.) are computed without error. `tests/test_facets.py::test_model_facets_trace_to_item_signal` — every model-based facet in the output carries a non-null `item_signal` field that resolves to a known Item in the 25-Item rubric. `tests/test_facets.py::test_gate_checkable_tagged` — lexical facets are tagged checkable=true, semantic facets tagged checkable=false.
 
 ### M3 — Contrastive cluster naming
 
 Implement contrastive naming: for each cluster, select 5 representative Requests closest to the centroid (in-cluster) + 5 Requests from the nearest neighboring cluster's centroid but not assigned to this cluster (contrastive). Use an LLM with temperature=1.0 and the contrastive prompt structure to generate a distinctive Chinese name and two-sentence description. Validate that names are not generic ("其他咨询", "综合问题").
+
+**Notes — see `docs/references/audio2tree-pipeline-design.md` §4 for the full contrastive prompt structure and selection algorithm.**
+
+- **The contrastive structure is the load-bearing innovation from Clio G.5.** The model must identify what is DISTINCTIVE about this cluster, not just what is common. The prompt has two explicitly separated sections: `<同类 Request>` (5 samples FROM the cluster, closest to centroid) and `<对比 Request>` (5 samples from the nearest neighboring cluster's centroid that are NOT in this cluster). This forces the model to name the boundary, not the center.
+- **Temperature = 1.0 for naming.** Naming needs diversity, not determinism. This is a direct adaptation from Clio — Sonnet at temp=1.0. Audio2Tree uses the same principle with its own strong model.
+- **The prompt is in Chinese with domain context.** The model is told which L1 and L2 this cluster belongs to. The name must describe "客户想要什么" (what the customer wants), not "客户情绪如何" (how the customer feels). Generic names like "其他咨询" are explicitly rejected in validation.
+- **Clio uses 50+50 samples; Audio2Tree uses 5+5.** Customer service intents are significantly more convergent than open-ended AI conversations. The reduced sample count fits CS data's lower variance while preserving the contrastive mechanism.
+- **Model tiering: small model for S1 extraction, strong model for S3 naming.** Clio's pattern (Haiku for facets, Sonnet for naming) is directly adapted.
 
 `Acceptance Test:` `tests/test_naming.py::test_contrastive_prompt_structure` — the generated prompt includes both in-cluster and contrastive samples, clearly separated by XML tags. `tests/test_naming.py::test_name_not_generic` — given a cluster of certificate renewal calls, the generated name is specific (e.g., "咨询证书续费流程") not generic. `tests/test_naming.py::test_llm_temperature_is_1` — the LLM call for naming uses temperature=1.0.
 
@@ -64,11 +86,25 @@ Implement contrastive naming: for each cluster, select 5 representative Requests
 
 Write audio2tree's clustering output to `intent_manifest.json` files throughout the INTENTS tree. For matched-channel L2 nodes: update `bottom_up` section (request_count, cluster_centroid, representative_requests), write L3 child nodes (each as its own intent_manifest.json). For deviation-channel L2 nodes: create new L2 directory + manifest (source: audio2tree, status: pending_review), create L3 child nodes. Never modify `top_down` section. Update AGENTS.md routing index only if a new L2 is created (add the L2 entry).
 
+**Notes — see `docs/references/audio2tree-pipeline-design.md` §5 for the full four-shape manifest schema (L1, L2 matched, L2 deviation, L3) and merge rules.**
+
+- **Key-level isolation is the non-negotiable contract.** Doc2Graph writes `top_down`. Audio2Tree writes `bottom_up`. Neither reads the other's section during write. The manifest merge logic is: if the file exists, read it, update only `bottom_up` + `last_updated` + `last_updated_by`, write back. If the file doesn't exist (deviation channel), create it with `source: "audio2tree"` and `status: "pending_review"`.
+- **Four distinct manifest shapes.** The design session produced schemas for L1 (directory node: intent_id, title, description, child_intents), L2 matched (source: both, top_down present, bottom_up.channel: matched), L2 deviation (source: audio2tree, top_down empty, bottom_up.channel: deviation, status: pending_review), and L3 (parent_intent_id links to L2, no top_down). The implementation must handle all four without a `level` field — level is expressed by directory path.
+- **L3 nodes are always audio2tree-created.** Doc2Graph writes L1 and L2 structure. L3 is the granularity at which audio2tree clusters calls within an L2. L3 manifests have `parent_intent_id`, not `child_intents`.
+- **AGENTS.md update is a side effect, not the primary output.** Only when a deviation-channel L2 is confirmed (status changes from pending_review to active) does the L2 entry get added to AGENTS.md. Until then, the L2 is discoverable via `find` but not listed in the routing index.
+
 `Acceptance Test:` `tests/test_manifest_population.py::test_matched_channel_writes_bottom_up` — after clustering a matched-channel L2, its manifest.json contains a populated bottom_up section and the top_down section is unchanged. `tests/test_manifest_population.py::test_deviation_channel_creates_new_l2` — a deviation-channel cluster with request_count > threshold creates a new L2 directory with manifest.json (source: audio2tree, status: pending_review). `tests/test_manifest_population.py::test_l3_manifests_created` — each L2 receives L3 child directories with their own intent_manifest.json files.
 
 ### M5 — Stability protocol (incremental run)
 
 Implement incremental assignment: load existing cluster centroids from previous run state. New Requests assigned to nearest centroid above threshold (0.65). Unassigned Requests accumulate in pool; when pool reaches discovery_threshold (15), run k-means on pool only to discover new clusters. Existing centroids are updated as running means, not replaced. Merges and splits are never automatic — they require manual `audit` invocation. Centroid drift detection: flag when two centroids approach within cosine 0.95.
+
+**Notes — see `docs/references/audio2tree-pipeline-design.md` §6 for the full stability algorithm, parameter table, and state file spec.**
+
+- **The stability protocol is directly adapted from Clio's incremental assignment.** The core rule: existing cluster centroids are preserved. New data is assigned to the nearest existing centroid (cos ≥ 0.65). Only data that doesn't match any existing cluster accumulates in an unassigned pool. When the pool reaches discovery_threshold (15), k-means runs on the pool only — never on the full dataset. This guarantees existing intent_ids never change.
+- **Centroid updates are running means, not replacements.** When a new Request is assigned to an existing cluster, the centroid moves: centroid_new = (centroid_old × n + V_new) / (n + 1). This is bounded drift — a single new Request can't radically shift a cluster with hundreds of existing members.
+- **Merges and splits are human-triggered, never automatic.** The `argus audio2tree audit --drift-threshold 0.95` command surfaces clusters whose centroids have drifted close together. But the merge decision is Curated's. The stability protocol flags; it never acts.
+- **State is persisted between runs.** Cluster centroids, member counts, and pool state are written to `pipeline_state/` after each run and loaded at the start of the next. This is what makes idempotent re-runs possible: same corpus → same state file → same assignments.
 
 `Acceptance Test:` `tests/test_stability.py::test_idempotent_runs` — running audio2tree twice on the same corpus produces identical cluster assignments (same intent_ids). `tests/test_stability.py::test_incremental_preserves_centroids` — running on an extended corpus preserves all existing intent_ids; new data assigned to existing or new clusters correctly. `tests/test_stability.py::test_deviation_pool_accumulates` — calls below assignment threshold enter the unassigned pool; pool reaches discovery_threshold → new clusters created. `tests/test_stability.py::test_no_auto_merge` — two clusters whose centroids drift close together are flagged by audit, not auto-merged.
 
@@ -76,17 +112,44 @@ Implement incremental assignment: load existing cluster centroids from previous 
 
 Implement Clio G.7 adapted hierarchy: when an L1 has L2 count exceeding the context threshold (~50), group L2 clusters into neighborhoods (~40 per neighborhood), propose parent cluster names per neighborhood with contrastive edge clusters (m=5 nearest outside the neighborhood), deduplicate across neighborhoods, assign L2s to parents, rename parents. Below the threshold, use direct full-list naming (all L2 names fit in a single context window).
 
+**Notes — see `docs/references/audio2tree-pipeline-design.md` §7 for the full six-step neighborhood hierarchy algorithm and parameters.**
+
+- **This is Clio G.7 adapted — but conditionally enabled.** Clio always uses neighborhood-based hierarchy. Audio2Tree only enables it when an L1 has > 50 L2 clusters. Below that threshold, all L2 names + descriptions fit in a single LLM context window, so direct full-list naming is simpler and equally accurate.
+- **The six-step algorithm is directly from Clio Appendix G.7:**
+  1. Embed each L2 cluster's name + description (bge-m3)
+  2. K-means group embeddings into neighborhoods (~40 clusters each). k is chosen so each neighborhood fits in context
+  3. For each neighborhood: Claude proposes candidate parent names. Claude sees BOTH the clusters in the neighborhood AND the nearest m=5 clusters OUTSIDE it — this prevents boundary clusters from being miscategorized or double-counted
+  4. Claude deduplicates across all neighborhood proposals — merges semantically equivalent parent names, ensures coverage
+  5. Each L2 is assigned to its best-fit parent
+  6. Parents are renamed based on their actual assigned children (not the original proposal)
+- **The contrastive edge clusters (m=5) are the key Clio insight preserved.** Without them, a cluster on the boundary between two neighborhoods could be assigned to a parent that doesn't represent it, because the parent proposer never saw it. The m=5 edge samples prevent this.
+- **This milestone is lower priority than M1-M5.** Most CS domains will not reach 50 L2 intents per L1. The direct full-list path handles the common case. Neighborhood mode is a scalability safety valve.
+
 `Acceptance Test:` `tests/test_hierarchy.py::test_neighborhood_triggered_above_threshold` — with > 50 L2 clusters in one L1, the hierarchy builder activates neighborhood mode and produces parent clusters without truncation. `tests/test_hierarchy.py::test_direct_naming_below_threshold` — with ≤ 50 L2 clusters, the hierarchy builder uses direct full-list naming. `tests/test_hierarchy.py::test_no_orphan_l2` — every L2 cluster is assigned to a parent; no L2 is left unassigned.
 
 ### M7 — Boot sequence: Phase 1 → Phase 2 orchestration
 
 Implement the two-phase boot sequence. Phase 1 (--phase 1): Request extraction + programmatic facets only, basic L2/L3 clustering. Phase 2 (--phase 2): full criteria-shaped facets, dual-channel routing, enriched clustering. When transitioning from Phase 1 to Phase 2, existing cluster centroids survive unchanged — only facet_stats metadata is added. Request text is the same across phases, so the vector space is stable.
 
+**Notes — see `docs/references/audio2tree-pipeline-design.md` §8 for the full boot sequence spec, state file compatibility rules, and migration guarantee.**
+
+- **Phase 1 delivers value without waiting for the 9003 compiler.** The only dependency is structural transcription (S0, already exists). Phase 1 extracts a single Request per call + programmatic facets (acoustic, turn stats), classifies to L1, and runs basic L2/L3 clustering. This gives Curated an immediately usable intent tree — which calls are about which topics, at what volume.
+- **Phase 2 is enrichment, not replacement.** When the 9003 compiler finishes and Items are available, Phase 2 re-processes the same call corpus. It adds criteria-shaped facets (M2) and dual-channel routing (M1) on top of the Phase 1 pipeline. The key guarantee: Request text doesn't change between phases → embedding vectors are identical → Phase 1 centroids survive unchanged. Phase 2 only adds `facet_stats` metadata to existing clusters.
+- **The `--phase` flag gates which facet extractors are loaded.** Phase 1 loads only the Request extractor + programmatic extractors. Phase 2 additionally loads model-based criteria-shaped extractors. This is a runtime composition choice, not two separate code paths.
+- **Migration is automatic.** The first Phase 2 run on a corpus that has Phase 1 state loads the existing centroids (M5 stability protocol) and enriches them. No manual migration step. No data conversion. The state file format is forward-compatible: Phase 2 state files have a `phase: 2` field and may contain `facet_stats` that Phase 1 files lack.
+
 `Acceptance Test:` `tests/test_boot_sequence.py::test_phase1_produces_clusters` — Phase 1 runs on a corpus with no compiled Items and produces valid L2/L3 clusters. `tests/test_boot_sequence.py::test_phase2_preserves_phase1_centroids` — Phase 2 runs on the same corpus and all Phase 1 intent_ids survive; centroids are within cosine 0.99 of Phase 1 values. `tests/test_boot_sequence.py::test_phase2_adds_facet_stats` — Phase 2 output includes facet_stats that Phase 1 output does not.
 
 ### M8 — End-to-end integration: real INTENTS data
 
 Run the full pipeline against real call data from the INTENTS tree. The test exercises the CLI entry point, reads actual .structural.json files, produces manifest.json output, and asserts on externally observable properties: exit code 0, non-empty bottom_up sections written, deviation rate within expected bounds, cluster names non-generic.
+
+**Notes — design patterns to follow during implementation:**
+
+- **This is the adversarial verification gate.** Per `verification-floor.md` Rule 3: "E2E integration test with real data. After all milestones complete, a separate end-to-end test runs against real (not mock, not stub) data from the INTENTS tree." The test uses the call corpus under `INTENTS/<domain>/<case>/<L3>/calls/`. If real calls are not yet available, this milestone is gated — do not invent fixture data that pretends to be real.
+- **The test invokes the CLI as a subprocess** (`subprocess.run(["uv", "run", "argus", "audio2tree", "cluster", "--phase", "1"])`) and asserts on the externally observable surface: exit code, stdout (deviation rate reported), and files written to disk (manifest.json files with populated bottom_up sections). Same pattern as `verification-floor.md` canonical example.
+- **Phase 1 and Phase 2 are tested separately.** Phase 1 test: run on real calls, assert clusters produced. Phase 2 test: run on same calls, assert facet_stats present AND Phase 1 intent_ids survived. The replay_hash pattern from the Argus pipeline (I5: Replayability) applies here: same input → same output.
+- **If real calls are unavailable at M8 execution time, use the fixture path but mark the milestone as `gated`.** The acceptance test file exists and is written, but the test is skipped (`pytest.skip`) until real data lands.
 
 `Acceptance Test:` `tests/integration/test_audio2tree_e2e.py::test_full_pipeline_real_data` — invokes `argus audio2tree cluster --phase 1` against the INTENTS tree's call corpus, asserts exit code 0, asserts at least one manifest.json has a populated bottom_up section, asserts deviation rate is computed and reported on stdout. `tests/integration/test_audio2tree_e2e.py::test_phase2_enrichment` — invokes `argus audio2tree cluster --phase 2` and asserts facet_stats are present in output.
 
