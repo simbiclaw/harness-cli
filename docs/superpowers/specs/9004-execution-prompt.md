@@ -2,6 +2,37 @@
 
 Hand this to a fresh Claude Code session.
 
+## Execution Notes (lessons from 2026-07-20 run)
+
+**Do NOT use `isolation: 'worktree'` for sequential dependent subagents.**
+
+The four milestones are sequential: M2 needs M1's output, M3 needs M2, M4 needs M3. With
+worktree isolation, each subagent starts from the base branch and cannot see the previous
+agent's commits. The result is duplicate work:
+
+1. Each agent independently re-creates shared files (SKILL.md, pipeline.py) from scratch
+2. API mismatches between modules built in isolation (e.g. M3's `route_batch` vs M4
+   pipeline's expected `batch_route`)
+3. The orchestrator must manually copy all files out of worktrees, reconcile conflicts,
+   fix import mismatches, and re-verify — doubling the total work
+
+**Correct pattern for sequential dependent agents:**
+
+```
+// No isolation — agents share the branch filesystem
+const m1 = await agent(M1_PROMPT)
+const m2 = await agent(M2_PROMPT)
+const m3 = await agent(M3_PROMPT)
+const m4 = await agent(M4_PROMPT)
+```
+
+Each agent commits before returning. The next agent sees the commit and builds on it.
+No file copying, no API reconciliation, no duplicate verification.
+
+**When worktree isolation IS correct:** independent parallel tasks that don't share state
+(e.g. running the same analysis on 5 different L1 directories, or adversarial verification
+where two agents must not see each other's findings).
+
 ---
 
 ```
