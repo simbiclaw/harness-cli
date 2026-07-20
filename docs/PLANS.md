@@ -114,4 +114,4 @@ A typical loop:
 
 The rubric is itself documentation. If you find that the structure here gets in the way more than it helps, flag it as a Surprise in the affected ExecPlan and propose a rubric change. The doc-gardener will surface the proposal. Subject to the same promotion rule as other rules.
 
-Last reviewed: 2026-05-01.
+Last reviewed: 2026-07-20

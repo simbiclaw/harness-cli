@@ -52,4 +52,4 @@ Because users install and run the CLI on their own machines, the secret threat m
 
 The CLI must redact secrets in any error message it produces. The Acceptance Test for any feature handling secrets includes a check that the secret value does not appear in stdout, stderr, or any logged artifact.
 
-Last reviewed: 2026-05-01.
+Last reviewed: 2026-07-20

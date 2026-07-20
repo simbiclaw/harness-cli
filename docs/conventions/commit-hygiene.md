@@ -62,4 +62,4 @@ Plan: docs/exec-plans/active/0001-bootstrap-harness.md#milestone-1
 Decision: implementation only
 ```
 
-Last reviewed: 2026-05-01.
+Last reviewed: 2026-07-20

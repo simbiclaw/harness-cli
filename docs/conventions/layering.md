@@ -62,4 +62,4 @@ If you find yourself wanting to import "downward" — say, `core/normalize.py` n
 
 If after honest attempt none of those work, that's a signal the layering is wrong for this codebase. Open an ExecPlan to revise the layering rule. Do not silently bypass it.
 
-Last reviewed: 2026-05-01.
+Last reviewed: 2026-07-20

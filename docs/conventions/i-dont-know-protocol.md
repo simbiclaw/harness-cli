@@ -86,4 +86,4 @@ If you find yourself wanting to write a Marked-as-guess Rationale because you ge
 
 Marked-as-guess is for cases where the cost of an experiment exceeds the cost of being wrong (e.g. choices that are easy to revisit later because they are well-isolated).
 
-Last reviewed: 2026-05-01.
+Last reviewed: 2026-07-20

@@ -52,4 +52,4 @@ CLAUDE.md
 
 Note: `src/argus/types/`, `src/argus/core/`, and `src/argus/io/` are *not* sensitive by default. Internal refactors there are Tier A or Tier B per the layered architecture rule. The sensitive list is for things users see (CLI surface, config schema) and for things the harness depends on.
 
-Last reviewed: 2026-05-01.
+Last reviewed: 2026-07-20

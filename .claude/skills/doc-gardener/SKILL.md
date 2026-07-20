@@ -25,7 +25,7 @@ For every Markdown file under `docs/` and `CLAUDE.md`:
 
 ### Last-reviewed staleness
 Every convention doc, the PLANS.md rubric, and CLAUDE.md have a
-`Last reviewed: YYYY-MM-DD` footer. Anything >90 days old is flagged.
+`Last reviewed: 2026-07-20 footer. Anything >90 days old is flagged.
 
 ### Past-deadline Confidence-low entries
 Walk every Decision Log entry with `Confidence: low`. If the corresponding
@@ -82,4 +82,4 @@ milestones in one ExecPlan, not many ExecPlans.
 - Modify documentation autonomously (only humans approve doc changes).
 - Modify hooks, structural tests, or CI workflows.
 
-Last reviewed: 2026-05-01
+Last reviewed: 2026-07-20
