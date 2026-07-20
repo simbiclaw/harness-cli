@@ -100,7 +100,7 @@ Full pipeline: `argus audio2tree cluster --phase 2` against real `.structural.js
 ## 5. Progress
 
 - [x] M0: AGENTS.md routing index  (done 2026-07-19)
-- [ ] M1: Batch Request extraction (skill)  (created 2026-07-20)
+- [x] M1: Batch Request extraction (skill)  (done 2026-07-20)
 - [ ] M2: Basic clustering + contrastive naming (skill)  (created 2026-07-20)
 - [ ] M3: Dual-channel routing + deviation detection (skill)  (created 2026-07-20)
 - [ ] M4: Manifest population + E2E skill run  (created 2026-07-20)
