@@ -73,8 +73,12 @@
 ```
 INTENTS/
 │
+├── AGENTS.md                         # Agent 路由索引 (导航协议)
+├── EPOCH.yaml                        # EPOCH 定义：当前 INTENTS 版本 (ADR-0002)
+│
 ├── _meta/
-│   └── epoch.yaml                    # EPOCH 定义：当前 INTENTS 版本
+│   ├── ownership.yaml                # producer → file glob 映射
+│   └── residue-manifest.yaml         # 编译器残留清单 (9003)
 │
 ├── _rubric/                          # 【Expertise #1】Rules & Criteria (Compiler 输出)
 │   │
@@ -227,7 +231,7 @@ INTENTS/
 ### 1. EPOCH.yaml (INTENTS 版本锚定)
 
 ```yaml
-# _meta/epoch.yaml
+# EPOCH.yaml
 epoch_id: "2026-07-16-alpha"
 created_at: "2026-07-16T14:30:00Z"
 git_sha: "a1b2c3d4e5f6789012345678901234567890abcd"

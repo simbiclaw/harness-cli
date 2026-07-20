@@ -12,7 +12,7 @@
 ┌──────────────────────────────────────────────────────────────────┐
 │                        INTENTS/ (git-versioned)                   │
 │                                                                  │
-│  _meta/epoch.yaml          ← audio2tree writes, both read        │
+│  EPOCH.yaml          ← audio2tree writes, both read        │
 │  _rubric/rules_criteria/   ← 9003 compiler writes, Argus reads   │
 │  _rubric/evidence/         ← audio2tree writes, 9003 reads,      │
 │  _rubric/profiles/           Argus reads, audio2tree reads       │
@@ -50,7 +50,7 @@
 
 | INTENTS path | Written by | Read by | Notes |
 |:---|:---|:---|:---|
-| `_meta/epoch.yaml` | audio2tree (at build time) | Argus, audio2tree (consumer), 9003 | Single source of truth for "which SHA is current" |
+| `EPOCH.yaml` | audio2tree (at build time) | Argus, audio2tree (consumer), 9003 | Single source of truth for "which SHA is current" |
 | `_rubric/rules_criteria/<dim>/item-XX.yaml` | **9003 compiler** | Argus (evaluator) | The ONLY write path into rules_criteria/. ADR-0003 exception |
 | `_rubric/evidence/acoustic/` | audio2tree (producer) | Argus, audio2tree (consumer), 9003 (compile-time refs) | 12 indicators + emotion/attitude profiles |
 | `_rubric/evidence/phrase-keyword/` | audio2tree (producer) + audio2tree feedback (updates) | Argus, audio2tree (consumer), 9003 (compile-time refs) | Layer 1 shared lexicons. Feedback loop can add terms directly |
@@ -89,7 +89,7 @@ Argus (Evaluator)
   └─ DEPENDS ON: _rubric/rules_criteria/          (9003 must have compiled)
   └─ DEPENDS ON: _rubric/evidence/                (audio2tree must have produced)
   └─ DEPENDS ON: <domain>/.../calls/              (audio2tree must have transcribed)
-  └─ DEPENDS ON: _meta/epoch.yaml                 (audio2tree must have pinned)
+  └─ DEPENDS ON: EPOCH.yaml                 (audio2tree must have pinned)
 
 audio2tree (Consumer — unknown-unknown detection)
   └─ DEPENDS ON: _rubric/profiles/                (must exist)
@@ -109,7 +109,7 @@ audio2tree Consumer needs _rubric/rules_criteria/ (for known_item_mapping)
 ```
 
 **Resolution:** The boot sequence is:
-1. audio2tree Producer runs first → creates `_rubric/evidence/` + `calls/` + `_meta/epoch.yaml`
+1. audio2tree Producer runs first → creates `_rubric/evidence/` + `calls/` + `EPOCH.yaml`
 2. 9003 Compiler runs second → reads evidence/, writes `_rubric/rules_criteria/`
 3. audio2tree Consumer can now run → reads rules_criteria/ for known_item_mapping
 4. Argus can now run → reads everything
@@ -148,7 +148,7 @@ Timeline:
 - Argus always evaluates against the epoch the Item was compiled at
 - Re-running evaluation at the same epoch produces identical results (I5: Replayability)
 
-The `_meta/epoch.yaml` tracks HEAD. Individual Item YAMLs track their own compile-time SHA. These are different concepts: epoch.yaml says "this is the latest version of the tree"; item-XX.yaml says "I was compiled against this specific version."
+The `EPOCH.yaml` tracks HEAD. Individual Item YAMLs track their own compile-time SHA. These are different concepts: epoch.yaml says "this is the latest version of the tree"; item-XX.yaml says "I was compiled against this specific version."
 
 ---
 
@@ -210,7 +210,7 @@ audio2tree Consumer detects unknown-unknown
 Step 1: audio2tree Producer bootstraps INTENTS/
   └─ structural-transcription runs on call corpus
   └─ conversation-distillation builds initial intent tree
-  └─ writes: _meta/epoch.yaml, _rubric/evidence/, _rubric/profiles/, calls/
+  └─ writes: EPOCH.yaml, _rubric/evidence/, _rubric/profiles/, calls/
   └─ git commit → Epoch A
 
 Step 2: Human authors create compiler inputs

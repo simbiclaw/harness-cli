@@ -87,3 +87,66 @@ class TestRequestExtraction:
         assert valid is False
         assert req["request_text"] is None
         assert req["confidence"] == 0.0
+
+
+class TestRequestExtractionE2E:
+    """M1 E2E: Full extraction pipeline with 5 real calls."""
+
+    def test_e2e_extract_all_5_calls(self):
+        """Run extraction pipeline on all 5 fixture calls. Each produces
+        a well-formed prompt with only customer turns."""
+        from scripts.request_extractor import build_extraction_prompt
+
+        calls = load_fixture()
+        results = []
+        for call in calls:
+            customer_turns = extract_customer_turns(call["turns"])
+            prompt = build_extraction_prompt(customer_turns)
+
+            results.append({
+                "audio_id": call["audio_id"],
+                "customer_turns": len(customer_turns),
+                "prompt_length": len(prompt),
+            })
+
+        # All 5 calls must produce prompts
+        assert len(results) == 5
+        for r in results:
+            assert r["customer_turns"] > 0, f"{r['audio_id']}: no customer turns extracted"
+            assert r["prompt_length"] > 100, f"{r['audio_id']}: prompt too short ({r['prompt_length']} chars)"
+
+    def test_e2e_prompt_has_only_customer_turns(self):
+        """Prompt <客户发言> section must contain customer text, not unique agent phrases."""
+        from scripts.request_extractor import build_extraction_prompt
+
+        calls = load_fixture()
+        for call in calls:
+            customer_turns = extract_customer_turns(call["turns"])
+            prompt = build_extraction_prompt(customer_turns)
+
+            # Prompt must have the customer section wrapper
+            assert "<客户发言>" in prompt
+            assert "</客户发言>" in prompt
+
+            # Each customer turn text must appear in the prompt
+            for ct in customer_turns:
+                assert ct["text"] in prompt, f"{call['audio_id']}: customer turn missing from prompt"
+
+    def test_e2e_extraction_output_validates(self):
+        """After extraction, parse_response must accept valid Chinese Requests."""
+        from scripts.request_extractor import parse_request_response
+
+        # Simulate Claude returning valid extractions for each call
+        expected = {
+            "call_001": "客户咨询浙江应急管理局处罚系统案件上报失败原因及解决方法",
+            "call_002": "客户咨询数字证书到期延期办理流程、所需材料和费用",
+            "call_003": "客户投诉未收到承诺的回复电话，要求解决问题",
+            "call_004": "客户咨询企业年报截止日期及逾期处罚规定",
+            "call_005": "客户咨询数字证书丢失补办流程、时间及收费标准",
+        }
+        for audio_id, request_text in expected.items():
+            valid, req = parse_request_response(request_text, audio_id)
+            assert valid is True, f"{audio_id}: valid Request rejected: {request_text}"
+            assert req["audio_id"] == audio_id
+            assert "坐席" not in req["request_text"]
+            assert "agent" not in req["request_text"].lower()

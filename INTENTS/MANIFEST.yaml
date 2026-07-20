@@ -1,0 +1,277 @@
+# INTENTS/MANIFEST.yaml — 完整意图树
+# L1 curated · L2 doc2graph · L3 audio2tree
+# top_down: Doc2Graph 写入 · bottom_up: audio2tree 写入
+
+L1_法人数字证书业务:
+  intent_id: "L1_corp-digital-cert"
+  description: >
+    法人数字证书的申领、维护、延期、补办、解锁等全生命周期服务。
+    区别于年报业务和信用修复。客户身份为企业法人代表或经办人。
+  source: "curated"
+  last_updated: "2026-07-20T00:00:00Z"
+
+  L2_证书申领:
+    intent_id: "L2_certificate-application"
+    description: >
+      客户首次申请数字证书。区别于证书维护（已有证书的后续操作）。
+      涉及证书类型选择、申请材料、审核流程。
+    source: "doc2graph"
+    top_down:
+      manual: null
+    bottom_up:
+      channel: null
+      request_count: 0
+    calibration_status: "uncalibrated"
+
+    L3_子证书申领:
+      intent_id: "L3_certificate-application.sub-cert"
+      description: "企业子证书首次申领"
+      source: "audio2tree"
+      bottom_up:
+        channel: null
+        request_count: 0
+      calibration_status: "uncalibrated"
+
+    L3_母证书申领:
+      intent_id: "L3_certificate-application.main-cert"
+      description: "企业母证书首次申领"
+      source: "audio2tree"
+      bottom_up:
+        channel: null
+        request_count: 0
+      calibration_status: "uncalibrated"
+
+  L2_证书维护:
+    intent_id: "L2_certificate-maintenance"
+    description: >
+      客户数字证书到期延期、信息变更、丢失补办、被锁定解锁等维护操作。
+      区别于证书申领（首次申请）和专项证书业务（特定平台定制）。
+      涉及费用咨询、VIP优惠、材料准备、办理时限。
+    source: "doc2graph"
+    top_down:
+      manual: null
+    bottom_up:
+      channel: null
+      request_count: 0
+    calibration_status: "uncalibrated"
+
+    L3_证书信息变更:
+      intent_id: "L3_certificate-maintenance.info-change"
+      description: "客户申请变更数字证书中的企业信息"
+      source: "audio2tree"
+      bottom_up:
+        channel: null
+        request_count: 0
+      calibration_status: "uncalibrated"
+
+    L3_证书延期:
+      intent_id: "L3_certificate-maintenance.renewal"
+      description: "客户数字证书到期或过期，申请延期服务"
+      source: "audio2tree"
+      bottom_up:
+        channel: null
+        request_count: 0
+      calibration_status: "uncalibrated"
+
+    L3_证书补办:
+      intent_id: "L3_certificate-maintenance.replacement"
+      description: "客户数字证书丢失或损坏，申请补办"
+      source: "audio2tree"
+      bottom_up:
+        channel: null
+        request_count: 0
+      calibration_status: "uncalibrated"
+
+    L3_证书解锁:
+      intent_id: "L3_certificate-maintenance.unlock"
+      description: "客户数字证书被锁定，申请解锁"
+      source: "audio2tree"
+      bottom_up:
+        channel: null
+        request_count: 0
+      calibration_status: "uncalibrated"
+
+  L2_专项证书业务:
+    intent_id: "L2_special-certificate"
+    description: "特定平台或场景定制的数字证书业务，如公共交易平台、城建档案馆等"
+    source: "doc2graph"
+    top_down:
+      manual: null
+    bottom_up:
+      channel: null
+      request_count: 0
+    calibration_status: "uncalibrated"
+
+  L2_移动证书使用:
+    intent_id: "L2_mobile-certificate-usage"
+    description: "移动端数字证书的使用和管理，区别于介质证书（USBKey）"
+    source: "doc2graph"
+    top_down:
+      manual: null
+    bottom_up:
+      channel: null
+      request_count: 0
+    calibration_status: "uncalibrated"
+
+L1_年报业务:
+  intent_id: "L1_annual-report-business"
+  description: >
+    企业年度报告申报、补报、更正及逾期处理。
+    区别于法人数字证书业务和信用修复。
+  source: "curated"
+  last_updated: "2026-07-20T00:00:00Z"
+
+  L2_企业多报合一:
+    intent_id: "L2_annual-report-business.multi-entity"
+    description: "企业多报合一申报流程，多主体合并报送年度报告"
+    source: "doc2graph"
+    top_down:
+      manual: null
+    bottom_up:
+      channel: null
+      request_count: 0
+    calibration_status: "uncalibrated"
+
+  L2_个体工商户年报:
+    intent_id: "L2_annual-report-business.individual"
+    description: "个体工商户年度报告申报，区别于企业多报合一"
+    source: "doc2graph"
+    top_down:
+      manual: null
+    bottom_up:
+      channel: null
+      request_count: 0
+    calibration_status: "uncalibrated"
+
+L1_信用修复业务:
+  intent_id: "L1_credit-repair"
+  description: >
+    企业失信记录的修复和移出。区别于年报业务和法人数字证书业务。
+  source: "curated"
+  last_updated: "2026-07-20T00:00:00Z"
+
+  L2_严重违法失信名单移出:
+    intent_id: "L2_credit-repair.serious-violation"
+    description: "企业严重违法失信名单移出申请，区别于经营异常名录"
+    source: "doc2graph"
+    top_down:
+      manual: null
+    bottom_up:
+      channel: null
+      request_count: 0
+    calibration_status: "uncalibrated"
+
+  L2_经营异常名录移出:
+    intent_id: "L2_credit-repair.business-abnormality"
+    description: "企业经营异常名录移出申请，区别于严重违法失信名单"
+    source: "doc2graph"
+    top_down:
+      manual: null
+    bottom_up:
+      channel: null
+      request_count: 0
+    calibration_status: "uncalibrated"
+
+  L2_行政处罚信息修复:
+    intent_id: "L2_credit-repair.admin-penalty"
+    description: "企业行政处罚信息修复申请"
+    source: "doc2graph"
+    top_down:
+      manual: null
+    bottom_up:
+      channel: null
+      request_count: 0
+    calibration_status: "uncalibrated"
+
+L1_公司设立变更注销业务:
+  intent_id: "L1_company-registration"
+  description: >
+    公司设立登记、信息变更、注销登记等全生命周期业务。
+    区别于法人数字证书业务和年报业务。
+  source: "curated"
+  last_updated: "2026-07-20T00:00:00Z"
+
+  L2_公司设立:
+    intent_id: "L2_company-registration.establishment"
+    description: "新公司设立登记，区别于公司变更和注销"
+    source: "doc2graph"
+    top_down:
+      manual: null
+    bottom_up:
+      channel: null
+      request_count: 0
+    calibration_status: "uncalibrated"
+
+  L2_公司变更:
+    intent_id: "L2_company-registration.modification"
+    description: "公司登记信息变更，包括减资、分立、合并等公告"
+    source: "doc2graph"
+    top_down:
+      manual: null
+    bottom_up:
+      channel: null
+      request_count: 0
+    calibration_status: "uncalibrated"
+
+  L2_公司注销:
+    intent_id: "L2_company-registration.dissolution"
+    description: "公司注销登记，区别于公司设立和变更"
+    source: "doc2graph"
+    top_down:
+      manual: null
+    bottom_up:
+      channel: null
+      request_count: 0
+    calibration_status: "uncalibrated"
+
+L1_电子印章和签章业务:
+  intent_id: "L1_electronic-seals"
+  description: >
+    电子印章、签章和签名的制作、管理和使用。
+    区别于法人数字证书业务和公司业务。
+  source: "curated"
+  last_updated: "2026-07-20T00:00:00Z"
+
+  L2_PDF电子签章:
+    intent_id: "L2_electronic-seals.pdf-signature"
+    description: "PDF文档的电子签章应用，区别于个人印章和单位印章管理"
+    source: "doc2graph"
+    top_down:
+      manual: null
+    bottom_up:
+      channel: null
+      request_count: 0
+    calibration_status: "uncalibrated"
+
+  L2_个人印章:
+    intent_id: "L2_electronic-seals.personal-seal"
+    description: "个人电子印章的制作和管理，区别于单位印章"
+    source: "doc2graph"
+    top_down:
+      manual: null
+    bottom_up:
+      channel: null
+      request_count: 0
+    calibration_status: "uncalibrated"
+
+  L2_单位印章管理:
+    intent_id: "L2_electronic-seals.entity-seal"
+    description: "单位电子印章的制作、管理和使用，区别于个人印章"
+    source: "doc2graph"
+    top_down:
+      manual: null
+    bottom_up:
+      channel: null
+      request_count: 0
+    calibration_status: "uncalibrated"
+
+  L2_电子签名:
+    intent_id: "L2_electronic-seals.signature"
+    description: "电子签名应用，区别于电子签章"
+    source: "doc2graph"
+    top_down:
+      manual: null
+    bottom_up:
+      channel: null
+      request_count: 0
+    calibration_status: "uncalibrated"

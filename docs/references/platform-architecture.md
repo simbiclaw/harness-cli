@@ -5,29 +5,33 @@ The three-product platform (Argus, Metis, Hermes) is organised into three tiers.
 ## The three tiers
 
 ```
-Transformation layer          Semantic layer           Consumer layer
-(not this repo)               (data, not code)        (this repo = Argus only)
+Producer layer                Semantic layer           Consumer layer
+(produce INTENTS/)            (data, not code)        (read INTENTS/)
 
-audio2tree ─────────┐                                 Argus ─── findings ──→ Metis
-  (Audio Intake +    │                                 (fact-checking,
-   Conv Distillation)│                                 scoring, coaching)
-                     ├──→ INTENTS/ ──→ read at ──→
-doc2graph ──────────┘    (git-versioned,              Metis
-  (Document Ingestion)    path-as-ontology)             (business diagnosis,
-                                                        triage, Kanban)
-Navigator ──────────┘
-  (live web-app                                        Hermes
-   instrumentation)                                     (autonomous service
-                                                        agent, Playwright/CDP)
+audio2tree ──────────┐                                 Argus ─── findings ──→ Metis
+  (audio → intents)   │                                 (fact-checking,
+                      │                                 scoring, coaching)
+doc2graph ───────────┤
+  (manuals → graph)   ├──→ INTENTS/ ──→ read at ──→   Metis
+                      │    (git-versioned,              (business diagnosis,
+rubric-compiler ─────┤     path-as-ontology)            triage, Kanban)
+  (rubric → Items)    │
+                      │                                Hermes
+curated ──────────────┘                                 (autonomous service
+  (human: DKB,                                          agent, Playwright/CDP)
+   cookbook, errors,
+   AGENTS.md)
 ```
 
-## Transformation layer
+## Producer layer
 
-Produces `INTENTS/`. Each pipeline is a separate concern with its own input modality:
+Five sources populate `INTENTS/`. Each is a separate concern with its own input modality and write cadence. Three are the current focus; Navigator and curated are deferred.
 
-- **audio2tree** — Raw audio → structural transcription → atomic claims → hierarchical clustering → intents tree. Implemented as `.claude/skills/structural-transcription/`, `.claude/agents/conversation-distillation.md`, and the `harness-go` skill. The intents tree is the **authoritative source of behavioural truth**: support calls are the behaviour corpus from human agents performing real work.
-- **doc2graph** — Operation manuals, product documentation, and written procedures → tensor-operator compute graph. Implemented as `.claude/skills/doc-to-graph/` (envisioned). Written documentation is always partial and frequently stale; it serves as the *official path*, not the *behavioural truth*.
-- **Navigator** — Live web-application instrumentation → operator sequence graph. Captures the actual UI workflow as operators with data dependencies.
+- **audio2tree** — Raw audio → structural transcription → Request extraction → clustering → intents tree. Implemented as `.claude/skills/structural-transcription/` and the `audio2tree` skill (9004). The intents tree is the **authoritative source of behavioural truth**: support calls are the behaviour corpus from human agents performing real work. Writes: `calls/*.json`, `intent_manifest.json → bottom_up`, `_rubric/evidence/`, `_rubric/profiles/`.
+- **doc2graph** — Operation manuals, product documentation, and written procedures → tensor-operator compute graph. Implemented as `.claude/skills/doc-to-graph/` (envisioned). Written documentation is always partial and frequently stale; it serves as the *official path*, not the *behavioural truth*. Writes: `index.md`, `assets/`, `intent_manifest.json → top_down`.
+- **rubric-compiler** (9003) — Specific QA Rubric + Generic Evaluator Skill + align.md → compiled rubric Items. Offline, runs once per criterion. Writes: `_rubric/rules_criteria/item-XX.yaml`, `_meta/residue-manifest.yaml`.
+- **curated** (human) — DKB, Best Practice Cookbook, Error Case Library, AGENTS.md routing index. Human-authored and human-reviewed. Writes: `dkb.*.yaml`, `cookbook.*.yaml`, `errors.*.yaml`, `AGENTS.md`, `_meta/ownership.yaml`.
+- **Navigator** — Live web-application instrumentation → operator sequence graph. Captures the actual UI workflow as operators with data dependencies. Deferred.
 
 ## Semantic layer
 
@@ -38,7 +42,7 @@ The path is configurable (default: `INTENTS/` at repo root; override via `argus.
 Key properties:
 - **Single source of truth** — the bottom-up intents tree is authoritative; when it conflicts with the compute graph, the tree wins (see `docs/product-specs/shared/calibration.md`).
 - **Git-SHA epoch** — consumers pin a specific SHA; upgrades are explicit.
-- **Producer-owned** — every file in `INTENTS/` is owned by exactly one producer (audio2tree, doc2graph, or Navigator), tracked in `_meta/ownership.yaml`.
+- **Producer-owned** — every file in `INTENTS/` is owned by exactly one producer (audio2tree, doc2graph, rubric-compiler, curated), tracked in `_meta/ownership.yaml`.
 - **Versioned rubric** — the `_rubric/` shelf carries the acoustic framework, phrase-keyword lexicon, and rules & criteria at specific versions.
 
 ## Consumer layer
