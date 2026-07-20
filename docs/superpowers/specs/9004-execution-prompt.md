@@ -4,34 +4,32 @@ Hand this to a fresh Claude Code session.
 
 ## Execution Notes (lessons from 2026-07-20 run)
 
-**Do NOT use `isolation: 'worktree'` for sequential dependent subagents.**
+**Don't use `isolation: 'worktree'` for sequential dependent agents. It's obviously wrong.**
 
-The four milestones are sequential: M2 needs M1's output, M3 needs M2, M4 needs M3. With
-worktree isolation, each subagent starts from the base branch and cannot see the previous
-agent's commits. The result is duplicate work:
+A worktree is an isolated checkout. A sequential pipeline means M2 consumes M1's output,
+M3 consumes M2's, and so on. Putting each agent in its own worktree makes it impossible
+for M2 to see M1's code — they literally start from different filesystem states. This is
+not a subtle tradeoff. It's a category error: isolation prevents the dependencies the
+pipeline exists to enforce.
 
-1. Each agent independently re-creates shared files (SKILL.md, pipeline.py) from scratch
-2. API mismatches between modules built in isolation (e.g. M3's `route_batch` vs M4
-   pipeline's expected `batch_route`)
-3. The orchestrator must manually copy all files out of worktrees, reconcile conflicts,
-   fix import mismatches, and re-verify — doubling the total work
+When it happened (2026-07-20): the orchestrator had to manually copy files out of four
+separate worktrees, reconcile independently-written versions of the same files, fix API
+mismatches, and re-run all verification. The worktree agents plus the manual reconciliation
+together took roughly double the time of just running the agents on the same branch.
 
-**Correct pattern for sequential dependent agents:**
+Do this instead — no isolation, sequential await:
 
 ```
-// No isolation — agents share the branch filesystem
 const m1 = await agent(M1_PROMPT)
 const m2 = await agent(M2_PROMPT)
 const m3 = await agent(M3_PROMPT)
 const m4 = await agent(M4_PROMPT)
 ```
 
-Each agent commits before returning. The next agent sees the commit and builds on it.
-No file copying, no API reconciliation, no duplicate verification.
+Each agent commits before returning. The next agent sees the commit. No file copying.
 
-**When worktree isolation IS correct:** independent parallel tasks that don't share state
-(e.g. running the same analysis on 5 different L1 directories, or adversarial verification
-where two agents must not see each other's findings).
+Save worktree isolation for independent parallel work (same analysis on different
+directories, adversarial verification where agents must not see each other's findings).
 
 ---
 
