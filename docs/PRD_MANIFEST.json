@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-07-04T12:36:33Z",
-  "harness_go_commit": "ac04faec5179dcc18f07a45bdbb94353e7322434",
+  "generated_at": "2026-07-20T06:22:12Z",
+  "harness_go_commit": "ab78a2eb1d66d22aa90f7766835f48997facbd0c",
   "files": {
     "Argus.md": "sha256:a60624aa0044a1b973dbc7701864a4ad6dfddbf6ccf63625d574ea8c898a6bf3",
     "Audio2Tree(Bottom-up).md": "sha256:7c3904c05eb0ba119582105d2ea01afc3389713200549a307467468491e799fb",
     "Audio2Tree-patch.md": "sha256:ac7ff3ce53ea5a66a738ca9c18bf82c3ac7578f7cc93c38e57a7d45b5f00fb8e",
     "Context-Engineering.md": "sha256:cedd4059c3835fd0d7511bb841348f8b1aaf5c9fffddfb0d138b2da5736701bb",
     "Doc2Graph(Top-down).md": "sha256:eb5618463636476fce713bfb2b24bd0c2463271a4ca67ea819837c75fffd9c9b",
-    "Doc2Graph-System-Design-v0.3.md": "sha256:84c9b35f674ef4397c2bec14a5fe52eaf780aa697417b26e1e70ce8bd97c9c3c",
+    "Doc2Graph-System-Design-v0.3.md": "sha256:facd0fc33ad5530fd0733d68ee8da9be9f56e21af86502e2e3d03d17b4dbc1ab",
     "Fact-Checking.md": "sha256:2d2909cf42557412c548c3b83c7bb4b564017814c763da275ce35ead78edc163",
     "Hermes-Integration-Spec-v0.3.md": "sha256:66d08ad003d6d911f3b71864c20fd9f8a92689e58fc972b7e9977237429583d2",
     "Hermes.md": "sha256:d17a38a8bf36af125d5bbb69051cdab971b4632b6497d8777d0de414a7473751",
     "Metis.md": "sha256:26e4e2672b5c80cad3198ac0400e6772055deae41d86784c9095e322e1fc579d",
     "Navigator-Agent-Design-v0.3.md": "sha256:9e4060af11271bde60dba62eadceef47f1cd0782c33b7d50185d6dac0d6ad81c",
-    "Path-as-Ontology.md": "sha256:51ee4a78e198f742508674da74835562c71b188ee1dbc86a159cb1b9621be16f",
+    "Path-as-Ontology.md": "sha256:4cba3f687903c827f1c685153ac08cf5482560658a8f85fd170825e5649692ec",
     "Requirment.md": "sha256:3cfa990e73f9243cd627d6ab0f5185cf63623056d43a4e4685dc572834bc2615",
     "anatomy.md": "sha256:0948f4cb4e4bae973b4308d08848e007251f051b8791a7df781920b4c052fb76",
     "index-md-structure-v0.3.md": "sha256:5ad02a6456e5de2de97de10e3fd3833d3722389db10a0ec11e9c01554759d698"
