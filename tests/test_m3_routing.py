@@ -47,7 +47,7 @@ class TestExtractL2Descriptions:
     """Parsing intent_manifest.json files at the L2 level."""
 
     def test_extract_l2_descriptions(self):
-        from scripts.routing import extract_l2_descriptions
+        from routing import extract_l2_descriptions
 
         tmp = tempfile.mkdtemp()
         try:
@@ -89,7 +89,7 @@ class TestExtractL2Descriptions:
 
     def test_path_included(self):
         """Each L2 description dict must contain a *path* key."""
-        from scripts.routing import extract_l2_descriptions
+        from routing import extract_l2_descriptions
 
         tmp = tempfile.mkdtemp()
         try:
@@ -111,7 +111,7 @@ class TestExtractL2Descriptions:
 
     def test_skips_root_manifest(self):
         """An intent_manifest.json at the root is not an L2."""
-        from scripts.routing import extract_l2_descriptions
+        from routing import extract_l2_descriptions
 
         tmp = tempfile.mkdtemp()
         try:
@@ -128,7 +128,7 @@ class TestMatchedChannel:
     to the 'matched' channel with similarity >= 0.60."""
 
     def test_matched_channel(self):
-        from scripts.routing import route_request
+        from routing import route_request
 
         l2_descs = [
             {"intent_id": "cert-renewal",
@@ -154,7 +154,7 @@ class TestMatchedChannel:
 
     def test_matched_channels_all_scores(self):
         """Matched results include scores for every L2."""
-        from scripts.routing import route_request
+        from routing import route_request
 
         l2_descs = [
             {"intent_id": "a", "description": "a", "embedding": _normalized_random()},
@@ -174,7 +174,7 @@ class TestDeviationChannel:
     """Requests with no L2 description above threshold go to deviation."""
 
     def test_deviation_channel(self):
-        from scripts.routing import route_request
+        from routing import route_request
 
         l2_descs = [
             {"intent_id": "cert-renewal",
@@ -198,7 +198,7 @@ class TestDeviationChannel:
 
     def test_deviation_on_empty_l2(self):
         """With zero L2 descriptions every request goes to deviation."""
-        from scripts.routing import route_request
+        from routing import route_request
 
         req_emb = _normalized_random()
         result = route_request("c1", req_emb, [])
@@ -210,7 +210,7 @@ class TestCollisionDetection:
     """Pairwise cosine > threshold freezes the newer anchor."""
 
     def test_collision_freezes_newer(self):
-        from scripts.routing import detect_collisions
+        from routing import detect_collisions
 
         base = _normalized_random()
         similar = _make_similar(base, target_sim=0.85)  # cosine ~0.85 > 0.7
@@ -231,7 +231,7 @@ class TestCollisionDetection:
 
     def test_no_collision(self):
         """Dissimilar descriptions produce no frozen anchors."""
-        from scripts.routing import detect_collisions
+        from routing import detect_collisions
 
         descriptions = [
             {"intent_id": "a", "description": "a",
@@ -245,7 +245,7 @@ class TestCollisionDetection:
 
     def test_single_description_no_collision(self):
         """A single L2 can't collide with anything."""
-        from scripts.routing import detect_collisions
+        from routing import detect_collisions
 
         descriptions = [
             {"intent_id": "a", "description": "a",
@@ -259,7 +259,7 @@ class TestRoutingOutputSchema:
     """Every routed request dict must carry the expected fields."""
 
     def test_matched_schema(self):
-        from scripts.routing import route_request
+        from routing import route_request
 
         l2_descs = [
             {"intent_id": "x", "description": "x",
@@ -277,7 +277,7 @@ class TestRoutingOutputSchema:
         assert isinstance(result["similarity_score"], float)
 
     def test_deviation_schema(self):
-        from scripts.routing import route_request
+        from routing import route_request
 
         result = route_request("c2", _normalized_random(), [])
         assert "audio_id" in result
@@ -291,7 +291,7 @@ class TestRouteBatch:
     """Batch routing aggregates individual decisions and computes deviation rate."""
 
     def test_route_batch_all_matched(self):
-        from scripts.routing import route_batch
+        from routing import route_batch
 
         base = _normalized_random()
         l2_descs = [
@@ -310,7 +310,7 @@ class TestRouteBatch:
         assert result["deviation_rate"] == 0.0
 
     def test_route_batch_with_deviation(self):
-        from scripts.routing import route_batch
+        from routing import route_batch
 
         base = _normalized_random()
         l2_descs = [
@@ -332,7 +332,7 @@ class TestRouteBatch:
 
     def test_route_batch_includes_frozen_anchors(self):
         """Batch route result must include frozen_anchors."""
-        from scripts.routing import route_batch
+        from routing import route_batch
 
         base = _normalized_random()
         similar = _make_similar(base, 0.85)
@@ -350,7 +350,7 @@ class TestRouteBatch:
 
     def test_route_batch_empty_requests(self):
         """Empty request list returns empty results and 0.0 rate."""
-        from scripts.routing import route_batch
+        from routing import route_batch
 
         result = route_batch([], [])
         assert result["requests"] == []

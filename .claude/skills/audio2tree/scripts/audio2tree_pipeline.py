@@ -2,16 +2,16 @@
 """Audio2Tree pipeline — M1-M4 integrated.
 
 Usage:
-    python scripts/audio2tree_pipeline.py --run-all \\
+    python .claude/skills/audio2tree/scripts/audio2tree_pipeline.py --run-all \\
         --input-dir <path_to_structural_json> \\
         --output-intents <path_to_INTENTS_root>
 
 Wires:
     S0: Load .structural.json files (or fixture JSON)
-    S1: Request extraction via build_extraction_prompt
-    S2: Embedding + clustering via scripts.cluster
-    S3: Dual-channel routing via scripts.routing
-    S4: Manifest population via scripts.manifest_writer
+    S1: Request extraction via request_extractor
+    S2: Embedding + clustering via cluster
+    S3: Dual-channel routing via routing
+    S4: Manifest population via manifest_writer
 
 Phase A: Skill Prototype. Claude does extraction and naming.
 Python handles math (embedding, k-means, cosine, JSON writing).
@@ -79,7 +79,7 @@ def extract_requests(calls: list[dict]) -> list[dict]:
     Returns:
         List of Request dicts with {audio_id, prompt, customer_turns}.
     """
-    from scripts.request_extractor import build_extraction_prompt
+    from request_extractor import build_extraction_prompt
 
     requests = []
     for call in calls:
@@ -119,9 +119,9 @@ def run_s1_s2_s3_s4(
     Returns:
         Dict with pipeline results.
     """
-    from scripts.cluster import run_clustering, select_contrastive_samples
-    from scripts.routing import batch_route, calculate_deviation_rate
-    from scripts.manifest_writer import populate_manifests
+    from cluster import run_clustering, select_contrastive_samples
+    from routing import batch_route, calculate_deviation_rate
+    from manifest_writer import populate_manifests
 
     # S1: Extract Request texts
     request_texts = []

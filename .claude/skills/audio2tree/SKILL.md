@@ -18,10 +18,10 @@ You already have a batch of WAV files from support calls and you want to turn th
 | Stage | Name | What it does | Script |
 |---|---|---|---|
 | **S0** | ASR + structural transcription | Transcribe each WAV to `.structural.json` (speaker-labeled, time-aligned) | `structural-transcription` skill |
-| **S1** | Request extraction | Read `.structural.json`, filter customer turns, build extraction prompts, produce `{audio_id, request_text, source_segment_ids}` | `scripts/audio2tree_pipeline.py` — uses `scripts/request_extractor.py` |
-| **S2** | Embedding + clustering | Embed Requests via Ollama `bge-m3` (1024-d), k-means clustering (silhouette-optimal k), build contrastive naming prompts (5 in-cluster + 5 contrastive samples) | `scripts/cluster.py` |
-| **S3** | Dual-channel routing | Cosine-match each Request against L2 description anchors. S_max >= 0.60 → matched channel; S_max < 0.60 → deviation channel. Collision detection freezes near-duplicate L2 anchors (cosine > 0.7) | `scripts/routing.py` |
-| **S4** | Manifest population | Write `intent_manifest.json → bottom_up` sections for L2/L3 nodes. Never touches `top_down`. Reports deviation rate on stdout | `scripts/manifest_writer.py` |
+| **S1** | Request extraction | Read `.structural.json`, filter customer turns, build extraction prompts, produce `{audio_id, request_text, source_segment_ids}` | `audio2tree_pipeline.py` — uses `request_extractor.py` |
+| **S2** | Embedding + clustering | Embed Requests via Ollama `bge-m3` (1024-d), k-means clustering (silhouette-optimal k), build contrastive naming prompts (5 in-cluster + 5 contrastive samples) | `cluster.py` |
+| **S3** | Dual-channel routing | Cosine-match each Request against L2 description anchors. S_max >= 0.60 → matched channel; S_max < 0.60 → deviation channel. Collision detection freezes near-duplicate L2 anchors (cosine > 0.7) | `routing.py` |
+| **S4** | Manifest population | Write `intent_manifest.json → bottom_up` sections for L2/L3 nodes. Never touches `top_down`. Reports deviation rate on stdout | `manifest_writer.py` |
 
 ## Prerequisites
 
@@ -46,7 +46,7 @@ done
 wait
 
 # S1-S4: Run the full audio2tree pipeline
-python scripts/audio2tree_pipeline.py \
+python .claude/skills/audio2tree/scripts/audio2tree_pipeline.py \
   --input-dir /path/to/transcripts \
   --output-intents /path/to/INTENTS \
   --l1 "法人数字证书业务" \
@@ -58,7 +58,7 @@ python scripts/audio2tree_pipeline.py \
 If you already have `.structural.json` files, skip S0:
 
 ```bash
-python scripts/audio2tree_pipeline.py \
+python .claude/skills/audio2tree/scripts/audio2tree_pipeline.py \
   --input-dir /path/to/transcripts \
   --output-file /path/to/requests.json
 ```
@@ -102,7 +102,7 @@ The output of S1 is a JSON array where each entry has:
 4. Claude reads each prompt and names the cluster with a distinctive Chinese name (2-8 characters)
 5. Names are validated: rejected if generic (其他咨询, 综合问题, 其他, 其他业务)
 
-See `scripts/cluster.py` for the API: `embed()`, `run_clustering()`, `build_naming_prompt()`, `validate_cluster_name()`, `select_contrastive_samples()`.
+See `cluster.py` for the API: `embed()`, `run_clustering()`, `build_naming_prompt()`, `validate_cluster_name()`, `select_contrastive_samples()`.
 
 ### S3 details: Dual-channel routing
 
@@ -117,7 +117,7 @@ The routing protocol (see `INTENTS/AGENTS.md`):
 
 Deviation rate = |D_deviation| / |D_total| — reported on stdout after every run.
 
-See `scripts/routing.py` for the API: `extract_l2_descriptions()`, `detect_collisions()`, `route_request()`, `route_batch()`.
+See `routing.py` for the API: `extract_l2_descriptions()`, `detect_collisions()`, `route_request()`, `route_batch()`.
 
 ### S4 details: Manifest population
 
@@ -133,7 +133,7 @@ Merge rules:
 - Manifest doesn't exist (deviation) → create with `source: "audio2tree"`, `status: "pending_review"`
 - L3 manifests are always created by audio2tree
 
-See `scripts/manifest_writer.py` for the API and `docs/references/audio2tree-pipeline-design.md` §5 for exact JSON shapes.
+See `manifest_writer.py` for the API and `docs/references/audio2tree-pipeline-design.md` §5 for exact JSON shapes.
 
 ## Invocation
 
@@ -205,17 +205,16 @@ If a customer speaks many turns, `build_extraction_prompt` concatenates all text
 
 ```
 .claude/skills/audio2tree/
-├── SKILL.md                  (this file)
-├── references/               (future: schemas, examples)
-└── scripts/                  (future: audio2tree-specific scripts)
+├── SKILL.md
+├── references/
+└── scripts/
+    ├── __init__.py
+    ├── audio2tree_pipeline.py   — pipeline orchestrator (S1-S4)
+    ├── request_extractor.py     — extraction prompt builder + response parser
+    ├── cluster.py               — embedding, k-means, contrastive naming
+    ├── routing.py               — dual-channel routing + collision detection
+    └── manifest_writer.py       — intent_manifest.json writer
 ```
-
-Shared scripts live at `scripts/`:
-- `scripts/audio2tree_pipeline.py` — pipeline orchestrator (S1-S4)
-- `scripts/request_extractor.py` — extraction prompt builder + response parser
-- `scripts/cluster.py` — embedding, k-means, contrastive naming prompts
-- `scripts/routing.py` — dual-channel routing + collision detection
-- `scripts/manifest_writer.py` — intent_manifest.json writer
 
 ## When to extend this skill
 

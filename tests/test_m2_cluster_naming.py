@@ -24,7 +24,7 @@ class TestClusterNaming:
 
     def test_cluster_script_partitions_requests(self):
         """K-means on 5 Requests must produce at least 2 clusters."""
-        from scripts.cluster import run_clustering
+        from cluster import run_clustering
         # Mock embed to avoid Ollama dependency in unit tests
         import scripts.cluster as cluster_mod
         import numpy as np
@@ -33,7 +33,7 @@ class TestClusterNaming:
     def test_cluster_script_partitions_requests(self):
         """K-means on 5 Requests must produce at least 2 non-empty clusters,
         and all Requests must be assigned."""
-        from scripts.cluster import run_clustering
+        from cluster import run_clustering
 
         texts = [r["request_text"] for r in SAMPLE_REQUESTS]
         clusters = run_clustering(texts, k=2)
@@ -44,7 +44,7 @@ class TestClusterNaming:
 
     def test_cluster_returns_centroids(self):
         """Each non-empty cluster must have a centroid and member list."""
-        from scripts.cluster import run_clustering
+        from cluster import run_clustering
 
         texts = [r["request_text"] for r in SAMPLE_REQUESTS]
         clusters = run_clustering(texts, k=2)
@@ -57,7 +57,7 @@ class TestClusterNaming:
 
     def test_contrastive_prompt_has_both_sections(self):
         """Contrastive naming prompt must include <同类 Request> and <对比 Request> sections."""
-        from scripts.cluster import build_naming_prompt
+        from cluster import build_naming_prompt
 
         in_cluster = ["客户咨询证书延期流程", "客户询问延期费用"]
         contrastive = ["客户投诉未收到回复电话", "客户咨询补办流程"]
@@ -70,7 +70,7 @@ class TestClusterNaming:
 
     def test_name_validation_rejects_generic(self):
         """Non-generic names pass; generic names like '其他咨询' are rejected."""
-        from scripts.cluster import validate_cluster_name
+        from cluster import validate_cluster_name
 
         assert validate_cluster_name("咨询证书续费流程") is True
         assert validate_cluster_name("询问延期费用标准") is True
@@ -81,7 +81,7 @@ class TestClusterNaming:
 
     def test_select_contrastive_samples_from_nearest_cluster(self):
         """Contrastive samples come from the nearest neighboring cluster's centroid."""
-        from scripts.cluster import select_contrastive_samples
+        from cluster import select_contrastive_samples
 
         clusters = [
             {"members": ["证书延期流程咨询", "延期费用询问", "VIP优惠确认"], "centroid": [0.1, 0.2]},

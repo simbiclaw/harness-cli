@@ -48,7 +48,7 @@ class TestRequestExtraction:
     def test_parse_request_must_be_one_chinese_sentence(self):
         """Response parser: Request must be one Chinese sentence, 8-80 chars,
         not contain agent dialogue markers like '坐席' or 'agent'."""
-        from scripts.request_extractor import parse_request_response
+        from request_extractor import parse_request_response
 
         # Valid response
         valid, req = parse_request_response("客户咨询数字证书延期流程和费用", "call_001")
@@ -59,21 +59,21 @@ class TestRequestExtraction:
 
     def test_parse_rejects_agent_dialogue(self):
         """Response containing agent markers must be rejected."""
-        from scripts.request_extractor import parse_request_response
+        from request_extractor import parse_request_response
 
         valid, req = parse_request_response("坐席询问了客户证书到期时间，客户回答今天", "call_001")
         assert valid is False
 
     def test_parse_rejects_too_short(self):
         """Response under 8 chars rejected."""
-        from scripts.request_extractor import parse_request_response
+        from request_extractor import parse_request_response
 
         valid, req = parse_request_response("延期", "call_001")
         assert valid is False
 
     def test_parse_rejects_too_long(self):
         """Response over 80 chars rejected."""
-        from scripts.request_extractor import parse_request_response
+        from request_extractor import parse_request_response
 
         long_text = "客户咨询数字证书延期流程和费用问题，同时询问了VIP优惠政策，还问了补办流程和所需材料，以及年报截止日期" * 2
         valid, req = parse_request_response(long_text, "call_001")
@@ -81,7 +81,7 @@ class TestRequestExtraction:
 
     def test_parse_rejects_uncertain(self):
         """UNCLEAR marker must be rejected but preserved."""
-        from scripts.request_extractor import parse_request_response
+        from request_extractor import parse_request_response
 
         valid, req = parse_request_response("UNCLEAR", "call_001")
         assert valid is False
@@ -95,7 +95,7 @@ class TestRequestExtractionE2E:
     def test_e2e_extract_all_5_calls(self):
         """Run extraction pipeline on all 5 fixture calls. Each produces
         a well-formed prompt with only customer turns."""
-        from scripts.request_extractor import build_extraction_prompt
+        from request_extractor import build_extraction_prompt
 
         calls = load_fixture()
         results = []
@@ -117,7 +117,7 @@ class TestRequestExtractionE2E:
 
     def test_e2e_prompt_has_only_customer_turns(self):
         """Prompt <客户发言> section must contain customer text, not unique agent phrases."""
-        from scripts.request_extractor import build_extraction_prompt
+        from request_extractor import build_extraction_prompt
 
         calls = load_fixture()
         for call in calls:
@@ -134,7 +134,7 @@ class TestRequestExtractionE2E:
 
     def test_e2e_extraction_output_validates(self):
         """After extraction, parse_response must accept valid Chinese Requests."""
-        from scripts.request_extractor import parse_request_response
+        from request_extractor import parse_request_response
 
         # Simulate Claude returning valid extractions for each call
         expected = {

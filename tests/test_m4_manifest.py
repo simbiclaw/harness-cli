@@ -52,7 +52,7 @@ class TestManifestWriter:
 
     def test_create_l2_matched_manifest(self):
         """Given routing results for matched L2, create intent_manifest.json."""
-        from scripts.manifest_writer import write_l2_manifest
+        from manifest_writer import write_l2_manifest
 
         with tempfile.TemporaryDirectory() as tmpdir:
             l2_path = os.path.join(tmpdir, "证书延期")
@@ -87,7 +87,7 @@ class TestManifestWriter:
 
     def test_create_l2_matched_manifest_with_top_down_preserved(self):
         """When existing top_down present, source becomes 'both' and top_down preserved."""
-        from scripts.manifest_writer import write_l2_manifest
+        from manifest_writer import write_l2_manifest
 
         with tempfile.TemporaryDirectory() as tmpdir:
             l2_path = os.path.join(tmpdir, "证书延期")
@@ -126,7 +126,7 @@ class TestManifestWriter:
 
     def test_create_l2_deviation_manifest(self):
         """Given deviation routing results, create intent_manifest.json."""
-        from scripts.manifest_writer import write_l2_manifest
+        from manifest_writer import write_l2_manifest
 
         with tempfile.TemporaryDirectory() as tmpdir:
             l2_path = os.path.join(tmpdir, "UKey驱动故障")
@@ -167,7 +167,7 @@ class TestManifestWriter:
 
     def test_manifest_never_touches_top_down(self):
         """Create manifest with existing top_down data, run manifest_writer, assert original top_down preserved."""
-        from scripts.manifest_writer import write_l2_manifest, merge_manifest
+        from manifest_writer import write_l2_manifest, merge_manifest
 
         # Simulate an existing manifest with top_down
         existing = {
@@ -212,7 +212,7 @@ class TestManifestWriter:
 
     def test_manifest_writer_merge_existing(self):
         """Given existing manifest, update only bottom_up fields."""
-        from scripts.manifest_writer import merge_manifest
+        from manifest_writer import merge_manifest
 
         existing = {
             "intent_id": "certificate-renewal",
@@ -252,7 +252,7 @@ class TestManifestWriter:
         """All produced manifests must have: intent_id, title, description, source.
         Each bottom_up must have: channel, request_count.
         Must have last_updated_by == 'audio_to_tree'."""
-        from scripts.manifest_writer import write_l2_manifest
+        from manifest_writer import write_l2_manifest
 
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create matched manifest

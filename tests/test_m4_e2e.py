@@ -12,7 +12,7 @@ import tempfile
 import pytest
 
 DEMO_DIR = os.path.join(os.path.dirname(__file__), "..", "INTENTS", "_demo")
-PIPELINE_SCRIPT = os.path.join(os.path.dirname(__file__), "..", "scripts", "audio2tree_pipeline.py")
+PIPELINE_SCRIPT = os.path.join(os.path.dirname(__file__), "..", ".claude", "skills", "audio2tree", "scripts", "audio2tree_pipeline.py")
 FIXTURE_PATH = os.path.join(os.path.dirname(__file__), "fixtures", "demo_calls.json")
 
 
@@ -46,7 +46,7 @@ class TestM4E2E:
     def test_run_pipeline_produces_manifests(self):
         """Run pipeline on fixture data, verify at least one manifest with populated bottom_up."""
         # Simulate running the pipeline by calling the populate_manifests function
-        from scripts.manifest_writer import write_l2_manifest, read_manifest
+        from manifest_writer import write_l2_manifest, read_manifest
 
         # Create a temporary workspace mimicking the INTENTS tree
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -91,7 +91,7 @@ class TestM4E2E:
 
     def test_run_pipeline_with_existing_top_down(self):
         """Run pipeline on fixture data where manifest already has top_down data."""
-        from scripts.manifest_writer import write_l2_manifest
+        from manifest_writer import write_l2_manifest
 
         with tempfile.TemporaryDirectory() as tmpdir:
             l1_name = "法人数字证书业务"
@@ -144,7 +144,7 @@ class TestM4E2E:
 
     def test_deviation_pipeline(self):
         """Run pipeline producing deviation manifests."""
-        from scripts.manifest_writer import write_l2_manifest
+        from manifest_writer import write_l2_manifest
 
         with tempfile.TemporaryDirectory() as tmpdir:
             l1_name = "法人数字证书业务"
@@ -178,7 +178,7 @@ class TestM4E2E:
 
     def test_produces_valid_json(self):
         """All produced manifest files must be valid JSON with required fields."""
-        from scripts.manifest_writer import write_l2_manifest
+        from manifest_writer import write_l2_manifest
 
         with tempfile.TemporaryDirectory() as tmpdir:
             l1_name = "法人数字证书业务"
