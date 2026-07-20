@@ -61,6 +61,32 @@ Python scripts write `intent_manifest.json → bottom_up` sections for all L2/L3
 
 **Notes:** See §5 of the reference document for the four manifest shapes. Never modify `top_down`. L3 manifest files are always audio2tree-created. This milestone is the Phase A gate — a single command (`/audio2tree cluster --l1 法人数字证书业务 --batch-size 30`) that runs M1→M4 end-to-end.
 
+`Acceptance Test:` Run `/audio2tree cluster` on the 5 real WAV files at `/Users/prometheus/workspace/best-practice/3audio-engineering/origin_calls/1.wav` through `5.wav`. Full pipeline S0→S4. Assert:
+
+**Input:** 5 raw WAV files. No fixture substitution. No hand-transcribed .txt. S0 MUST run.
+
+**Minimum output files:**
+1. Five `.structural.json` files — one per WAV (S0 intermediate artifact)
+2. `INTENTS/<L1>/<L2>/intent_manifest.json` — one per discovered L2 cluster (>= 1, normally >= 2)
+
+**Each `intent_manifest.json` MUST have:**
+
+| Field | Requirement |
+|---|---|
+| `intent_id` | non-null, kebab-case |
+| `title` | non-generic Chinese (2–8 chars, not "其他咨询", "综合问题", "其他", "其他业务") |
+| `description` | Chinese sentence with contrastive boundary |
+| `source` | `"audio2tree"` (deviation) or `"both"` (matched) |
+| `bottom_up.channel` | `"matched"` or `"deviation"` |
+| `bottom_up.request_count` | integer > 0 |
+| `bottom_up.cluster_centroid` | 1024-d float array |
+| `bottom_up.representative_requests` | non-empty list of Chinese strings |
+| `top_down` | preserved exactly if existed; `{}` if new |
+| `calibration_status` | `"calibrated"` or `"needs_manual"` |
+| `last_updated_by` | `"audio_to_tree"` |
+
+**Not acceptable:** hardcoded Request strings, machine placeholder names like "偏差聚类-0", S2-S4-only runs labeled as "end-to-end".
+
 `Acceptance Test:` `tests/test_skill_e2e.py::test_skill_produces_manifests` — given a directory of 5-10 `.structural.json` files, the skill produces at least one `intent_manifest.json` with populated `bottom_up` section, non-generic cluster names, and untouched `top_down`. The test is a script that invokes the skill's pipeline and asserts on output files.
 
 ## 4. Milestones — Phase B: CLI Production
@@ -103,7 +129,7 @@ Full pipeline: `argus audio2tree cluster --phase 2` against real `.structural.js
 - [x] M1: Batch Request extraction (skill)  (done 2026-07-20)
 - [x] M2: Basic clustering + contrastive naming (skill)  (done 2026-07-20)
 - [x] M3: Dual-channel routing + deviation detection (skill)  (done 2026-07-20)
-- [x] M4: Manifest population + E2E skill run  (done 2026-07-20)
+- [ ] M4: Manifest population + E2E skill run  (reverted 2026-07-20 — S0/S1 never executed, Claude never invoked)
 - [ ] M5: Embedding pipeline + collision detection (CLI)  (created 2026-07-20)
 - [ ] M6: Stability protocol (CLI)  (created 2026-07-20)
 - [ ] M7: Hierarchy builder (CLI)  (created 2026-07-20)

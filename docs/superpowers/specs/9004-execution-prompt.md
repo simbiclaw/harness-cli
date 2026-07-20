@@ -102,17 +102,56 @@ distant from all L2s enters the deviation pool. Near-duplicate L2 descriptions t
 
 ## M4 — Manifest Population + E2E
 
-Input: all M1-M3 outputs.
+Input: all M1-M3 outputs plus the 5 real WAV files.
 
 What to build: write intent_manifest.json → bottom_up section for L2/L3 nodes. Never touch
 top_down. Wire M1→M2→M3→M4 into a single skill invocation: /audio2tree cluster.
 
-E2E Test: run the full skill on the 5 real audio files. Assert:
-  - exit 0
-  - At least one intent_manifest.json has populated bottom_up section
-  - All cluster names are non-generic Chinese
-  - top_down sections are untouched
-  - Deviation rate is reported on stdout
+## E2E Acceptance Gate — input and minimum output
+
+### Input (mandatory — no substitutions allowed)
+
+5 real WAV files from:
+  /Users/prometheus/workspace/best-practice/3audio-engineering/origin_calls/1.wav
+  …through 5.wav
+
+Pipeline MUST start at S0 (ASR) on these WAVs. Do not skip S0. Do not substitute
+hand-transcribed .txt files or fixture JSON for the ASR output.
+
+### Minimum output files
+
+After a successful run, the following files MUST exist on disk:
+
+1. Five `.structural.json` files — one per input WAV, produced by S0 structural-transcription.
+   These are intermediate artifacts consumed by S1.
+
+2. `INTENTS/<L1>/<L2>/intent_manifest.json` — one per discovered L2 cluster.
+   At minimum, 1 file if all 5 calls land in the same cluster; normally >= 2.
+   Each manifest MUST have these fields non-empty and valid:
+
+   | Field | Requirement |
+   |---|---|
+   | `intent_id` | non-null, kebab-case string |
+   | `title` | non-generic Chinese (2–8 chars, not "其他咨询", "综合问题", "其他", "其他业务") |
+   | `description` | Chinese sentence describing the cluster's scope, with contrastive boundary |
+   | `source` | `"audio2tree"` (deviation) or `"both"` (matched, if L2 anchors existed) |
+   | `bottom_up.channel` | `"matched"` or `"deviation"` |
+   | `bottom_up.request_count` | integer > 0 |
+   | `bottom_up.cluster_centroid` | 1024-d float array |
+   | `bottom_up.representative_requests` | non-empty list of Chinese Request strings |
+   | `bottom_up.clustering_run_id` | non-empty string |
+   | `top_down` | preserved exactly as-is if manifest existed; `{}` if new |
+   | `calibration_status` | `"calibrated"` (matched) or `"needs_manual"` (deviation) |
+   | `last_updated_by` | `"audio_to_tree"` |
+
+3. Standard output MUST include deviation rate as a percentage.
+
+### Things that are NOT sufficient
+
+- Using hand-transcribed .txt files instead of ASR output from real WAVs
+- Using hardcoded Request strings instead of Claude extracting them from transcripts
+- Machine-generated placeholder names like "偏差聚类-0" instead of Claude-named clusters
+- Running only S2-S4 and calling it "end-to-end"
 
 ## Context
 
