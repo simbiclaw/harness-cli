@@ -4,32 +4,103 @@ Hand this to a fresh Claude Code session.
 
 ## Execution Notes (lessons from 2026-07-20 run)
 
+### Mistake 1: worktree isolation for sequential agents
+
 **Don't use `isolation: 'worktree'` for sequential dependent agents. It's obviously wrong.**
 
 A worktree is an isolated checkout. A sequential pipeline means M2 consumes M1's output,
 M3 consumes M2's, and so on. Putting each agent in its own worktree makes it impossible
 for M2 to see M1's code — they literally start from different filesystem states. This is
-not a subtle tradeoff. It's a category error: isolation prevents the dependencies the
-pipeline exists to enforce.
+not a subtle tradeoff. It's a category error.
 
-When it happened (2026-07-20): the orchestrator had to manually copy files out of four
-separate worktrees, reconcile independently-written versions of the same files, fix API
-mismatches, and re-run all verification. The worktree agents plus the manual reconciliation
-together took roughly double the time of just running the agents on the same branch.
+When it happened: the orchestrator had to manually copy files out of four separate
+worktrees, reconcile independently-written versions of the same files, fix API mismatches,
+and re-run all verification. Double the work.
 
 Do this instead — no isolation, sequential await:
-
 ```
 const m1 = await agent(M1_PROMPT)
 const m2 = await agent(M2_PROMPT)
 const m3 = await agent(M3_PROMPT)
 const m4 = await agent(M4_PROMPT)
 ```
+Each agent commits before returning. The next agent sees the commit.
 
-Each agent commits before returning. The next agent sees the commit. No file copying.
+### Mistake 2: reporting "E2E pass" without running S0 or S1
 
-Save worktree isolation for independent parallel work (same analysis on different
-directories, adversarial verification where agents must not see each other's findings).
+M4 was checked off on 2026-07-20 based on:
+- S2-S4 running on hardcoded strings, not real ASR output
+- Claude never invoked for extraction (S1) or naming (S3)
+- No `.structural.json` ever produced from real WAV
+
+46 unit tests passing does NOT mean the pipeline works end-to-end. The acceptance
+gate requires real audio in, real manifests out, with Claude in the loop.
+
+### Mistake 3: scripts in project root instead of skill directory
+
+Per the [skills spec](https://docs.anthropic.com/en/docs/claude-code/skills), a skill's
+scripts belong in `.claude/skills/<name>/scripts/`, not in a project-level `scripts/`
+directory. Putting them in the wrong place and then fixing it required updating 30+
+hardcoded import paths across 8 files.
+
+### Mistake 4: S3 routing is a no-op placeholder
+
+`batch_route()` in `routing.py` walks the INTENTS tree but never calls Ollama for
+embeddings, never computes cosine similarity, and returns every request as `channel:
+"deviation"`. The real routing functions (`route_request`, `route_batch`) exist and
+are tested, but the pipeline doesn't call them.
+
+### Known code gaps as of 2026-07-20
+
+1. **`audio2tree_pipeline.py` cannot read `.structural.json`** — only reads `.txt` demo
+   files (`load_demo_transcripts`) or fixture JSON (`load_demo_calls`). Needs a
+   `load_structural_json(dir)` function.
+2. **`routing.py::batch_route()` is a no-op** — always returns deviation. Pipeline
+   needs to call `route_batch()` with real Ollama embeddings instead.
+3. **SKILL.md references `--output-file`, `--l2`, `--k`, `--run-s2`** — none of these
+   exist in the actual argparse. Either add them or remove from docs.
+
+### Prerequisites before running
+
+```bash
+# 1. audio-server must be running (for S0 ASR)
+audio-server --port 8080 --preload &
+# OR verify CLI backend: which speech
+
+# 2. Ollama must be running with bge-m3 (for S2/S3)
+curl http://localhost:11434/api/tags | grep bge-m3
+
+# 3. Python deps
+python -c "import numpy, sklearn, librosa, soundfile, parselmouth, requests"
+```
+
+### Concrete execution steps (S0→S4)
+
+```bash
+# S0: Transcribe 5 WAVs to .structural.json
+mkdir -p /tmp/transcripts
+for i in 1 2 3 4 5; do
+  python .claude/skills/structural-transcription/scritps/pipeline.py \
+    --backend cli \
+    --input /Users/prometheus/workspace/best-practice/3audio-engineering/origin_calls/$i.wav \
+    --output /tmp/transcripts/$i.structural.json &
+done
+wait
+
+# S1: Claude extracts one Request per call from .structural.json
+# (Claude reads each .structural.json, filters customer turns, writes one Chinese sentence)
+# Output: {audio_id, request_text, source_segment_ids} per call
+
+# S2: Embed + cluster the extracted Requests (Ollama bge-m3)
+# S3: Dual-channel routing — cosine match Requests to L2 description anchors
+# S4: Write intent_manifest.json files to INTENTS tree
+
+python .claude/skills/audio2tree/scripts/audio2tree_pipeline.py \
+  --input-dir /tmp/transcripts \
+  --output-intents INTENTS \
+  --l1 "法人数字证书业务" \
+  --run-all
+```
 
 ---
 
@@ -168,11 +239,17 @@ Design docs (read as needed, do NOT modify):
   docs/superpowers/specs/2026-07-20-clio-to-audio2tree-decisions-round-2.md — round 2 decisions
 
 Existing code (reuse, do NOT rewrite):
-  scripts/request_extractor.py — build_extraction_prompt, parse_request_response
-  scripts/cluster.py — run_clustering, build_naming_prompt, validate_cluster_name, select_contrastive_samples
+  .claude/skills/audio2tree/scripts/request_extractor.py — build_extraction_prompt, parse_request_response
+  .claude/skills/audio2tree/scripts/cluster.py — run_clustering, build_naming_prompt, validate_cluster_name, select_contrastive_samples
+  .claude/skills/audio2tree/scripts/routing.py — extract_l2_descriptions, detect_collisions, route_request, route_batch (batch_route is a NO-OP — fix it)
+  .claude/skills/audio2tree/scripts/manifest_writer.py — write_l2_manifest, read_manifest, merge_manifest, populate_manifests
+  .claude/skills/audio2tree/scripts/audio2tree_pipeline.py — pipeline orchestrator (CANNOT read .structural.json — fix it)
   .claude/skills/structural-transcription/ — S0 ASR pipeline
   tests/test_m1_request_extraction.py — 11 tests (GREEN)
   tests/test_m2_cluster_naming.py — 5 tests (GREEN)
+  tests/test_m3_routing.py — 16 tests (GREEN)
+  tests/test_m4_manifest.py — 6 tests (GREEN)
+  tests/test_m4_e2e.py — 8 tests (GREEN)
   tests/fixtures/demo_calls.json — 5-call fixture
   INTENTS/AGENTS.md — routing protocol
 
