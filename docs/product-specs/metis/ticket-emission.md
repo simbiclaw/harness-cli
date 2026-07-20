@@ -1,6 +1,6 @@
 ---
 verification-status: proposed
-last-reviewed: 2026-07-04
+last-reviewed: 2026-07-20
 domain: Metis
 layer: Runtime
 ---

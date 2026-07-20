@@ -1,6 +1,6 @@
 ---
 verification-status: proposed
-last-reviewed: 2026-07-04
+last-reviewed: 2026-07-20
 consumed-by: Argus, Metis, Hermes
 ---
 **Corresponding product-spec:** [docs/product-specs/shared/conversation-distillation.md](../docs/product-specs/shared/conversation-distillation.md)

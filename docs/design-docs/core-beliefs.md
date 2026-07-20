@@ -1,6 +1,8 @@
 # core-beliefs.md
 
-The agent-first design operating principles. These shape every choice in `docs/design-docs/`. They are not aesthetic preferences — they are properties that make the UI legible to the same coding agents that build and maintain it. UI that is illegible to the agent will drift; UI that is legible to the agent stays consistent because the agent that next modifies it can reason about it.
+The agent-first design operating principles. These shape every choice in `docs/design-docs/`. They are not aesthetic preferences — they are properties that make the UI legible to the same coding agents that build and maintain it.
+
+See also: [product-specs index](../product-specs/index.md) for the feature-level specs these beliefs inform. UI that is illegible to the agent will drift; UI that is legible to the agent stays consistent because the agent that next modifies it can reason about it.
 
 Each belief carries a Rationale shaped according to the convention in `PLANS.md` (or its harness equivalent): cited source, named experiment, or explicit `Confidence: low` with a `Revisit:` date.
 
