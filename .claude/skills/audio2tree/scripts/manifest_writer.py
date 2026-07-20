@@ -179,10 +179,10 @@ def populate_manifests(
     """
     written = {}
 
-    for routing, cluster in zip(routing_results, cluster_results):
+    for i, (routing, cluster) in enumerate(zip(routing_results, cluster_results)):
         l1_name = routing.get("l1_name", "")
-        l2_id = routing.get("intent_id", "")
-        l2_title = routing.get("title", l2_id)
+        l2_id = routing.get("intent_id") or f"dev-cluster-{i}"
+        l2_title = routing.get("title") or l2_id
         l2_dir = os.path.join(intent_root, l1_name, l2_title)
 
         existing_path = os.path.join(l2_dir, "intent_manifest.json")

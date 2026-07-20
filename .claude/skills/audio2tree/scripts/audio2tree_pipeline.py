@@ -167,11 +167,18 @@ def run_s1_s2_s3_s4(
             result = routing[0]
             if not result.get("l1_name") and default_l1:
                 result["l1_name"] = default_l1
+            # Deviation channel: fill fallback intent_id and title
+            if result.get("channel") == "deviation" and not result.get("intent_id"):
+                result["intent_id"] = f"dev-cluster-{i}"
+                result["title"] = f"偏差聚类-{i}"
+                result["description"] = f"自动发现的偏差聚类 #{i}"
             routing_results.append(result)
         else:
             routing_results.append({
                 "channel": "deviation",
                 "intent_id": f"dev-cluster-{i}",
+                "title": f"偏差聚类-{i}",
+                "description": f"自动发现的偏差聚类 #{i}",
                 "l1_name": default_l1,
                 "deviation_score": 0.0,
                 "best_match_intent_id": "",
