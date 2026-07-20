@@ -78,6 +78,14 @@ Request embedding (bge-m3)
 - **Threshold T = 0.60 initial.** Human-calibrated after first batch. Not a fixed constant. Stored in pipeline config
 - **L2 anchors from manifest.json, not AGENTS.md.** AGENTS.md teaches how to find them. The extraction script reads at runtime
 
+### Collision detection (Decision 2, 2026-07-20)
+
+After embedding L2 descriptions, compute pairwise cosine distances. If any pair exceeds the collision threshold (0.7), freeze the newer L2's anchor — exclude it from cosine matching. Frozen anchors are surfaced via `argus audio2tree audit --collisions` for Curated review. This prevents false positives from weak descriptions without blocking the pipeline for unrelated L2s.
+
+### Deviation centroids (Decision 3, 2026-07-20)
+
+Deviation L2 centroids participate in routing identically to matched L2 centroids. Once a deviation L2 exists, new calls with cosine ≥ 0.65 are assigned to it. request_count grows naturally. The only distinction: `status: pending_review` and absent `top_down`.
+
 ### Deviation rate
 
 ```
@@ -151,6 +159,21 @@ Each model-based facet must pass the Q1/Q2 test:
 - Q2 fails → `split` (lexical sibling + model sibling) or `model_only` (no deterministic gate possible)
 
 **Implementation guidance:** Start with procedural accuracy facets (Items 01-07, mostly lexical, gate-checkable). Semantic facets (knowledge_accuracy, emotion_sync, tone_friendliness) default to checkable=false.
+
+### DKB/Cookbook/Errors routing (Decision 5, 2026-07-20)
+
+For facets that need curated expertise (e.g., `knowledge_accuracy` comparing agent claims against DKB facts), resolve files by path convention:
+
+```
+For call assigned to L2 under L1:
+  1. Check L2 directory: INTENTS/<L1>/<L2>/dkb.*.yaml
+  2. If not found, check L1 directory: INTENTS/<L1>/dkb.*.yaml
+  3. If multiple L1 DKB files, match by intent relevance
+  4. Resolve parent/extends/overrides per expertise-decision-log §6
+  5. If no DKB found at any level → checkable=false for that call
+```
+
+Same pattern for cookbook.*.yaml and errors.*.yaml. The resolver is a pure function in `core/` — no model calls.
 
 ### Phase 1 vs Phase 2 facet availability
 

@@ -52,8 +52,9 @@ Read all L2 `intent_manifest.json` files via the protocol in AGENTS.md. Extract 
 - **Dual-channel dispatch is the core architectural innovation.** A call is never force-assigned to a mismatched L2. The deviation pool is a first-class output, not an error bucket. Deviation rate = |D_deviation| / |D_total| is computed and reported on stdout after every run — this is the management metric that tells Curated whether the manual taxonomy is keeping up with real customer needs.
 - **Pipeline mapping reference:** S2 stage in the design session — L1 classification (cosine to L1 descriptions) runs first, then L2 routing within the assigned L1. Two cosine passes, not one. L1 descriptions also come from manifest.json files at the L1 directory level.
 - **Threshold T = 0.60 initial.** This is human-calibrated after the first batch run — not a fixed constant. Store in pipeline config, not hardcoded.
+- **Collision detection at embedding time.** After embedding all L2 descriptions, compute pairwise cosine distances. If any pair has cosine > 0.7, freeze the newer L2's anchor — exclude from matching. Flag for Curated review via `argus audio2tree audit --collisions`. The collision threshold is configurable in pipeline config.
 
-`Acceptance Test:` `tests/test_routing.py::test_matched_channel` — given a Request semantically close to an existing L2 description (cos > 0.60), the router assigns it to that L2. `tests/test_routing.py::test_deviation_channel` — given a Request semantically distant from all L2 descriptions (cos < 0.60), the router routes it to the deviation pool rather than force-assigning. `tests/test_routing.py::test_deviation_rate_computed` — after processing a batch, deviation rate = |deviation| / |total| is correctly reported.
+`Acceptance Test:` `tests/test_routing.py::test_collision_detection_freezes_anchor` — given two L2 descriptions with cosine > 0.7, the newer one is frozen and excluded from matching. `tests/test_routing.py::test_matched_channel` — given a Request semantically close to an existing L2 description (cos > 0.60), the router assigns it to that L2. `tests/test_routing.py::test_deviation_channel` — given a Request semantically distant from all L2 descriptions (cos < 0.60), the router routes it to the deviation pool rather than force-assigning. `tests/test_routing.py::test_deviation_rate_computed` — after processing a batch, deviation rate = |deviation| / |total| is correctly reported.
 
 ### M2 — Criteria-shaped facet extractors
 
@@ -64,7 +65,8 @@ Implement programmatic facet extractors (acoustic features, turn stats, pause me
 - **The facet taxonomy IS the rubric taxonomy, reversed.** Don't ask "what can we extract." Ask "what does the rubric need to measure." The 25 Items × 4 Dimensions mapping table from the design session is the reference: every model-based facet must trace to at least one Item.Signal. If a proposed facet can't name its Item.Signal, it doesn't belong in the extractor.
 - **Programmatic vs model-based split is a quarantine boundary (I1).** Programmatic facets (acoustic, turn stats, pause metrics) are deterministic — they live in `core/`. Model-based facets (LLM-extracted signals) touch the model — they live in `io/`. Same fence as the 9002 runtime pipeline. The B-F gate-checkability audit from Patch-2 runs on every model-based facet: Q1 (can proposer find a span?) → Q2 (can gate deterministically verify that span?) → tag as checkable, split, or model_only.
 - **Start with the subset of facets that are gate-checkable.** Items 01-07 (procedural accuracy) are almost entirely lexical — greeting, address terms, hold, closing. These are the lowest-risk facets to implement first. Semantic facets (knowledge_accuracy, emotion_sync, tone_friendliness) come later and default to checkable=false.
-- **Facet extraction is additive.** Phase 1 extracts Request only. Phase 2 adds criteria-shaped facets to the same Request objects. The Request text doesn't change — only the metadata attached to it grows.
+- **Facet extraction is additive.** Phase 1 extracts Request only. Phase 2 adds criteria-shaped facets to the same Request objects. The Request text doesn't change — only the metadata attached to it grows. Phase 2 is incremental by default: only calls not in `pipeline_state/processed_calls.json` get criteria-shaped extraction. `--reprocess-all` flag enables full re-extraction.
+- **DKB/Cookbook/Errors resolved by path convention.** For knowledge_accuracy and other expertise-dependent facets, resolve the relevant curated file by walking the L2 directory first, falling back to L1, resolving parent/extends/overrides per the expertise-decision-log inheritance rules. Pure function in `core/`. If no DKB found at any level, return checkable=false.
 
 `Acceptance Test:` `tests/test_facets.py::test_programmatic_facets_computed` — given a .structural.json fixture, all programmatic facets (f0_mean, speaking_rate, turn_count, etc.) are computed without error. `tests/test_facets.py::test_model_facets_trace_to_item_signal` — every model-based facet in the output carries a non-null `item_signal` field that resolves to a known Item in the 25-Item rubric. `tests/test_facets.py::test_gate_checkable_tagged` — lexical facets are tagged checkable=true, semantic facets tagged checkable=false.
 
@@ -198,6 +200,26 @@ Run the full pipeline against real call data from the INTENTS tree. The test exe
 ### Decision: Implementation details discovered during execution, not prescribed by the plan
 
 **Rationale:** `Source: docs/superpowers/specs/2026-07-19-clio-to-audio2tree-design.md §6` — prompt templates, embedding model selection, exact parameter values, k-selection strategy, model tiering economics are execution details. The plan defines acceptance criteria (what "done" looks like) and architectural constraints (what must not be violated). The path is figured out during implementation. `Confidence: high` on the approach — this is the same discipline used by the 9003 compiler plan, which separated spec (what) from exec-plan (milestones) from execution (how).
+
+### Decision: Phase 2 facet extraction — incremental by default, full reprocess on demand
+
+**Rationale:** `Source: docs/superpowers/specs/2026-07-20-clio-to-audio2tree-decisions-round-2.md §Decision 1` — three options: full re-extraction every run (cost grows with corpus), new calls only (cost bounded but needs tracking), incremental + --reprocess-all flag (selected). Tracks processed calls via `pipeline_state/processed_calls.json`.
+
+### Decision: L2 description collision detection with automated freeze
+
+**Rationale:** `Source: docs/superpowers/specs/2026-07-20-clio-to-audio2tree-decisions-round-2.md §Decision 2` — at embedding time, detect L2 descriptions with pairwise cosine > 0.7. Freeze the newer one's anchor (exclude from matching). Flag for Curated review. Prevents false positives from weak descriptions without blocking the pipeline.
+
+### Decision: Deviation L2 centroids participate in matching like any other centroid
+
+**Rationale:** `Source: docs/superpowers/specs/2026-07-20-clio-to-audio2tree-decisions-round-2.md §Decision 3` — once a deviation L2 exists, its centroid is part of the routing pool. New calls can match to it. request_count grows naturally. This is consistent with the stability protocol: existing centroids always participate. The only distinction from matched L2s is the status field in the manifest.
+
+### Decision: Calibration runs as a git hook on INTENTS commits
+
+**Rationale:** `Source: docs/superpowers/specs/2026-07-20-clio-to-audio2tree-decisions-round-2.md §Decision 4` — calibration is not part of the audio2tree pipeline. A post-commit hook fires when commits touch intent_manifest.json. Most timely option, no manual triggering. The hook must handle double-commit patterns gracefully.
+
+### Decision: DKB/Cookbook/Errors routing via path convention
+
+**Rationale:** `Source: docs/superpowers/specs/2026-07-20-clio-to-audio2tree-decisions-round-2.md §Decision 5` — for a call assigned to an L2, resolve expertise files by checking the L2 directory first, falling back to the L1 directory, resolving the parent/extends/overrides inheritance chain. No new manifest fields needed. Pure function in core/. If no DKB found, knowledge_accuracy returns checkable=false.
 
 ## 6. Surprises & Discoveries
 
