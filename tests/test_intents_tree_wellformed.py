@@ -12,10 +12,15 @@ import json
 import re
 from pathlib import Path
 
+import pytest
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 INTENTS = REPO_ROOT / "INTENTS"
+
+# INTENTS may be a symlink to an external tree (e.g., /Users/.../INTENTS/).
+# On CI or other machines where the external tree doesn't exist, skip these tests.
+_INTENTS_PRESENT = INTENTS.exists() and INTENTS.is_dir()
 
 PARSABLE_EXTS = {".yaml", ".yml", ".json", ".jsonl"}
 
@@ -47,8 +52,8 @@ def _parse_json(path: Path) -> dict | list | None:
 def test_worked_example_parses_and_owns() -> None:
     """M6 Acceptance Test: every parsable file in INTENTS/ parses, every file
     is owned by exactly one producer, and Bone ui_binding_refs resolve."""
-    assert INTENTS.exists(), "INTENTS/ tree must exist"
-    assert INTENTS.is_dir(), "INTENTS/ must be a directory"
+    if not _INTENTS_PRESENT:
+        pytest.skip("INTENTS/ tree not present (symlink target may not exist on this machine)")
 
     # 1. Collect all files, parse all parsable ones
     all_files: list[Path] = []
