@@ -3,9 +3,15 @@
 Test-first: write test RED, then implement clustering + naming logic.
 """
 
-import json
 import os
+
 import pytest
+
+try:
+    import sklearn  # noqa: F401
+    _HAS_SKLEARN = True
+except ImportError:
+    _HAS_SKLEARN = False
 
 FIXTURE_PATH = os.path.join(os.path.dirname(__file__), "fixtures", "demo_calls.json")
 
@@ -22,32 +28,44 @@ SAMPLE_REQUESTS = [
 class TestClusterNaming:
     """M2: Clustering partition + contrastive naming prompt + name validation."""
 
-    def test_cluster_script_partitions_requests(self):
-        """K-means on 5 Requests must produce at least 2 clusters."""
-        from scripts.cluster import run_clustering
-        # Mock embed to avoid Ollama dependency in unit tests
-        import scripts.cluster as cluster_mod
-        import numpy as np
-        _orig_embed = cluster_mod.embed
-
+    @pytest.mark.skipif(not _HAS_SKLEARN, reason="scikit-learn not installed")
     def test_cluster_script_partitions_requests(self):
         """K-means on 5 Requests must produce at least 2 non-empty clusters,
         and all Requests must be assigned."""
-        from scripts.cluster import run_clustering
+        import numpy as np
 
-        texts = [r["request_text"] for r in SAMPLE_REQUESTS]
-        clusters = run_clustering(texts, k=2)
+        import scripts.cluster as cluster_mod
+
+        _orig_embed = cluster_mod.embed
+        cluster_mod.embed = lambda texts: [np.random.rand(1024).tolist() for _ in texts]
+        try:
+            from scripts.cluster import run_clustering
+
+            texts = [r["request_text"] for r in SAMPLE_REQUESTS]
+            clusters = run_clustering(texts, k=2)
+        finally:
+            cluster_mod.embed = _orig_embed
         assert len(clusters) >= 2, f"Expected >= 2 clusters, got {len(clusters)}"
         # All requests assigned (empty clusters may exist but all texts tracked)
         assigned = sum(len(c["members"]) for c in clusters)
         assert assigned == len(texts), f"All {len(texts)} Requests must be assigned, got {assigned}"
 
+    @pytest.mark.skipif(not _HAS_SKLEARN, reason="scikit-learn not installed")
     def test_cluster_returns_centroids(self):
         """Each non-empty cluster must have a centroid and member list."""
-        from scripts.cluster import run_clustering
+        import numpy as np
 
-        texts = [r["request_text"] for r in SAMPLE_REQUESTS]
-        clusters = run_clustering(texts, k=2)
+        import scripts.cluster as cluster_mod
+
+        _orig_embed = cluster_mod.embed
+        cluster_mod.embed = lambda texts: [np.random.rand(1024).tolist() for _ in texts]
+        try:
+            from scripts.cluster import run_clustering
+
+            texts = [r["request_text"] for r in SAMPLE_REQUESTS]
+            clusters = run_clustering(texts, k=2)
+        finally:
+            cluster_mod.embed = _orig_embed
         non_empty = [c for c in clusters if len(c["members"]) > 0]
         assert len(non_empty) >= 1, "At least one cluster must be non-empty"
         for c in non_empty:

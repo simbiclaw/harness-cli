@@ -6,8 +6,8 @@ Claude does the naming; this module handles the deterministic math and prompt sc
 
 import json
 import urllib.request
+
 import numpy as np
-from typing import Optional
 
 OLLAMA_URL = "http://localhost:11434/api/embeddings"
 EMBED_MODEL = "bge-m3"
@@ -27,7 +27,7 @@ def embed(texts: list[str]) -> list[list[float]]:
     return vectors
 
 
-def run_clustering(texts: list[str], k: Optional[int] = None) -> list[dict]:
+def run_clustering(texts: list[str], k: int | None = None) -> list[dict]:
     """Run k-means clustering on a list of Request texts.
 
     Args:
@@ -133,6 +133,4 @@ def validate_cluster_name(name: str) -> bool:
     name = name.strip()
     if name in GENERIC_NAMES:
         return False
-    if len(name) < 2:
-        return False
-    return True
+    return len(name) >= 2

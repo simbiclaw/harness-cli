@@ -135,6 +135,10 @@ Full pipeline: `argus audio2tree cluster --phase 2` against real `.structural.js
 
 > **Awaiting Steering: resolved — Q1 through Q5.** All architectural questions resolved in Round 2 interview. Remaining questions (deviation queue mechanics, facet_stats schema specifics) are implementation details to be discovered during Phase A execution.
 
+### Decision: numpy added as dev dependency for audio2tree skill
+
+**Rationale:** `Source: CI failure 2026-07-27` — `scripts/cluster.py` imports numpy for k-means clustering (array operations, centroid distance calculations) and `tests/test_m3_routing.py` imports it at module level. numpy is BSD-3-Clause licensed, 20-year established package, the most-downloaded Python package. Added to `[project.optional-dependencies] dev` rather than production deps because it is only used by the audio2tree skill (a Claude Code skill, not the argus CLI). `Confidence: high`.
+
 ## 9. Outcomes & Retrospective
 
 *Written at completion or cancellation.*

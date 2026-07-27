@@ -5,7 +5,6 @@ Test-first: write test RED, then implement the extraction logic.
 
 import json
 import os
-import pytest
 
 FIXTURE_PATH = os.path.join(os.path.dirname(__file__), "fixtures", "demo_calls.json")
 
@@ -61,14 +60,14 @@ class TestRequestExtraction:
         """Response containing agent markers must be rejected."""
         from scripts.request_extractor import parse_request_response
 
-        valid, req = parse_request_response("坐席询问了客户证书到期时间，客户回答今天", "call_001")
+        valid, _req = parse_request_response("坐席询问了客户证书到期时间，客户回答今天", "call_001")
         assert valid is False
 
     def test_parse_rejects_too_short(self):
         """Response under 8 chars rejected."""
         from scripts.request_extractor import parse_request_response
 
-        valid, req = parse_request_response("延期", "call_001")
+        valid, _req = parse_request_response("延期", "call_001")
         assert valid is False
 
     def test_parse_rejects_too_long(self):
@@ -76,7 +75,7 @@ class TestRequestExtraction:
         from scripts.request_extractor import parse_request_response
 
         long_text = "客户咨询数字证书延期流程和费用问题，同时询问了VIP优惠政策，还问了补办流程和所需材料，以及年报截止日期" * 2
-        valid, req = parse_request_response(long_text, "call_001")
+        valid, _req = parse_request_response(long_text, "call_001")
         assert valid is False
 
     def test_parse_rejects_uncertain(self):

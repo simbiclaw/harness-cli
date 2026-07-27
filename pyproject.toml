@@ -27,6 +27,7 @@ dev = [
     "mypy>=1.10",
     "import-linter>=2.0",
     "pre-commit>=3.7",
+    "numpy>=2.0",
 ]
 
 [project.scripts]
@@ -65,6 +66,7 @@ ignore = []
 "tests/**" = ["ANN", "S101", "RUF001", "S105", "S106", "E501"]
 ".claude/tests/**" = ["ANN", "S101", "S603", "S607"]
 "tools/lint/tests/**" = ["ANN", "S101", "S603"]
+"scripts/**" = ["S310", "RUF001", "E501"]
 "src/argus/types/**" = ["RUF003", "RUF001", "UP042", "S105"]
 "src/argus/config/**" = ["RUF003", "RUF001", "S106"]
 "src/argus/io/**" = ["RUF001", "RUF002", "RUF003", "ANN"]
