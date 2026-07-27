@@ -3,7 +3,6 @@
 M1 — Skill prototype. Claude does the extraction; this module validates the output.
 """
 
-
 MAX_LENGTH = 80
 MIN_LENGTH = 8
 

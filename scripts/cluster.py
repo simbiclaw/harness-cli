@@ -20,7 +20,9 @@ def embed(texts: list[str]) -> list[list[float]]:
     vectors = []
     for text in texts:
         payload = json.dumps({"model": EMBED_MODEL, "prompt": text}).encode()
-        req = urllib.request.Request(OLLAMA_URL, data=payload, headers={"Content-Type": "application/json"})
+        req = urllib.request.Request(
+            OLLAMA_URL, data=payload, headers={"Content-Type": "application/json"}
+        )
         with urllib.request.urlopen(req) as resp:
             result = json.loads(resp.read())
             vectors.append(result["embedding"])
@@ -44,6 +46,7 @@ def run_clustering(texts: list[str], k: int | None = None) -> list[dict]:
     X = np.array(vectors)
 
     from sklearn.cluster import KMeans
+
     # Retry with different random seeds if a cluster comes back empty
     for seed in [42, 7, 13, 0]:
         km = KMeans(n_clusters=k, random_state=seed, n_init=10)
@@ -91,8 +94,9 @@ def select_contrastive_samples(clusters: list[dict], target_idx: int, n: int = 3
     return sample
 
 
-def build_naming_prompt(in_cluster_texts: list[str], contrastive_texts: list[str],
-                        l1: str, l2: str) -> str:
+def build_naming_prompt(
+    in_cluster_texts: list[str], contrastive_texts: list[str], l1: str, l2: str
+) -> str:
     """Build a contrastive naming prompt for Claude.
 
     Args:

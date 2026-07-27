@@ -9,6 +9,7 @@ import pytest
 
 try:
     import sklearn  # noqa: F401
+
     _HAS_SKLEARN = True
 except ImportError:
     _HAS_SKLEARN = False
@@ -17,7 +18,10 @@ FIXTURE_PATH = os.path.join(os.path.dirname(__file__), "fixtures", "demo_calls.j
 
 # Sample extracted Requests for 5 calls (from M1 extraction — these are the expected outputs)
 SAMPLE_REQUESTS = [
-    {"audio_id": "call_001", "request_text": "客户咨询浙江应急管理局处罚系统案件上报失败原因及解决方法"},
+    {
+        "audio_id": "call_001",
+        "request_text": "客户咨询浙江应急管理局处罚系统案件上报失败原因及解决方法",
+    },
     {"audio_id": "call_002", "request_text": "客户咨询数字证书到期延期办理流程、所需材料和费用"},
     {"audio_id": "call_003", "request_text": "客户投诉未收到承诺的回复电话，要求解决问题"},
     {"audio_id": "call_004", "request_text": "客户咨询企业年报截止日期及逾期处罚规定"},
@@ -102,7 +106,10 @@ class TestClusterNaming:
         from scripts.cluster import select_contrastive_samples
 
         clusters = [
-            {"members": ["证书延期流程咨询", "延期费用询问", "VIP优惠确认"], "centroid": [0.1, 0.2]},
+            {
+                "members": ["证书延期流程咨询", "延期费用询问", "VIP优惠确认"],
+                "centroid": [0.1, 0.2],
+            },
             {"members": ["投诉未回复", "服务态度差", "要求退款"], "centroid": [0.9, 0.8]},
             {"members": ["补办流程", "材料准备", "工本费"], "centroid": [0.5, 0.4]},
         ]

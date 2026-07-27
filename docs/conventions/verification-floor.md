@@ -29,6 +29,7 @@ For a CLI tool, the canonical Acceptance Test invokes the CLI as a subprocess an
 ```python
 import subprocess
 
+
 def test_convert_handles_csv_input(tmp_path):
     input_file = tmp_path / "input.csv"
     input_file.write_text("a,b\n1,2\n")

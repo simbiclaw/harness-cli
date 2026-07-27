@@ -42,7 +42,9 @@ class TestRequestExtraction:
             customer_turns = extract_customer_turns(call["turns"])
             customer_text = "\n".join(t["text"] for t in customer_turns)
             # Prompt must contain all customer text
-            assert len(customer_text) > 20, f"{call['audio_id']}: customer text too short for meaningful extraction"
+            assert len(customer_text) > 20, (
+                f"{call['audio_id']}: customer text too short for meaningful extraction"
+            )
 
     def test_parse_request_must_be_one_chinese_sentence(self):
         """Response parser: Request must be one Chinese sentence, 8-80 chars,
@@ -74,7 +76,10 @@ class TestRequestExtraction:
         """Response over 80 chars rejected."""
         from scripts.request_extractor import parse_request_response
 
-        long_text = "客户咨询数字证书延期流程和费用问题，同时询问了VIP优惠政策，还问了补办流程和所需材料，以及年报截止日期" * 2
+        long_text = (
+            "客户咨询数字证书延期流程和费用问题，同时询问了VIP优惠政策，还问了补办流程和所需材料，以及年报截止日期"
+            * 2
+        )
         valid, _req = parse_request_response(long_text, "call_001")
         assert valid is False
 
@@ -102,17 +107,21 @@ class TestRequestExtractionE2E:
             customer_turns = extract_customer_turns(call["turns"])
             prompt = build_extraction_prompt(customer_turns)
 
-            results.append({
-                "audio_id": call["audio_id"],
-                "customer_turns": len(customer_turns),
-                "prompt_length": len(prompt),
-            })
+            results.append(
+                {
+                    "audio_id": call["audio_id"],
+                    "customer_turns": len(customer_turns),
+                    "prompt_length": len(prompt),
+                }
+            )
 
         # All 5 calls must produce prompts
         assert len(results) == 5
         for r in results:
             assert r["customer_turns"] > 0, f"{r['audio_id']}: no customer turns extracted"
-            assert r["prompt_length"] > 100, f"{r['audio_id']}: prompt too short ({r['prompt_length']} chars)"
+            assert r["prompt_length"] > 100, (
+                f"{r['audio_id']}: prompt too short ({r['prompt_length']} chars)"
+            )
 
     def test_e2e_prompt_has_only_customer_turns(self):
         """Prompt <客户发言> section must contain customer text, not unique agent phrases."""
@@ -129,7 +138,9 @@ class TestRequestExtractionE2E:
 
             # Each customer turn text must appear in the prompt
             for ct in customer_turns:
-                assert ct["text"] in prompt, f"{call['audio_id']}: customer turn missing from prompt"
+                assert ct["text"] in prompt, (
+                    f"{call['audio_id']}: customer turn missing from prompt"
+                )
 
     def test_e2e_extraction_output_validates(self):
         """After extraction, parse_response must accept valid Chinese Requests."""
