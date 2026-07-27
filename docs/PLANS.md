@@ -101,14 +101,15 @@ If the plan surfaces patterns that recur across plans, write a cross-plan retros
 
 ## How a session uses an ExecPlan
 
-A typical loop:
+The session runs each milestone through the PEV loop (`docs/conventions/pev-loop.md`), the atomic control primitive of this repository:
 
-1. Read the most recent active plan end-to-end. Read Surprises & Discoveries first.
-2. Identify the next unflipped milestone. Read its Acceptance Test. If the test does not exist, create it first, in its own commit.
-3. Implement against the test. Commit when the test passes. Flip the checkbox in a separate commit.
-4. The Verifier runs. On pass, the flip stands. On fail, the flip reverts and an entry appears in Surprises.
-5. If you make a consequential decision en route, add it to Decision Log with a properly-shaped Rationale. If the decision is architectural and likely to outlive this plan, promote it to an ADR in the same commit.
-6. If you hit a Tier C question, stop, add to Awaiting Steering, and end the session.
+1. **Plan:** Read the most recent active plan end-to-end. Read Surprises & Discoveries first. Identify the next unflipped milestone. Read its Acceptance Test. If the test does not exist, create it first, in its own commit. If the milestone touches a Tier C path, add to Awaiting Steering and end the session.
+
+2. **Execute:** Implement against the test (subagent A). Commit when the test passes, with `Plan:` and `Decision:` trailers. Run structural tests before proceeding. Add consequential decisions to the Decision Log. If architectural, promote to an ADR.
+
+3. **Verify:** Subagent B runs the Acceptance Test in a clean checkout, designs edge cases, and returns CONFIRMED or REJECTED. On CONFIRMED, the Verifier writes "verified at SHA \<sha\>" and the checkbox flips in its own commit. On REJECTED, the loop returns to Plan with B's findings as input.
+
+No checkbox flips without a CONFIRMED verdict. No implementation begins without a failing test. Every PEV iteration leaves a commit trail.
 
 ## When this rubric is wrong
 

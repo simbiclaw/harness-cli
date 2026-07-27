@@ -12,6 +12,7 @@ Read the most recent file in `docs/exec-plans/active/` end-to-end. Read its **Su
 
 - `docs/PLANS.md` — the rubric every ExecPlan follows. Read once per session if you are creating or modifying a plan.
 - `docs/conventions/ask-threshold.md` — when to proceed silently vs. flag vs. stop and ask.
+- `docs/conventions/pev-loop.md` — the Plan→Execute→Verify control loop primitive. Every milestone traverses it.
 - `docs/conventions/verification-floor.md` — what "done" means for a milestone.
 - `docs/conventions/deps-and-secrets.md` — how new dependencies and secrets are handled.
 - `docs/conventions/commit-hygiene.md` — commit message format and discipline.
@@ -24,13 +25,15 @@ After producing a draft ExecPlan, consult `docs/conventions/ask-threshold.md` an
 
 ## The harnesses, one sentence each
 
+0. **PEV loop** — the control primitive: Plan (failing test + Tier C gate), Execute (implement until green), Verify (adversarial falsification by independent subagent B). Every milestone traverses all three phases. No flip without CONFIRMED. No implementation without a test. See `pev-loop.md`.
 1. **Ask before assuming** — three explicit tiers; default to the most cautious. See `ask-threshold.md`.
 2. **Verification floor** — every milestone has a runnable Acceptance Test exercising an externally observable property. See `verification-floor.md`.
 3. **Deps and secrets** — new dependencies are vetted by the dep-vetter skill before adoption; secrets never enter the repo. See `deps-and-secrets.md`.
 4. **Commit hygiene** — every commit references its ExecPlan and milestone, with a Decision trailer. See `commit-hygiene.md`.
 5. **"I don't know" protocol** — Decision Log entries cite evidence, run experiments, or flag uncertainty explicitly. Forbidden phrases enforced by structural test. See `i-dont-know-protocol.md`.
-6. **Adversarial verification** — two independent subagents: A implements, B falsifies. Test-first, one test per milestone minimum, E2E with real data after all M's complete. B's prompt is "prove this doesn't work"; A and B never prompt each other. See `verification-floor.md`.
-7. All the harnesses in this repository are inspired by and derived from this source material [harness-engineering (read document)](docs/references/harness-engineering-llm.md), when you struggle with a harness-related task, re-read this file for new angles, and try combining previous near-misses.
+6. **Adversarial verification** — two independent subagents: A implements, B falsifies. Test-first, one test per milestone minimum, E2E with real data after all M's complete. B's prompt is "prove this doesn't work"; A and B never prompt each other. This is the Verify phase of harness #0. See `verification-floor.md`.
+7. **Promotion rule** — every rule starts in documentation. When violated twice across different ExecPlans, move it left: documentation → structural test → hook → CI gate → architecture. Do not try harder to remember.
+8. All the harnesses in this repository are inspired by and derived from this source material [harness-engineering (read document)](docs/references/harness-engineering-llm.md), when you struggle with a harness-related task, re-read this file for new angles, and try combining previous near-misses.
 
 
 ## The promotion rule
