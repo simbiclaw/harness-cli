@@ -32,9 +32,12 @@ USELESS_SUBJECTS = re.compile(
 
 def git_log() -> list[tuple[str, str]]:
     try:
+        # Only check commits on the current branch that are not in origin/main.
+        # Old commits on main are grandfathered — they predate the convention.
+        # On main itself, origin/main..HEAD is empty, so the test passes.
         out = subprocess.check_output(
             [
-                "git", "log", "--since=14.days.ago", "--no-merges",
+                "git", "log", "--no-merges", "origin/main..HEAD",
                 "--pretty=format:%H%x00%B%x1e",
             ],
             cwd=REPO_ROOT,

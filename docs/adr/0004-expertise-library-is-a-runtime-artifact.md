@@ -37,9 +37,16 @@ The v1 design exposed each module through a dedicated typed reader interface. In
 ```python
 # Conceptual — actual types declared in argus/types/
 class IntentNode: ...
+
+
 class RubricModule: ...
+
+
 class FactRecord: ...
+
+
 class HistoryRecord: ...
+
 
 # The INTENTS Provider exposes typed reads, not nine separate interfaces:
 def read_rubric(sha: str, module: str, version: str) -> RubricModule: ...

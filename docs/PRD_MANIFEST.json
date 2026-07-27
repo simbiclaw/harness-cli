@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-20T06:22:12Z",
+  "generated_at": "2026-07-27T09:00:00Z",
   "harness_go_commit": "ab78a2eb1d66d22aa90f7766835f48997facbd0c",
   "files": {
     "Argus.md": "sha256:a60624aa0044a1b973dbc7701864a4ad6dfddbf6ccf63625d574ea8c898a6bf3",
@@ -16,7 +16,8 @@
     "Path-as-Ontology.md": "sha256:4cba3f687903c827f1c685153ac08cf5482560658a8f85fd170825e5649692ec",
     "Requirment.md": "sha256:3cfa990e73f9243cd627d6ab0f5185cf63623056d43a4e4685dc572834bc2615",
     "anatomy.md": "sha256:0948f4cb4e4bae973b4308d08848e007251f051b8791a7df781920b4c052fb76",
-    "index-md-structure-v0.3.md": "sha256:5ad02a6456e5de2de97de10e3fd3833d3722389db10a0ec11e9c01554759d698"
+    "index-md-structure-v0.3.md": "sha256:5ad02a6456e5de2de97de10e3fd3833d3722389db10a0ec11e9c01554759d698",
+    "SPEC-rubric-compiler-harness.md": "sha256:0e4024c262968c226e04123ed7382b5689dfeae5beeba59316071de318794da5"
   },
   "stage_affinity": {
     "01-product-sense": [
@@ -34,10 +35,12 @@
     "03-architecture": [
       "Fact-Checking.md",
       "Context-Engineering.md",
-      "Doc2Graph(Top-down).md"
+      "Doc2Graph(Top-down).md",
+      "SPEC-rubric-compiler-harness.md"
     ],
     "04-quality-score": [
-      "Fact-Checking.md"
+      "Fact-Checking.md",
+      "SPEC-rubric-compiler-harness.md"
     ]
   }
 }
