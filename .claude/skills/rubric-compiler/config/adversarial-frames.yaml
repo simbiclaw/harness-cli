@@ -1,0 +1,7 @@
+# S5 templated adversarial frames (GM4 WARN). {P} = exclusion pattern under test,
+# embedded in a known-positive context. Human-owned gate input (O6):
+# a stale frame set silently weakens GM4. Review at each epoch commit.
+known_positive_frames:
+  - "customer: I want to proceed, {P}, please continue with the order"
+  - "agent: to confirm your request, {P}, I will now complete the standard steps"
+  - "customer: yes that works - {P} - go ahead"

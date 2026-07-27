@@ -1,0 +1,14 @@
+# AUTH-1: bare quality adjectives forbidden in signal descriptions (GM1 BLOCK).
+# One per line. Human-owned gate input (O6). Extend per domain.
+professional
+polite
+appropriate
+friendly
+natural
+good
+proper
+suitable
+warm
+sincere
+patient
+enthusiastic

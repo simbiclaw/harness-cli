@@ -1,0 +1,10 @@
+# The eight human-confirmed expertise types (grounding referents).
+# Human-owned gate input (O6): changes here are epoch-relevant.
+- acoustic_feature_analysis
+- rules_and_criteria
+- best_practice_cookbook
+- error_case_library
+- product_introduction
+- operation_manual
+- dynamic_knowledge_base
+- phrase_keyword_library
