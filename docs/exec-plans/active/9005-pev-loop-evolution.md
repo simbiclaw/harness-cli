@@ -119,7 +119,28 @@ End-to-end test of complete evolved PEV loop. Update cross-references in pev-loo
 
 ## 6. Surprises & Discoveries
 
-*Empty — will be populated during implementation.*
+### Hook semantics: authority-bearing, not capability-substituting
+
+The original Verifier skill design said "triggered automatically by the PostToolUse hook." But hooks follow a strict allow/block contract — JSON `{"continue": true|false}` plus output text. A hook cannot invoke a skill; it can only emit an instruction the model *may* follow. The verifier's invocation channel was always **advisory-stochastic**, never deterministic.
+
+This resolves the retrospective's indeterminacy about "either wasn't invoked or too weak": the invocation channel never had blocking semantics. The model could (and apparently did) ignore the instruction to run the verifier.
+
+**The correct architecture** is M4's inversion — **deterministic denial replaces stochastic invocation**:
+
+| Pattern | What it tries to do | What hooks allow |
+|---|---|---|
+| Capability-substituting | Hook triggers verification | ❌ Not possible — hooks can't summon skills |
+| Authority-bearing | Hook blocks flip unless CONFIRMED ledger entry exists | ✅ The hook contract: `{"continue": false}` |
+
+The adversarial verification gate (M6) and repair feedback gate embody this pattern: they don't try to *make* anything happen. They check for evidence and **deny** if absent. This is the general principle for hook design: hooks guard state transitions, they don't initiate work.
+
+### Absolute hook paths pointed at wrong repo
+
+The `.claude/settings.json` hook commands used absolute paths pointing to `/Users/prometheus/workspace/argus/.claude/hooks/...` — a different repository. On any other checkout (CI, worktree, container), hooks would either fail to launch or run against the wrong repo's state. This was likely a contributing cause of the 9004 execution mistakes. Fixed by switching to repo-relative paths and adding a structural test (`test_hook_paths_portable.py`) that prohibits absolute paths in any hook command.
+
+### Missing hook registration
+
+`pre_execution_gate.py` (M2) was implemented and tested, but never registered in `settings.json`. The gate existed on disk but never intercepted any tool calls. Fixed by adding it as a PreToolUse hook for Edit/Write/MultiEdit matchers.
 
 ## 7. Awaiting Steering
 
@@ -135,3 +156,13 @@ All 10 milestones shipped. The PEV loop evolved from 80% documentation / 20% enf
 - **Orchestration** gained a Dynamic Workflow pipeline script (`pev_orchestrator.js`) that runs milestones through pevPlan → pevExecute → pevVerify → pevRepair.
 
 25 E2E integration tests pass. 10 orchestrator structural tests pass. 11 repair loop tests pass. 7 worktree tests pass. 5 gate tests pass. All backward-compatible: old ExecPlans without constraint fields work as before.
+
+### Post-evolution follow-ups
+
+- **Repair feedback gate** (post-evolution): pushed the repair loop's write operation from documentation to structural test layer. `test_repair_feedback_gate.py` verifies every REJECTED verdict has the required notes entry (`[human-todo]` for semantic, `[deviation]` for constraint-violation). Added `write_notes_entry()` to `pev_repair.py` so agents can persist feedback in one call.
+
+- **Hook path portability fix**: settings.json hook commands used absolute paths to a different repo (`/Users/prometheus/workspace/argus/`). Changed to repo-relative paths; added `test_hook_paths_portable.py` structural test. Registered `pre_execution_gate.py` in settings.json (was implemented but never wired).
+
+### Architectural principle: hooks guard state transitions, they don't initiate work
+
+The original Verifier design tried to use a hook to trigger verification. Hooks return `{"continue": true|false}` — they are **authority-bearing**, not **capability-substituting**. The correct pattern, used by every gate in this plan, is **deterministic denial**: the hook/structural test checks for evidence and denies if absent. It never tries to make something happen. This is captured as a generalizable rule: if you find yourself wanting a hook to *do* something, invert the design — make it *block* until evidence that the something was done exists.
