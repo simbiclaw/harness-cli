@@ -25,6 +25,17 @@ def test_required_convention_files_present():
             "One commit per milestone-checkbox flip",
             "Structural tests pass before any flip",
         ],
+        "docs/conventions/implementation-notes.md": [
+            "Entry types",
+            "plan-confirmed",
+            "discovery",
+            "deviation",
+            "human-todo",
+            "What the plan said",
+            "What the code revealed",
+            "Conservative choice",
+            "Revisit",
+        ],
     }
 
     for rel_path, required_sections in files.items():
