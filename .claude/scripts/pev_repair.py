@@ -177,3 +177,36 @@ def decide_action(
         milestone=milestone,
         reason=findings,
     )
+
+
+def write_notes_entry(plan_stem: str, decision: RepairDecision) -> bool:
+    """Write the repair decision's notes_entry to the milestone's notes file.
+
+    Creates the notes directory and file if they don't exist. Appends
+    the entry if the file already exists. Deduplicates: if the exact
+    notes_entry text already appears, the write is skipped.
+
+    Args:
+        plan_stem: ExecPlan filename stem (e.g., "9005-pev-loop-evolution").
+        decision: The RepairDecision from decide_action().
+
+    Returns:
+        True if written, False if no entry needed (mechanical or already present).
+    """
+    if decision.notes_entry is None:
+        return False
+
+    notes_dir = ACTIVE_DIR / f"{plan_stem}-notes"
+    notes_dir.mkdir(parents=True, exist_ok=True)
+    notes_file = notes_dir / f"M{decision.milestone}.md"
+
+    if notes_file.exists():
+        existing = notes_file.read_text()
+        if decision.notes_entry.strip() in existing:
+            return True  # already written — idempotent
+        text = existing.rstrip("\n") + "\n\n" + decision.notes_entry + "\n"
+    else:
+        text = f"# M{decision.milestone}\n\n" + decision.notes_entry + "\n"
+
+    notes_file.write_text(text)
+    return True

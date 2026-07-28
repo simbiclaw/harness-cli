@@ -102,12 +102,31 @@ At milestone completion (or plan archival), the notes file's deviations and huma
 - **Surprises & Discoveries** still exists in the ExecPlan for cross-milestone surprises and verifier-failure records. Implementation notes handle the per-milestone, mid-build deviation stream.
 - Free-text "we hit a snag" narrative is replaced by typed entries with devgrid fields — machine-parseable for the repair loop.
 
+## Feedback gate rule
+
+When subagent B returns a REJECTED verdict, the milestone's implementation notes file MUST contain the appropriate entry before the next PEV iteration begins. The mapping is:
+
+| Failure class | Required entry type | Purpose |
+|---|---|---|
+| `semantic` | `[human-todo]` | Documents what requires human judgment; pauses milestone |
+| `constraint-violation` | `[deviation]` (with all 4 devgrid fields) | Documents scope violation and conservative choice |
+| `mechanical` | None | Auto-retry — no human action needed |
+
+The repair loop's `write_notes_entry()` writes the entry; this gate verifies the write happened. Without it, REJECTED verdicts can be silently ignored — the adversarial verification gate only blocks flip without CONFIRMED, but doesn't check that the agent addressed the REJECTED findings.
+
+> `Source: docs/conventions/verification-floor.md` rule #6; enforced by `.claude/tests/test_repair_feedback_gate.py`.
+
 ## Enforcement
 
 `.claude/tests/test_implementation_notes.py` validates:
 - Notes file exists for milestones with recorded deviations.
 - Entries carry valid type badges.
 - Deviation entries have all four devgrid fields.
+
+`.claude/tests/test_repair_feedback_gate.py` validates:
+- REJECTED semantic verdicts → `[human-todo]` entry exists in notes.
+- REJECTED constraint-violation verdicts → `[deviation]` entry exists in notes.
+- CONFIRMED verdicts and mechanical failures are not flagged.
 
 ---
 Last reviewed: 2026-07-28.

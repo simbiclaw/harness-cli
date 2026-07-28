@@ -17,6 +17,7 @@ from pev_repair import (
     RepairDecision,
     decide_action,
     diagnose_failure,
+    write_notes_entry,
 )
 
 
@@ -100,3 +101,76 @@ class TestRepairDecision:
         fc = diagnose_failure("outside the allowed writes", None, "test", 3)
         d = decide_action(fc, 3, "outside the allowed writes")
         assert d.action == Action.UPDATE_CONSTRAINTS
+
+
+class TestWriteNotesEntry:
+    """write_notes_entry() persists feedback to disk."""
+
+    def test_mechanical_returns_false(self, tmp_path):
+        """Mechanical failure has no notes_entry — write is a no-op."""
+        # Patch ACTIVE_DIR to a temp path for isolation
+        import pev_repair as pr
+
+        original = pr.ACTIVE_DIR
+        try:
+            pr.ACTIVE_DIR = tmp_path
+            d = RepairDecision(
+                action=Action.RETRY,
+                failure_class=FailureClass.MECHANICAL,
+                milestone=1,
+                reason="test failed",
+                notes_entry=None,
+            )
+            result = write_notes_entry("test-plan", d)
+            assert result is False
+            assert not (tmp_path / "test-plan-notes").exists()
+        finally:
+            pr.ACTIVE_DIR = original
+
+    def test_human_todo_writes_entry(self, tmp_path):
+        """Semantic failure writes [human-todo] entry to notes file."""
+        import pev_repair as pr
+
+        original = pr.ACTIVE_DIR
+        try:
+            pr.ACTIVE_DIR = tmp_path
+            d = RepairDecision(
+                action=Action.HUMAN_TODO,
+                failure_class=FailureClass.SEMANTIC,
+                milestone=2,
+                reason="design needs human review",
+                notes_entry="### [human-todo] — Semantic failure in M2\n\nB's findings:\n\ndesign needs human review\n",
+            )
+            result = write_notes_entry("test-plan", d)
+            assert result is True
+            notes_file = tmp_path / "test-plan-notes" / "M2.md"
+            assert notes_file.exists()
+            content = notes_file.read_text()
+            assert "[human-todo]" in content
+            assert "design needs human review" in content
+        finally:
+            pr.ACTIVE_DIR = original
+
+    def test_idempotent_no_duplicate(self, tmp_path):
+        """Writing the same entry twice does not create duplicate content."""
+        import pev_repair as pr
+
+        original = pr.ACTIVE_DIR
+        try:
+            pr.ACTIVE_DIR = tmp_path
+            d = RepairDecision(
+                action=Action.HUMAN_TODO,
+                failure_class=FailureClass.SEMANTIC,
+                milestone=3,
+                reason="test",
+                notes_entry="### [human-todo] — Semantic failure in M3\n\nB's findings\n",
+            )
+            first = write_notes_entry("plan", d)
+            second = write_notes_entry("plan", d)
+            assert first is True
+            assert second is True  # already present, not an error
+            content = (tmp_path / "plan-notes" / "M3.md").read_text()
+            # entry text should appear exactly once
+            assert content.count("[human-todo]") == 1
+        finally:
+            pr.ACTIVE_DIR = original

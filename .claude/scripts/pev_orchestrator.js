@@ -187,22 +187,42 @@ async function pevRepair(verifyResult, milestone) {
   }
 
   const failureClass = verifyResult.failure_class || 'mechanical'
+  const findings = verifyResult.findings || ''
 
   if (failureClass === 'semantic') {
     return {
       action: 'human-todo',
       milestone: milestone.num,
-      reason: verifyResult.findings,
-      note: 'Semantic failure requires human judgment. Added to human-todo.',
+      failure_class: failureClass,
+      reason: findings,
+      notes_entry:
+        `### [human-todo] — Semantic failure in M${milestone.num}\n\n` +
+        `B's findings require human judgment:\n\n${findings}\n`,
     }
   }
 
-  // mechanical or constraint-violation → auto-repair
+  if (failureClass === 'constraint-violation') {
+    return {
+      action: 'update-constraints',
+      milestone: milestone.num,
+      failure_class: failureClass,
+      reason: findings,
+      notes_entry:
+        `### [deviation] — Constraint violation in M${milestone.num}\n\n` +
+        `- **What the plan said:** Constraints declared in milestone.\n` +
+        `- **What the code revealed:** Implementation exceeded scope.\n` +
+        `- **Conservative choice:** Update constraints to match actual ` +
+        `scope, with Decision Log entry.\n` +
+        `- **Revisit:** Verify updated constraints are minimal.\n`,
+    }
+  }
+
+  // mechanical → auto-repair, no notes_entry
   return {
     action: 'retry',
     milestone: milestone.num,
     failure_class: failureClass,
-    findings: verifyResult.findings,
+    findings: findings,
     note: `Auto-repair triggered for ${failureClass} failure.`,
   }
 }

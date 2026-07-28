@@ -93,6 +93,7 @@ Every ExecPlan is executed by two independent subagents in an adversarial loop. 
 | 3 | **E2E integration test with real data.** After all milestones complete, a separate end-to-end test runs against real (not mock, not stub) data from the INTENTS tree and/or recorded call transcripts. This test is the final gate before the plan archives. | plan archival blocked until E2E passes |
 | 4 | **Adversarial subagents.** All testing and verification steps are executed by subagent B — a different agent than subagent A who implemented the milestone. B receives the spec and the acceptance criteria; B does not receive A's implementation reasoning. B's prompt is adversarial: "prove this doesn't work." | CLAUDE.md harness rule |
 | 5 | **Isolation.** A cannot prompt B. B cannot prompt A. The human or the orchestrating agent reads B's output and decides whether to accept, reject, or send back for rework. A fix by A triggers a fresh B verification — no incremental approval. | orchestrator discipline |
+| 6 | **Repair feedback.** REJECTED verdicts produce implementation notes entries matching the failure class: `[human-todo]` for semantic failures, `[deviation]` for constraint violations. Mechanical failures require no entry (auto-retry). | structural test (`.claude/tests/test_repair_feedback_gate.py`) |
 
 ### Execution engine
 
@@ -161,9 +162,10 @@ When a Progress checkbox flips from `[ ]` to `[x]`, the Verifier subagent re-run
 
 ## Structural enforcement
 
-Two gates promote the rules above from documentation to structural test:
+Three gates promote the rules above from documentation to structural test:
 
 - **Test-first gate** (`.claude/tests/test_test_first_gate.py`) — for each commit with a `Plan:` trailer that touches `src/`, the milestone's Acceptance Test file must exist in git history at or before that commit. Red commits precede green commits.
 - **Adversarial verification gate** (`.claude/tests/test_adversarial_verification_gate.py`) — for each commit that flips a milestone checkbox, a `### M<N> adversarial verification` entry with `Verdict: CONFIRMED` must exist in the Decision Log, timestamped before the flip and after the last implementation commit.
+- **Repair feedback gate** (`.claude/tests/test_repair_feedback_gate.py`) — for every REJECTED adversarial verification verdict in a plan's Decision Log, the milestone's implementation notes file must contain the appropriate entry type: `[human-todo]` for semantic failures, `[deviation]` for constraint violations. Mechanical failures require no entry (auto-retry).
 
 Last reviewed: 2026-07-13.

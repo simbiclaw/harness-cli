@@ -178,7 +178,9 @@ The filled-§3.6b table in the companion spec becomes the deliverable: every row
 
 ## 5. Decision Log
 
-### Decision: M0 adversarial verification — Verdict: CONFIRMED
+### M0 adversarial verification
+
+Verdict: CONFIRMED
 
 **Rationale:** `Source: subagent B adversarial verification (2026-07-28)` — Acceptance tests: 9/9 pass. Edge cases: 13/13 behave correctly (9 structural successes, 4 validation rejections correctly triggered). Three domain-level design gaps noted for future milestones (zero-dimension handling, text min_length, epoch_id format) but none are mechanical failures. Implementation notes validated — 2 plan-confirmed + 2 discovery entries, all with resolved actions.
 
