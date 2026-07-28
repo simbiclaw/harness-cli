@@ -103,11 +103,11 @@ If the plan surfaces patterns that recur across plans, write a cross-plan retros
 
 The session runs each milestone through the PEV loop (`docs/conventions/pev-loop.md`), the atomic control primitive of this repository:
 
-1. **Plan:** Read the most recent active plan end-to-end. Read Surprises & Discoveries first. Identify the next unflipped milestone. Read its Acceptance Test. If the test does not exist, create it first, in its own commit. If the milestone touches a Tier C path, add to Awaiting Steering and end the session.
+1. **Plan:** Read the most recent active plan end-to-end. Read Surprises & Discoveries first. Identify the next unflipped milestone. Read its Acceptance Test. If the test does not exist, create it first, in its own commit. If the milestone has constraint fields (`Allowed Reads`, `Allowed Writes`, `Requires`, `Risk Tier`), verify them. If the milestone touches a Tier C path, add to Awaiting Steering and end the session.
 
-2. **Execute:** Implement against the test (subagent A). Commit when the test passes, with `Plan:` and `Decision:` trailers. Run structural tests before proceeding. Add consequential decisions to the Decision Log. If architectural, promote to an ADR.
+2. **Execute:** Implement against the test (subagent A). Commit when the test passes, with `Plan:` and `Decision:` trailers. Run structural tests before proceeding — including the test-first gate (`.claude/tests/test_test_first_gate.py`). Log any deviations as implementation notes (`docs/conventions/implementation-notes.md`). Add consequential decisions to the Decision Log. If architectural, promote to an ADR.
 
-3. **Verify:** Subagent B runs the Acceptance Test in a clean checkout, designs edge cases, and returns CONFIRMED or REJECTED. On CONFIRMED, the Verifier writes "verified at SHA \<sha\>" and the checkbox flips in its own commit. On REJECTED, the loop returns to Plan with B's findings as input.
+3. **Verify:** Subagent B runs the Acceptance Test in a clean checkout, designs edge cases, and returns CONFIRMED or REJECTED. On CONFIRMED, the Verifier writes "verified at SHA \<sha\>" and the checkbox flips in its own commit — the adversarial verification gate (`.claude/tests/test_adversarial_verification_gate.py`) enforces this. On REJECTED, the autonomous repair loop reads B's structured notes, classifies the failure (mechanical/semantic/constraint-violation), and decides the next action — retry, update constraints, or add a human-todo entry.
 
 No checkbox flips without a CONFIRMED verdict. No implementation begins without a failing test. Every PEV iteration leaves a commit trail.
 

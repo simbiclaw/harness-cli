@@ -12,7 +12,8 @@ Read the most recent file in `docs/exec-plans/active/` end-to-end. Read its **Su
 
 - `docs/PLANS.md` — the rubric every ExecPlan follows. Read once per session if you are creating or modifying a plan.
 - `docs/conventions/ask-threshold.md` — when to proceed silently vs. flag vs. stop and ask.
-- `docs/conventions/pev-loop.md` — the Plan→Execute→Verify control loop primitive. Every milestone traverses it.
+- `docs/conventions/pev-loop.md` — the Plan→Execute→Verify control loop primitive. Every milestone traverses it. Milestones may carry machine-readable constraint fields (`Allowed Reads`, `Allowed Writes`, `Requires`, `Risk Tier`).
+- `docs/conventions/implementation-notes.md` — per-milestone structured log for deviations, discoveries, and human-todos during implementation.
 - `docs/conventions/verification-floor.md` — what "done" means for a milestone.
 - `docs/conventions/deps-and-secrets.md` — how new dependencies and secrets are handled.
 - `docs/conventions/commit-hygiene.md` — commit message format and discipline.
@@ -25,7 +26,7 @@ After producing a draft ExecPlan, consult `docs/conventions/ask-threshold.md` an
 
 ## The harnesses, one sentence each
 
-0. **PEV loop** — the control primitive: Plan (failing test + Tier C gate), Execute (implement until green), Verify (adversarial falsification by independent subagent B). Every milestone traverses all three phases. No flip without CONFIRMED. No implementation without a test. See `pev-loop.md`.
+0. **PEV loop** — the control primitive: Plan (failing test + Tier C gate + constraint check), Execute (implement until green, in worktree sandbox, with implementation notes), Verify (adversarial falsification by independent subagent B, gated by structural test). Every milestone traverses all three phases. No flip without CONFIRMED. No implementation without a test. See `pev-loop.md`.
 1. **Ask before assuming** — three explicit tiers; default to the most cautious. See `ask-threshold.md`.
 2. **Verification floor** — every milestone has a runnable Acceptance Test exercising an externally observable property. See `verification-floor.md`.
 3. **Deps and secrets** — new dependencies are vetted by the dep-vetter skill before adoption; secrets never enter the repo. See `deps-and-secrets.md`.

@@ -85,16 +85,16 @@ End-to-end test of complete evolved PEV loop. Update cross-references in pev-loo
 ## 4. Progress
 
 ```
-- [ ] M1: Machine-readable milestone constraints
-- [ ] M2: Pre-execution constraint gate
-- [ ] M3: Implementation notes convention
-- [ ] M4: Implementation notes structural test
-- [ ] M5: Test-first gate
-- [ ] M6: Adversarial verification gate
-- [ ] M7: Execute-phase worktree sandbox
-- [ ] M8: Workflow pipeline orchestrator
-- [ ] M9: Autonomous repair loop
-- [ ] M10: Integration and E2E validation
+- [x] M1: Machine-readable milestone constraints  (done 2026-07-28)
+- [x] M2: Pre-execution constraint gate  (done 2026-07-28)
+- [x] M3: Implementation notes convention  (done 2026-07-28)
+- [x] M4: Implementation notes structural test  (done 2026-07-28)
+- [x] M5: Test-first gate  (done 2026-07-28)
+- [x] M6: Adversarial verification gate  (done 2026-07-28)
+- [x] M7: Execute-phase worktree sandbox  (done 2026-07-28)
+- [x] M8: Workflow pipeline orchestrator  (done 2026-07-28)
+- [x] M9: Autonomous repair loop  (done 2026-07-28)
+- [x] M10: Integration and E2E validation  (done 2026-07-28)
 ```
 
 ## 5. Decision Log
@@ -127,4 +127,11 @@ End-to-end test of complete evolved PEV loop. Update cross-references in pev-loo
 
 ## 8. Outcomes & Retrospective
 
-*Empty — plan is active.*
+All 10 milestones shipped. The PEV loop evolved from 80% documentation / 20% enforcement to a structurally enforced control loop:
+
+- **Plan phase** gained machine-readable constraints (Allowed Reads/Writes, Requires, Risk Tier) validated by structural test and enforced by pre-execution gate hook.
+- **Execute phase** gained worktree sandboxing (implementation in `/tmp/impl-<sha>/`), implementation notes (per-milestone structured markdown with typed entries and devgrid fields), and test-first gate (structural test verifies tests precede src/ changes).
+- **Verify phase** gained adversarial verification gate (structural test verifies CONFIRMED verdict before checkbox flip) and autonomous repair loop (failure classification → retry/human-todo/update-constraints).
+- **Orchestration** gained a Dynamic Workflow pipeline script (`pev_orchestrator.js`) that runs milestones through pevPlan → pevExecute → pevVerify → pevRepair.
+
+25 E2E integration tests pass. 10 orchestrator structural tests pass. 11 repair loop tests pass. 7 worktree tests pass. 5 gate tests pass. All backward-compatible: old ExecPlans without constraint fields work as before.
