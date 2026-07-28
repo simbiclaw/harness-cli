@@ -38,6 +38,28 @@ The compiler touches `types/` (node schema, manifest schema, input schemas), `io
 
 **Deliberately out of scope:** the companion 9002 runtime pipeline (reads _rubric/ but doesn't write it). The §3.6b per-item compile over all 27 items — that is a FOLLOW-ON task gated on receiving the real Specific QA Rubric + align.md inputs (do not invent item values). Population of the Calibration Manifest — it arrives on its own channel, outside the compiler. The runtime evaluation pipeline. Any model call during compilation — the compiler transforms structured inputs deterministically; it does not use an LLM to author signals.
 
+**File Scope:**
+- `src/argus/types/compiler_schemas.py` (new)
+- `src/argus/core/compiler/validator.py` (new)
+- `src/argus/core/compiler/signals.py` (new)
+- `src/argus/core/compiler/classify.py` (new)
+- `src/argus/core/compiler/agreement.py` (new)
+- `src/argus/core/compiler/bridge.py` (new)
+- `src/argus/core/compiler/compile.py` (new)
+- `src/argus/io/compiler_io.py` (new)
+- `src/argus/io/calibration_io.py` (new)
+- `src/argus/cli/main.py` (modify — compile + validate subcommands)
+- `tests/test_compiler_schemas.py` (new)
+- `tests/test_validator.py` (new)
+- `tests/test_signals.py` (new)
+- `tests/test_classify.py` (new)
+- `tests/test_agreement_seed.py` (new)
+- `tests/test_bridge.py` (new)
+- `tests/test_compiler_pipeline.py` (new)
+- `tests/test_manifest_channel.py` (new)
+- `tests/test_worked_compilation.py` (new, gated on M8 inputs)
+- `docs/exec-plans/active/9003-implement-soft-criteria-compiler.md` (modify — this plan)
+
 ## 3. Milestones
 
 ### M0 — Compiler input schemas (types)

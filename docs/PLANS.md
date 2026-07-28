@@ -30,6 +30,20 @@ The architectural view. Which modules in `src/argus/` are touched. What is in sc
 
 For this CLI, also note: which subcommands the work introduces or modifies, what config surface it adds, what files on the user's filesystem it reads or writes.
 
+A `**File Scope:**` block follows the Big Picture prose, declaring every file the plan expects to create or modify. Each line is a repo-relative path; globs (`**`, `*`) are allowed. If the plan does not yet know its full scope, it says so explicitly (`TBD — will be filled during execution`). This declaration feeds the collision detector: two active plans whose declared scopes intersect produce a structural-test failure, forcing the plans to negotiate before either proceeds.
+
+Example:
+
+```
+**File Scope:**
+- `src/argus/types/compiler_schemas.py` (new)
+- `tests/test_compiler_schemas.py` (new)
+- `src/argus/core/compiler/*.py` (new)
+- `docs/conventions/layering.md` (read only)
+```
+
+Plans without a `**File Scope:**` block are flagged as needing one — the detection is advisory, not blocking, but the absence itself is reported.
+
 ### 3. Milestones
 
 A numbered list. Each milestone is a coherent shippable unit, typically one to five commits. Each milestone has:

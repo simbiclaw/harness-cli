@@ -20,6 +20,32 @@ Four interdependent changes to the PEV loop, built in a single ExecPlan:
 
 `Source: docs/conventions/pev-loop.md · docs/conventions/verification-floor.md · arXiv 2605.18747 §3.4`
 
+**File Scope:**
+- `.claude/tests/test_milestone_constraints.py` (new)
+- `.claude/tests/test_pre_execution_gate.py` (new)
+- `.claude/tests/test_implementation_notes.py` (new)
+- `.claude/tests/test_test_first_gate.py` (new)
+- `.claude/tests/test_adversarial_verification_gate.py` (new)
+- `.claude/tests/test_pev_worktree.py` (new)
+- `.claude/tests/test_pev_orchestrator.py` (new)
+- `.claude/tests/test_pev_repair.py` (new)
+- `.claude/tests/test_repair_feedback_gate.py` (new)
+- `.claude/tests/test_hook_paths_portable.py` (new)
+- `.claude/tests/test_skill_hook_claims.py` (new)
+- `.claude/tests/test_plan_collisions.py` (new)
+- `.claude/hooks/pre_execution_gate.py` (new)
+- `.claude/scripts/pev_worktree.py` (new)
+- `.claude/scripts/pev_orchestrator.js` (new)
+- `.claude/scripts/pev_repair.py` (new)
+- `.claude/settings.json` (modify — hook paths + gate registration)
+- `tests/integration/test_pev_evolved_e2e.py` (new)
+- `docs/conventions/pev-loop.md` (modify — constraint field spec)
+- `docs/conventions/implementation-notes.md` (modify — feedback gate rule)
+- `docs/conventions/verification-floor.md` (modify — rule #6 + enforcement)
+- `docs/PLANS.md` (modify — session loop + File Scope rubric)
+- `CLAUDE.md` (modify — harness list + reading list)
+- `docs/exec-plans/active/9005-pev-loop-evolution.md` (modify — this plan)
+
 ## 3. Milestones
 
 ### M1 — Machine-readable milestone constraints

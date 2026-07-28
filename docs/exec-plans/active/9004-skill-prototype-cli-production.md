@@ -23,6 +23,20 @@ Integrate Clio's three-stage pipeline into audio2tree in two phases. Phase A del
 - Claude-in-the-loop reasoning (replaced by API calls or deterministic logic)
 - Interactive exploration UI
 
+**File Scope:**
+- `.claude/skills/structural-transcription/**` (modify — skill upgrade)
+- `.claude/agents/conversation-distillation.md` (modify — agent upgrade)
+- `tests/test_agents_md.py` (new)
+- `tests/test_skill_request_extraction.py` (new)
+- `tests/test_cluster_naming.py` (new)
+- `tests/test_routing.py (9004)` (new — note: different from 9002 test_routing.py)
+- `tests/test_skill_e2e.py` (new)
+- `tests/test_embed.py` (new)
+- `tests/test_stability.py` (new)
+- `tests/test_hierarchy.py` (new)
+- `tests/integration/test_audio2tree_e2e.py` (new)
+- `docs/exec-plans/active/9004-skill-prototype-cli-production.md` (modify — this plan)
+
 ## 3. Milestones — Phase A: Skill Prototype
 
 ### M0 — AGENTS.md routing index
