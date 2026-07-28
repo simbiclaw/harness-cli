@@ -1,10 +1,10 @@
 ---
 name: dep-vetter
 description: Vet a candidate Python dependency against the four-check policy
-  (age, weekly downloads, recent commits, license). Triggered by the
-  PreToolUse hook when a `uv add` or `pip install` is detected, or invoked
-  manually before adding a new dependency. Writes the result to
-  `docs/decisions/dep-vet-<pkg>.md`.
+  (age, weekly downloads, recent commits, license). Invoked when the
+  PreToolUse hook blocks a `uv add` or `pip install` with a "no dep-vet
+  record" message, or invoked manually before adding a new dependency.
+  Writes the result to `docs/decisions/dep-vet-<pkg>.md`.
 ---
 
 # Dep-Vetter Skill
