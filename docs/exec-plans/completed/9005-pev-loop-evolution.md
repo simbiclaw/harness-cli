@@ -192,3 +192,26 @@ All 10 milestones shipped. The PEV loop evolved from 80% documentation / 20% enf
 ### Architectural principle: hooks guard state transitions, they don't initiate work
 
 The original Verifier design tried to use a hook to trigger verification. Hooks return `{"continue": true|false}` — they are **authority-bearing**, not **capability-substituting**. The correct pattern, used by every gate in this plan, is **deterministic denial**: the hook/structural test checks for evidence and denies if absent. It never tries to make something happen. This is captured as a generalizable rule: if you find yourself wanting a hook to *do* something, invert the design — make it *block* until evidence that the something was done exists.
+
+### Skill hook claims test (post-evolution follow-up #3)
+
+Pushed this principle from documentation to structural test layer with `test_skill_hook_claims.py` — detects any SKILL.md that claims a hook "triggers," "invokes," or "automatically calls" the skill. Fixed both verifier and dep-vetter SKILL.md files that falsely claimed hook-triggered invocation.
+
+### Plan-level collision detector (post-evolution follow-up #4)
+
+Replaced the frozen `COLLISION-REPORT.md` (a one-off v6-spine upgrade artifact) with a living structural test. Added `**File Scope:**` block to the PLANS.md rubric — each plan declares the files it touches. `test_plan_collisions.py` checks all active plans pairwise for intersecting scopes. Collisions force negotiation before either proceeds. All four active plans now have specific, non-overlapping File Scope declarations.
+
+### What proved the harness works
+
+The 9003 M0 implementation served as a live-fire test of the evolved PEV loop. All three phases executed (test-first commit → implement commit → verified flip commit), implementation notes were written and validated, adversarial verification gate confirmed the CONFIRMED verdict, and the repair feedback gate verified the feedback path. The implementation notes structural test caught a format violation in real time — exactly the kind of enforcement the harness was designed for.
+
+### Test state at ship
+
+**78/79 structural tests pass.** The single pre-existing failure is `fc8a713a` (PEV formalization commit on main predating 9005, missing `Plan:` trailer). 25/25 E2E integration tests pass. 3 new structural tests shipped post-milestone (repair feedback gate, hook path portability, skill hook claims). 1 collision detector shipped. All backward-compatible.
+
+### What would be done differently
+
+1. **Hook paths should have been repo-relative from M1.** Using absolute paths caused hooks to run from the wrong repo for the entire plan execution. A structural test prohibiting absolute paths should have been M1, not a post-evolution fix.
+2. **`pre_execution_gate.py` should have been registered in settings.json as part of M2.** Implementing and testing a hook without wiring it into settings.json means the gate never ran until the post-evolution fix.
+3. **The verifier skill should never have claimed hook-triggered invocation.** The "triggered automatically by the PostToolUse hook" description was architecturally impossible — hooks can only block/allow. Recording this as a false claim from the start would have prevented the advisory-stochastic anti-pattern from becoming institutionalized.
+4. **File Scope should have been in the rubric from the start.** The collision that COLLISION-REPORT.md documented was real; having a living detector would have caught the 9002/9003/9004 `src/argus/` overlap before any code was written.
