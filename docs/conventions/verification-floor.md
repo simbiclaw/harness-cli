@@ -159,4 +159,11 @@ Judge the code by its behavior, not its intentions.
 
 When a Progress checkbox flips from `[ ]` to `[x]`, the Verifier subagent re-runs the named Acceptance Test in a clean checkout. On pass: writes "verified at SHA \<sha\>" to the Decision Log. On fail: reverts the checkbox flip and adds an entry to Surprises & Discoveries. See `.claude/skills/verifier/SKILL.md`.
 
+## Structural enforcement
+
+Two gates promote the rules above from documentation to structural test:
+
+- **Test-first gate** (`.claude/tests/test_test_first_gate.py`) — for each commit with a `Plan:` trailer that touches `src/`, the milestone's Acceptance Test file must exist in git history at or before that commit. Red commits precede green commits.
+- **Adversarial verification gate** (`.claude/tests/test_adversarial_verification_gate.py`) — for each commit that flips a milestone checkbox, a `### M<N> adversarial verification` entry with `Verdict: CONFIRMED` must exist in the Decision Log, timestamped before the flip and after the last implementation commit.
+
 Last reviewed: 2026-07-13.
