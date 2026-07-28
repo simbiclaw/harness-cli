@@ -112,6 +112,25 @@ The PGE variant exists because compiled rubric specifications cannot be executed
 - **No silent state transitions.** Every PEV iteration leaves a commit trail with Plan and Decision trailers.
 - **No Tier C work without Awaiting Steering resolution.** The ask-threshold gate is a Plan-phase invariant.
 
+## Milestone constraint fields (optional, machine-readable)
+
+Milestones may include constraint fields for automated enforcement. These are optional — milestones without them work as before (backward-compatible).
+
+```
+Acceptance Test: tests/test_X.py::test_name
+Allowed Reads: src/argus/core/**, INTENTS/**
+Allowed Writes: src/argus/core/module.py, tests/test_module.py
+Requires: M2, M3
+Risk Tier: B
+```
+
+- **`Allowed Reads`**: Comma-separated glob patterns for paths the milestone may read. Default: any path.
+- **`Allowed Writes`**: Comma-separated glob patterns for paths the milestone may modify. Default: any path. Enforced by the pre-execution gate (`.claude/hooks/pre_execution_gate.py`).
+- **`Requires`**: Comma-separated milestone IDs (e.g., `M2, M3`) that must complete before this milestone begins its Plan phase. Referenced milestones must have lower numbers.
+- **`Risk Tier`**: `A` (proceed silently), `B` (proceed and flag), or `C` (stop and ask). Maps to `docs/conventions/ask-threshold.md` tiers.
+
+Validated by `.claude/tests/test_milestone_constraints.py`.
+
 ## When this rubric is wrong
 
 If a milestone consistently takes more than 3 PEV iterations to converge, the milestone is likely too large — split it. If the adversarial verification repeatedly catches the same class of error across different milestones, the Plan phase is missing a structural guard — promote it (documentation → structural test → hook → CI gate).
