@@ -166,7 +166,7 @@ The filled-§3.6b table in the companion spec becomes the deliverable: every row
 
 ## 4. Progress
 
-- [ ] M0: Compiler input schemas  (created 2026-07-08)
+- [x] M0: Compiler input schemas  (done 2026-07-28)
 - [ ] M1: Validator (AUTH-1..10)  (created 2026-07-08)
 - [ ] M2: Trigger compiler (A1, A2, A2-ac, A2-ph)  (created 2026-07-08)
 - [ ] M3: Corroborator classifier + residue declarer (A3, A4)  (created 2026-07-08)
@@ -177,6 +177,10 @@ The filled-§3.6b table in the companion spec becomes the deliverable: every row
 - [ ] M8: Worked compilation §3.6b (gated on real inputs)  (created 2026-07-08)
 
 ## 5. Decision Log
+
+### Decision: M0 adversarial verification — Verdict: CONFIRMED
+
+**Rationale:** `Source: subagent B adversarial verification (2026-07-28)` — Acceptance tests: 9/9 pass. Edge cases: 13/13 behave correctly (9 structural successes, 4 validation rejections correctly triggered). Three domain-level design gaps noted for future milestones (zero-dimension handling, text min_length, epoch_id format) but none are mechanical failures. Implementation notes validated — 2 plan-confirmed + 2 discovery entries, all with resolved actions.
 
 ### Decision: The compiler is the legitimate write path into INTENTS/_rubric/
 
@@ -204,7 +208,7 @@ The filled-§3.6b table in the companion spec becomes the deliverable: every row
 
 ## 6. Surprises & Discoveries
 
-*None yet — this section grows during execution. The Verifier records milestone-flip failures here.*
+* M0 adversarial verification found 3 domain-level design gaps (non-blocking): GenericEvaluatorSkill accepts 0 dimensions without error, RubricItem.text has no min_length constraint, CalibrationManifest.epoch_id has no format validation. All deferred — these are design choices for later milestones, not M0 mechanical failures.
 
 ## 7. Awaiting Steering
 
