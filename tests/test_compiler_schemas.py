@@ -368,22 +368,22 @@ class TestResidueManifestRoundtrip:
         assert len(manifest.rows) == 2
 
         within = manifest.rows[0]
-        assert within["kind"] == "within_dimension"
-        assert within["dimension"] == "empathy"
-        assert len(within["source_items"]) == 2
+        assert within.kind == "within_dimension"
+        assert within.dimension == "empathy"
+        assert len(within.source_items) == 2
 
         gap = manifest.rows[1]
-        assert gap["kind"] == "dimension_coverage_gap"
-        assert gap["disposition"] == "defer_until_source_connected"
-        assert gap["proposes"] == "new sub-dimension: Business Impact"
+        assert gap.kind == "dimension_coverage_gap"
+        assert gap.disposition == "defer_until_source_connected"
+        assert gap.proposes == "new sub-dimension: Business Impact"
 
         # Round-trip through JSON
         dumped = manifest.model_dump_json()
         reloaded = ResidueManifest.model_validate_json(dumped)
         assert reloaded.sources == manifest.sources
         assert len(reloaded.rows) == 2
-        assert reloaded.rows[0]["kind"] == "within_dimension"
-        assert reloaded.rows[1]["kind"] == "dimension_coverage_gap"
+        assert reloaded.rows[0].kind == "within_dimension"
+        assert reloaded.rows[1].kind == "dimension_coverage_gap"
 
     def test_residue_manifest_empty_rows(self):
         """A ResidueManifest with no rows (all items fully compiled) is valid."""

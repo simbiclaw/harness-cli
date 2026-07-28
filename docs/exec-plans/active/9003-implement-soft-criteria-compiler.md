@@ -46,6 +46,11 @@ Define the Pydantic schemas for the three compiler inputs: `SpecificRubric` (27 
 
 `Acceptance Test:` `tests/test_compiler_schemas.py::test_all_input_schemas_roundtrip` — each input schema constructs, serializes, and deserializes. `tests/test_compiler_schemas.py::test_authored_node_roundtrip` — an AuthoredNode with all §3 fields round-trips. `tests/test_compiler_schemas.py::test_residue_manifest_roundtrip` — manifest with both row kinds round-trips.
 
+`Allowed Reads: docs/retrospectives/soft-criteria-authoring-spec-v4.html, docs/retrospectives/soft-criteria-authoring-spec-v4-patch-1.md, docs/retrospectives/soft-criteria-authoring-spec-v4-patch-2.md, src/argus/types/**, docs/conventions/layering.md`
+`Allowed Writes: src/argus/types/__init__.py, src/argus/types/compiler_schemas.py, tests/test_compiler_schemas.py`
+`Requires: none  (first milestone — no predecessor)`
+`Risk Tier: B`
+
 ### M1 — Validator (AUTH-1..10, core)
 
 Land the authoring-time validator in `src/argus/core/compiler/validator.py`. This is a pure function: it takes an `AuthoredNode` and returns a list of `ValidationError` (empty list = valid). Each of the ten prohibitions (§4) is a discrete check function:
