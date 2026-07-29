@@ -429,6 +429,69 @@ echo ''
 
 # ── Select and attach ────────────────────────────────────────────────────────
 
+# ── Window 4: Promotion Arbiter (rule promotion decisions) ───────────────────
+
+# Promotion arbiter prompt: reads violation tracker output, decides promotions.
+# Autonomy scope:
+#   - AUTO-EXECUTE: mechanical promotions (documentation → structural test)
+#   - DRAFT for human approval: architectural promotions (→ CI gate, → architecture)
+PROMOTION_ARBITER_PROMPT="You are the PROMOTION ARBITER for ExecPlan $PLAN_ID.
+
+Your job is to read violation tracker output and decide rule promotions.
+
+Source: .pev-signals/violations/*.json
+
+For each violation record:
+1. Read the record: cat .pev-signals/violations/<rule-slug>.json
+2. Check the violation_count — must be ≥2 to consider promotion.
+3. Determine the promotion target based on the rule's current level:
+   - documentation → structural test (AUTO-EXECUTE: create a test file)
+   - structural test → hook (AUTO-EXECUTE: add hook logic)
+   - hook → CI gate (DRAFT: create a pre-filled ExecPlan for human approval)
+   - CI gate → architecture (DRAFT: create a pre-filled ExecPlan for human approval)
+
+For AUTO-EXECUTE promotions:
+- Create the structural test or hook code directly
+- Commit with Plan: and Decision: trailers
+- Update the violation record with 'promoted_to' and timestamp
+- Report: 'PROMOTED: <rule> from <current> to <target>'
+
+For DRAFT promotions (needs human):
+- Create a pre-filled ExecPlan in docs/exec-plans/active/
+  with sections: Purpose, Big Picture, Milestones, Decision Log
+- The Decision Log entry must cite the violation records
+- Report: 'DRAFTED: <rule> promotion plan at docs/exec-plans/active/<plan-id>.md'
+- Wait for human approval before executing
+
+Rules:
+- Do NOT promote a rule flagged only once (violation_count must be ≥2).
+- Do NOT skip promotion levels (always promote one step at a time).
+- Mechanical promotions are low-risk — execute them autonomously.
+- Architectural promotions affect the build system — draft for human review.
+
+/goal Read .pev-signals/violations/ for repeat violations. Auto-execute mechanical promotions. Draft ExecPlans for architectural promotions. Report decisions clearly. Stop when all violation records are processed or after 20 turns."
+
+tmux new-window -t "$SESSION" -n "promotion-arbiter" -c "$REPO_ROOT"
+tmux send-keys -t "$SESSION:promotion-arbiter" "
+echo '╔══════════════════════════════════════════╗'
+echo '║  PROMOTION ARBITER                      ║'
+echo '╠══════════════════════════════════════════╣'
+echo '║  Reads: .pev-signals/violations/        ║'
+echo '║  Auto-executes: doc → test, test → hook ║'
+echo '║  Drafts: → CI gate, → architecture     ║'
+echo '╚══════════════════════════════════════════╝'
+echo ''
+echo 'Goal prompt:'
+echo '────────────────────────────────────────'
+echo '$PROMOTION_ARBITER_PROMPT'
+echo '────────────────────────────────────────'
+echo ''
+echo 'Run after violation tracker completes: claude'
+echo ''
+" Enter
+
+# ── Select and attach ────────────────────────────────────────────────────────
+
 tmux select-window -t "$SESSION:arbiter"
 tmux select-pane -t "$SESSION:arbiter.0"
 
@@ -441,12 +504,14 @@ echo "Startup order (manual):"
 echo "  1. Window 1 (A): type 'claude' → paste goal prompt → Enter"
 echo "  2. Window 2 (B): type 'claude' → paste goal prompt → Enter"
 echo "  3. Window 3 (orchestrator): type 'claude' → paste goal prompt → Enter"
-echo "  4. Window 0 (arbiter): watch signal files"
+echo "  4. Window 4 (promotion-arbiter): type 'claude' → paste goal prompt → Enter"
+echo "  5. Window 0 (arbiter): watch signal files"
 echo ""
 echo "Flow: A prints __DONE_M1__ → orchestrator detects via capture-pane"
 echo "      → orchestrator sends verification request to B via send-keys"
 echo "      → B writes verdict → orchestrator reads it → flips checkbox"
 echo "      → loop to next milestone"
+echo "      → promotion arbiter reads violations/ → auto-promotes or drafts"
 echo ""
 
 if [ -t 0 ]; then
