@@ -171,6 +171,22 @@ Otherwise, write a REJECTED verdict with specific findings:
    - semantic: design quality or subjective judgment issue (needs human)
    - constraint-violation: implementation exceeded declared constraints
 
+Write each verdict directly as an implementation notes entry. The notes
+directory is docs/exec-plans/active/${PLAN_ID}-notes/. Each milestone N
+has a file at docs/exec-plans/active/${PLAN_ID}-notes/M<N>.md.
+
+Use the following entry types for your verdicts:
+
+  [plan-confirmed]  — CONFIRMED: acceptance test passed, edge cases held,
+                      structural tests and lint all green.
+  [deviation]       — REJECTED (constraint-violation): implementation exceeded
+                      declared constraints. Include all four devgrid fields
+                      (plan, discovered, conservative choice, revisit).
+  [human-todo]      — REJECTED (semantic): requires human judgment. Describe
+                      what needs a decision.
+  [discovery]       — REJECTED (mechanical): specific defect, test failure,
+                      or assertion error found.
+
 Rules:
 - Your default stance is SKEPTICISM. Try hard to find defects.
 - Do NOT read A's commit messages, decision logs, or implementation notes.

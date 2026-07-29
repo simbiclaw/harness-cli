@@ -22,6 +22,8 @@ Formalize `.pev-signals/` as the coordination directory. Define state.json schem
 
 `Acceptance Test:` `.claude/tests/test_pev_signals.py`
 
+`Behavioral Test: none` — harness infrastructure milestone; state.json schema validation is tested structurally via `test_pev_signals.py`. No functional behavior to exercise beyond schema conformance and directory existence.
+
 **File Scope:**
 - `Allowed Reads:` none
 - `Allowed Writes:` .pev-signals/.gitkeep, .pev-signals/state.json, .claude/tests/test_pev_signals.py
@@ -114,9 +116,9 @@ End-to-end structural test. Cross-reference cleanup.
 
 ## 4. Progress
 
-- [ ] M0: Signal directory and state schema
-- [ ] M1: Subagent adversarial script
-- [ ] M2: Verdict/notes unification
+- [x] M0: Signal directory and state schema
+- [x] M1: Subagent adversarial script
+- [x] M2: Verdict/notes unification
 - [ ] M3: Arbiter autonomy and hook exemptions
 - [ ] M4: Checkpoint recovery
 - [ ] M5: Violation tracker
