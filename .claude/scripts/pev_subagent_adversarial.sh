@@ -107,12 +107,24 @@ fi
 IFS=',' read -ra MS <<< "$MILESTONES_INPUT"
 M_COUNT=${#MS[@]}
 MS_TRIMMED=()
-M_LIST=""
 for m in "${MS[@]}"; do
     # Strip leading/trailing whitespace from each milestone number
     m="${m#"${m%%[![:space:]]*}"}"
     m="${m%"${m##*[![:space:]]}"}"
     MS_TRIMMED+=("$m")
+done
+
+# Validate milestone values are numeric
+for m in "${MS_TRIMMED[@]}"; do
+    if ! [[ "$m" =~ ^[0-9]+$ ]]; then
+        echo "ERROR: Invalid milestone value '$m' — must be a number." >&2
+        usage >&2
+        exit 1
+    fi
+done
+
+M_LIST=""
+for m in "${MS_TRIMMED[@]}"; do
     M_LIST="${M_LIST}M${m}, "
 done
 M_LIST="${M_LIST%, }"
@@ -123,10 +135,10 @@ PLAN_FILE="$ACTIVE_DIR/$PLAN_ID.md"
 TESTS=""
 for m in "${MS_TRIMMED[@]}"; do
     if [ -f "$PLAN_FILE" ]; then
-        test_name=$(awk "/^### M${m}[[:space:]]/,/^### M/" "$PLAN_FILE" \
+        test_name=$(awk "/^### M${m}[[:space:]]/,/^### M[0-9]/" "$PLAN_FILE" \
             | grep -i "acceptance test" \
             | sed 's/.*`Acceptance Test:`[[:space:]]*`\{0,1\}\([^`\n]*\)`\{0,1\}.*/\1/' \
-            | head -1)
+            | head -1) || true
         if [ -n "$test_name" ]; then
             TESTS="${TESTS}  - M${m}: ${test_name}"$'\n'
         fi
