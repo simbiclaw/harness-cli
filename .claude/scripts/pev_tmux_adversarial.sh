@@ -292,6 +292,11 @@ For each milestone (${M_COUNT} total):
 
 7. Report the result clearly and act accordingly.
 
+8. After each verdict, write a checkpoint to .pev-signals/state.json:
+   Update the milestone status, current_milestone, phase, and
+   last_checkpoint_at timestamp. This ensures recovery can resume
+   from the last processed milestone if the tmux session crashes.
+
 Commands you can use:
 - tmux capture-pane -t pev-adversarial:A-implementer -p -S -200
   (captures last 200 lines of A's output)
