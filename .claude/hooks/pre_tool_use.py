@@ -142,6 +142,85 @@ def has_uncommitted_flip() -> bool:
 
 
 # ---------------------------------------------------------------------------
+# PEV verification gate helpers
+# ---------------------------------------------------------------------------
+
+CHECKBOX_FLIP_RE = re.compile(r"^- \[ \] M(\d+)", re.MULTILINE)
+CHECKBOX_FLIPPED_RE = re.compile(r"^- \[x\] M(\d+)", re.MULTILINE)
+STATE_FILE = REPO_ROOT / ".pev-signals" / "state.json"
+VERDICT_BADGE_RE = re.compile(
+    r"\[(?:plan-confirmed|deviation|human-todo|discovery)\]",
+)
+
+
+def _milestones_being_flipped(file_path: str, params: dict) -> list[int]:
+    """Return milestone numbers that change from [ ] to [x] in this edit."""
+    after = simulate_after_edit(file_path, params)
+    if after is None:
+        return []
+    path = Path(file_path)
+    before = path.read_text() if path.exists() else ""
+
+    before_unchecked = {int(m.group(1)) for m in CHECKBOX_FLIP_RE.finditer(before)}
+    after_checked = {int(m.group(1)) for m in CHECKBOX_FLIPPED_RE.finditer(after)}
+
+    # Milestones that were unchecked before and checked after
+    return sorted(before_unchecked & after_checked)
+
+
+def _check_pev_verification(plan_path: str, milestones: list[int]) -> bool:
+    """Check that each milestone has PEV verification completed.
+
+    Returns True if all milestones are verified, False if any are not.
+    Blocks the edit (prints JSON to stdout) if verification is missing.
+    """
+    plan = Path(plan_path)
+    notes_dir = plan.parent / f"{plan.stem}-notes"
+
+    # Read state.json for milestone status
+    state_milestones = {}
+    if STATE_FILE.exists():
+        try:
+            import json
+            state = json.loads(STATE_FILE.read_text())
+            state_milestones = state.get("milestones", {})
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    unverified = []
+    for m_num in milestones:
+        key = f"M{m_num}"
+        state_ok = state_milestones.get(key) == "confirmed"
+
+        notes_file = notes_dir / f"M{m_num}.md"
+        notes_ok = notes_file.exists() and bool(
+            VERDICT_BADGE_RE.search(notes_file.read_text())
+        )
+
+        # Either state.json confirmation OR notes with verdict is sufficient.
+        # (notes are the canonical record; state.json is a cache)
+        if not (state_ok or notes_ok):
+            unverified.append(str(m_num))
+
+    if unverified:
+        rel = str(plan.relative_to(REPO_ROOT))
+        ms = ", ".join(unverified)
+        print(json.dumps({
+            "continue": False,
+            "reason": (
+                f"Milestone(s) M{ms} checkbox flip blocked: no adversarial "
+                f"verification found. PEV requires subagent B to write a "
+                f"verdict to {plan.stem}-notes/M<N>.md before the checkbox "
+                f"can be flipped. See postmortem "
+                f"docs/postmortems/2026-07-29-pev-without-pev.md."
+            ),
+        }))
+        return False
+
+    return True
+
+
+# ---------------------------------------------------------------------------
 # package-install helpers
 # ---------------------------------------------------------------------------
 
@@ -229,6 +308,20 @@ def main() -> int:
                     ),
                 }))
                 return 0
+
+        # ---- Guard 0.5: PEV verification gate ----
+        # Block checkbox flips unless the milestone has been verified by
+        # subagent B and the verdict is recorded in implementation notes.
+        # Promotes Lesson 2 from postmortem 2026-07-29-pev-without-pev.md.
+        if is_active_plan(target) and not _is_arbiter():
+            flips = count_new_flips(target, params)
+            if flips > 0:
+                # Determine which milestones are being flipped
+                flipped = _milestones_being_flipped(target, params)
+                if flipped:
+                    verified = _check_pev_verification(target, flipped)
+                    if not verified:
+                        return 0
 
         # ---- Guard 1: uncommitted flip blocks code edits ----
         # Arbiter exemption: the arbiter edits plan files and .pev-signals/
