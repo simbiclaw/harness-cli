@@ -106,15 +106,22 @@ fi
 
 IFS=',' read -ra MS <<< "$MILESTONES_INPUT"
 M_COUNT=${#MS[@]}
+MS_TRIMMED=()
 M_LIST=""
-for m in "${MS[@]}"; do M_LIST="${M_LIST}M${m}, "; done
+for m in "${MS[@]}"; do
+    # Strip leading/trailing whitespace from each milestone number
+    m="${m#"${m%%[![:space:]]*}"}"
+    m="${m%"${m##*[![:space:]]}"}"
+    MS_TRIMMED+=("$m")
+    M_LIST="${M_LIST}M${m}, "
+done
 M_LIST="${M_LIST%, }"
 
 # ── Extract milestone acceptance tests ────────────────────────────────────────
 
 PLAN_FILE="$ACTIVE_DIR/$PLAN_ID.md"
 TESTS=""
-for m in "${MS[@]}"; do
+for m in "${MS_TRIMMED[@]}"; do
     if [ -f "$PLAN_FILE" ]; then
         test_name=$(awk "/^### M${m}[[:space:]]/,/^### M/" "$PLAN_FILE" \
             | grep -i "acceptance test" \
