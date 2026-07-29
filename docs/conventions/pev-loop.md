@@ -131,6 +131,33 @@ Risk Tier: B
 
 Validated by `.claude/tests/test_milestone_constraints.py`.
 
+## Arbiter autonomy
+
+The PEV tmux arbiter (`pev_tmux_adversarial.sh`) runs as a Claude Code session with `PEV_ARBITER=true` set. The hooks (`pre_tool_use.py`) recognize this and grant autonomy for PEV coordination operations.
+
+### Allowed autonomously
+
+- Flip milestone checkboxes in ExecPlan files (`[ ]` → `[x]`)
+- Commit verdicts and checkpoint state
+- Edit `.pev-signals/` files (state.json, violations/)
+- Write and edit milestone implementation notes files
+- Send repair instructions to subagent A
+- Re-trigger verification after repair
+
+### Blocked (pauses for human)
+
+- Semantic failures (`[human-todo]` entries) — design judgment, subjective quality, or human preference questions
+- Tier C paths outside `.pev-signals/` and ExecPlan notes — sensitive path edits still require steering
+
+### How it works
+
+1. The tmux script exports `PEV_ARBITER=true` in the arbiter's environment.
+2. `pre_tool_use.py` checks `_is_arbiter()` before applying Guard 0 (single-flip) and Guard 1 (uncommitted-flip blocker).
+3. When `PEV_ARBITER=true`, the arbiter can flip checkboxes and edit PEV coordination files without triggering guard blocks.
+4. Non-arbiter sessions are still subject to all existing guards.
+
+`Source: docs/exec-plans/active/9006-pev-tmux-convergence.md#milestone-3` · enforced by `.claude/tests/test_arbiter_autonomy.py`.
+
 ## When this rubric is wrong
 
 If a milestone consistently takes more than 3 PEV iterations to converge, the milestone is likely too large — split it. If the adversarial verification repeatedly catches the same class of error across different milestones, the Plan phase is missing a structural guard — promote it (documentation → structural test → hook → CI gate).

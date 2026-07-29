@@ -32,6 +32,16 @@ ACTIVE_PLANS_DIR = REPO_ROOT / "docs" / "exec-plans" / "active"
 CHECKBOX_LINE = re.compile(r"^- \[x\]", re.MULTILINE)
 
 
+def _is_arbiter() -> bool:
+    """Detect whether this session is the PEV arbiter.
+
+    The PEV tmux script sets PEV_ARBITER=true when spawning the arbiter
+    Claude Code session. This gives the arbiter autonomy to flip checkboxes
+    and edit .pev-signals/ without triggering guard blocks.
+    """
+    return os.environ.get("PEV_ARBITER", "").lower() == "true"
+
+
 # ---------------------------------------------------------------------------
 # sensitive-path helpers
 # ---------------------------------------------------------------------------
@@ -204,7 +214,9 @@ def main() -> int:
         target = params.get("file_path") or params.get("path") or ""
 
         # ---- Guard 0: single checkbox flip ----
-        if is_active_plan(target):
+        # Arbiter exemption: the arbiter flips checkboxes autonomously;
+        # skip the single-flip guard for arbiter-originated edits.
+        if is_active_plan(target) and not _is_arbiter():
             flips = count_new_flips(target, params)
             if flips > 1:
                 print(json.dumps({
@@ -219,7 +231,9 @@ def main() -> int:
                 return 0
 
         # ---- Guard 1: uncommitted flip blocks code edits ----
-        if not is_active_plan(target):
+        # Arbiter exemption: the arbiter edits plan files and .pev-signals/
+        # autonomously; skip the uncommitted-flip blocker for arbiter sessions.
+        if not is_active_plan(target) and not _is_arbiter():
             if has_uncommitted_flip():
                 print(json.dumps({
                     "continue": False,

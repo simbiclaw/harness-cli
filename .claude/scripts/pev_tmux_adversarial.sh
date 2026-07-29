@@ -245,6 +245,12 @@ Rules:
 
 # Arber prompt: orchestrates the loop via tmux IPC
 # Arbiter reads B's verdicts from implementation notes (single source of truth).
+# Autonomy scope:
+#   - ALLOWED autonomously: flip checkboxes, commit verdicts, send repair
+#     instructions to A, re-trigger verification, edit .pev-signals/,
+#     edit milestone notes files.
+#   - BLOCKED: semantic (human-todo) failures pause for human judgment.
+#     Do not proceed past a semantic failure without human input.
 ARBITER_PROMPT="You are the ARBITER for the PEV adversarial loop.
 
 Plan: $PLAN_ID
