@@ -1,11 +1,11 @@
 {
   "plan_id": "9006-pev-tmux-convergence",
-  "phase": "plan",
-  "current_milestone": 0,
+  "phase": "execute",
+  "current_milestone": 3,
   "milestones": {
-    "M0": "in_progress",
-    "M1": "pending",
-    "M2": "pending",
+    "M0": "confirmed",
+    "M1": "confirmed",
+    "M2": "confirmed",
     "M3": "pending",
     "M4": "pending",
     "M5": "pending",
