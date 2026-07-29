@@ -145,3 +145,51 @@ def test_unflipped_milestones_should_not_have_confirmed_notes():
             "Stale notes files detected (unflipped milestones with verdicts):\n"
             + "\n".join(f"  - {w}" for w in warnings)
         )
+
+
+def test_no_milestone_skipping():
+    """Milestones must complete V verification in order.
+
+    If M<N> is confirmed, all M<0..N-1> must be confirmed.
+    E must not skip ahead before V confirms the current milestone.
+    """
+    STATE_FILE = REPO_ROOT / ".pev-signals" / "state.json"
+    if not STATE_FILE.exists():
+        return
+
+    try:
+        import json
+        state = json.loads(STATE_FILE.read_text())
+    except (json.JSONDecodeError, OSError):
+        return
+
+    milestones = state.get("milestones", {})
+    if not milestones:
+        return
+
+    ordered = sorted(
+        [(int(k[1:]), k, v) for k, v in milestones.items()],
+        key=lambda x: x[0],
+    )
+
+    failures = []
+    saw_unconfirmed = False
+    for num, key, value in ordered:
+        if value == "confirmed":
+            if saw_unconfirmed:
+                failures.append(f"{key}={value} but earlier milestone(s) unconfirmed")
+        else:
+            saw_unconfirmed = True
+
+    current = state.get("current_milestone", 0)
+    for num, key, value in ordered:
+        if num < current and value != "confirmed":
+            failures.append(
+                f"{key}={value} but current_milestone={current} — "
+                f"M{num} must be confirmed before advancing"
+            )
+
+    assert not failures, (
+        "PEV sequential gate: V must confirm each milestone before E moves on:\n"
+        + "\n".join(f"  - {f}" for f in failures)
+    )

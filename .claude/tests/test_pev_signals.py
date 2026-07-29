@@ -6,6 +6,8 @@ M0 of 9006-pev-tmux-convergence.
 from __future__ import annotations
 
 import json
+import re
+from datetime import datetime
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -56,19 +58,36 @@ def test_state_schema_validates():
     )
 
     # current_milestone must be a positive integer
-    assert isinstance(data["current_milestone"], int) and data["current_milestone"] >= 0, (
+    assert type(data["current_milestone"]) is int and data["current_milestone"] >= 0, (
         f"current_milestone must be a non-negative integer, got {data['current_milestone']!r}"
     )
 
     # milestones must be a dict mapping string keys to valid statuses
     assert isinstance(data["milestones"], dict), "milestones must be a dict"
     for key, value in data["milestones"].items():
-        assert key.startswith("M"), f"milestone key must start with 'M', got {key!r}"
+        assert re.fullmatch(r"M\d+", key), f"milestone key must match M<digits>, got {key!r}"
         assert value in VALID_MILESTONE_STATUSES, (
             f"milestone status for {key} must be one of {VALID_MILESTONE_STATUSES}, got {value!r}"
         )
+
+    assert len(data["milestones"]) > 0, "milestones must not be empty"
 
     # last_checkpoint_at must be an ISO-8601 string
     assert isinstance(data["last_checkpoint_at"], str) and data["last_checkpoint_at"], (
         "last_checkpoint_at must be a non-empty ISO-8601 string"
     )
+
+    # agent_ids is optional but must be valid if present
+    # (docs/conventions/pev-loop.md § The three agents)
+    agent_ids = data.get("agent_ids")
+    if agent_ids is not None:
+        assert isinstance(agent_ids, dict), (
+            "agent_ids must be a dict if present"
+        )
+        for aid_key in ("p_agent_id", "e_agent_id", "v_agent_id"):
+            if aid_key in agent_ids:
+                val = agent_ids[aid_key]
+                assert val is None or isinstance(val, str), (
+                    f"agent_ids.{aid_key} must be null or a string, "
+                    f"got {type(val).__name__}"
+                )

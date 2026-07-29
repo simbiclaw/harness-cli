@@ -4,6 +4,7 @@ Validates that ExecPlan milestones with constraint fields parse correctly:
 - Risk Tier is A, B, or C
 - Requires references existing milestone numbers
 - Allowed Reads/Writes are valid glob patterns
+- Every milestone has an Acceptance Test or explicit behavioral-test waiver
 - Old plans without constraints still pass (backward-compatible)
 
 See docs/conventions/pev-loop.md for the constraint format specification.
@@ -24,9 +25,34 @@ ALLOWED_READS_RE = re.compile(r"^Allowed Reads:\s*(.+)$", re.MULTILINE)
 ALLOWED_WRITES_RE = re.compile(r"^Allowed Writes:\s*(.+)$", re.MULTILINE)
 REQUIRES_RE = re.compile(r"^Requires:\s*(.+)$", re.MULTILINE)
 RISK_TIER_RE = re.compile(r"^Risk Tier:\s*([ABC])\s*$", re.MULTILINE)
+ACCEPTANCE_TEST_RE = re.compile(
+    r"`Acceptance Test:`\s*`?([^`\n]+)`?", re.MULTILINE
+)
+BEHAVIORAL_TEST_NONE_RE = re.compile(
+    r"Behavioral Test:\s*none\s*[—–-]\s*(.+)", re.IGNORECASE | re.MULTILINE
+)
+STRUCTURAL_TEST_NONE_RE = re.compile(
+    r"Structural Test:\s*none\s*[—–-]\s*(.+)", re.IGNORECASE | re.MULTILINE
+)
 
 # Milestone header pattern
 MILESTONE_RE = re.compile(r"^### M(\d+)[\s—–-]", re.MULTILINE)
+
+# Section boundary: stop parsing milestones after the Progress section
+PROGRESS_SECTION_RE = re.compile(
+    r"^## \d+\.\s*Progress\s*$", re.MULTILINE
+)
+
+
+def _extract_milestones_section(text: str) -> str:
+    """Extract only the Milestones section of a plan, excluding
+    Decision Log entries that might match milestone headers
+    (e.g., '### M0 adversarial verification').
+    """
+    m = PROGRESS_SECTION_RE.search(text)
+    if m:
+        return text[: m.start()]
+    return text
 
 # Valid risk tiers
 VALID_TIERS = {"A", "B", "C"}
@@ -151,3 +177,58 @@ def test_backward_compatible_without_constraints():
             )
             # No assertion needed — absence of constraints is valid
             _ = has_constraints
+
+
+def test_every_milestone_has_behavioral_coverage():
+    """Every milestone must have an Acceptance Test or an explicit
+    'Behavioral Test: none — <reason>' declaration.
+
+    A milestone without behavioral coverage is incomplete at Plan phase
+    (pev-loop.md § Plan — contract formation, step 3).
+    """
+    if not ACTIVE_DIR.exists():
+        return
+
+    failures: list[str] = []
+
+    for plan_path in sorted(ACTIVE_DIR.glob("*.md")):
+        full_text = plan_path.read_text()
+        text = _extract_milestones_section(full_text)
+        rel = plan_path.relative_to(REPO_ROOT)
+
+        parts = MILESTONE_RE.split(text)
+        for i in range(1, len(parts) - 1, 2):
+            m_num = int(parts[i])
+            body = parts[i + 1]
+
+            # Cut at next milestone
+            next_m = MILESTONE_RE.search(body)
+            if next_m:
+                body = body[: next_m.start()]
+
+            has_acceptance = ACCEPTANCE_TEST_RE.search(body)
+            has_behavioral_none = BEHAVIORAL_TEST_NONE_RE.search(body)
+
+            if not has_acceptance and not has_behavioral_none:
+                failures.append(
+                    f"{rel} M{m_num}: no Acceptance Test and no "
+                    f"behavioral-test waiver ('Behavioral Test: none "
+                    f"— <reason>'). Every milestone must have a "
+                    f"behavioral test or an explicit justification "
+                    f"for its absence."
+                )
+            elif has_behavioral_none:
+                # Verify the reason is non-trivial (more than 10 chars)
+                reason = has_behavioral_none.group(1).strip()
+                if len(reason) < 10:
+                    failures.append(
+                        f"{rel} M{m_num}: behavioral-test waiver "
+                        f"reason too short ('{reason}'). Provide a "
+                        f"substantive justification."
+                    )
+
+    assert not failures, (
+        "Behavioral coverage violations — milestones without "
+        "Acceptance Test or explicit waiver:\n"
+        + "\n".join(f"  - {f}" for f in failures)
+    )

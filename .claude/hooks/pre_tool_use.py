@@ -253,6 +253,58 @@ def is_force_push(cmd: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# PEV agent gate helpers
+# ---------------------------------------------------------------------------
+
+REQUIRED_AGENT_IDS = {"p_agent_id", "e_agent_id", "v_agent_id"}
+
+
+def _pev_agents_spawned() -> bool:
+    """Check whether state.json records P, E, V agent IDs.
+
+    The Arbiter must spawn three persistent subagents per ExecPlan
+    (docs/conventions/pev-loop.md § The three agents). After spawning,
+    the Arbiter writes their agent IDs to state.json. This function
+    verifies that all three IDs are present.
+    """
+    if not STATE_FILE.exists():
+        return False
+    try:
+        state = json.loads(STATE_FILE.read_text())
+        agent_ids = state.get("agent_ids", {})
+        return bool(
+            agent_ids.get("p_agent_id")
+            and agent_ids.get("e_agent_id")
+            and agent_ids.get("v_agent_id")
+        )
+    except (json.JSONDecodeError, OSError):
+        return False
+
+
+def _is_arbiter_safe_path(target: str) -> bool:
+    """Paths the Arbiter may edit without spawning P/E/V agents.
+
+    The Arbiter is allowed to edit:
+    - Active ExecPlan files (docs/exec-plans/active/*.md)
+    - Implementation notes (docs/exec-plans/active/*-notes/*.md)
+    - PEV coordination files (.pev-signals/*)
+
+    Everything else requires P/E/V agents to be spawned first.
+    """
+    try:
+        rel = str(Path(target).resolve().relative_to(REPO_ROOT))
+    except (ValueError, OSError):
+        return False
+
+    return (
+        rel.startswith("docs/exec-plans/active/")
+        or rel.startswith(".pev-signals/")
+        or rel == "CLAUDE.md"
+        or rel.startswith("docs/conventions/")
+    )
+
+
+# ---------------------------------------------------------------------------
 # harness-branch guard helpers
 # ---------------------------------------------------------------------------
 
@@ -365,6 +417,28 @@ def main() -> int:
                 }))
                 return 0
 
+        # ---- Guard 2.5: PEV agent gate ----
+        # Block implementation edits when P/E/V subagents haven't been
+        # spawned for the current ExecPlan. The Arbiter must spawn three
+        # persistent agents (P, E, V) before touching any code outside
+        # docs/exec-plans/active/ and .pev-signals/.
+        if not _is_arbiter_safe_path(target) and not _pev_agents_spawned():
+            print(json.dumps({
+                "continue": False,
+                "reason": (
+                    "No PEV agents spawned for this ExecPlan. Per "
+                    "docs/conventions/pev-loop.md § The three agents, "
+                    "every ExecPlan requires three persistent subagents "
+                    "(P, E, V) before implementation begins. Spawn them "
+                    "via the Agent tool, then record their agent IDs in "
+                    ".pev-signals/state.json under 'agent_ids': "
+                    '{"p_agent_id": "...", "e_agent_id": "...", '
+                    '"v_agent_id": "..."}. Plan files, notes, and '
+                    ".pev-signals/ remain editable by the Arbiter."
+                ),
+            }))
+            return 0
+
     # ---- Guard 3 + 4: Bash command guards ----
     if tool == "Bash":
         cmd = params.get("command", "")
@@ -408,6 +482,29 @@ def main() -> int:
                     "commits are cherry-picked from main to harness by "
                     "automation. If you need to add harness commits to this "
                     "branch, use git cherry-pick from main."
+                ),
+            }))
+            return 0
+
+        # ---- Guard 6: commit authority — only the Arbiter commits ----
+        # Per docs/conventions/pev-loop.md § Commit authority, only the
+        # Arbiter may commit. P, E, and V subagents never commit. Their
+        # changes accumulate in the working tree; the Arbiter bundles
+        # everything into one commit per milestone after CONFIRMED.
+        if COMMIT_LIKE_RE.search(cmd) and not _is_arbiter():
+            print(json.dumps({
+                "continue": False,
+                "reason": (
+                    "git commit is blocked. Per "
+                    "docs/conventions/pev-loop.md § Commit authority, "
+                    "only the Arbiter commits. P, E, and V subagents "
+                    "never commit — their work accumulates in the "
+                    "working tree. The Arbiter bundles all changes "
+                    "(contract, implementation, verdict, checkbox flip) "
+                    "into one commit per milestone after V CONFIRMED. "
+                    "If you are P/E/V, do not commit — hand off to the "
+                    "Arbiter. If you are the Arbiter, set "
+                    "PEV_ARBITER=true in your environment."
                 ),
             }))
             return 0
