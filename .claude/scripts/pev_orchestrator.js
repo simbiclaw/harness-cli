@@ -1,5 +1,5 @@
 /**
- * DEPRECATED — Replaced by pev_tmux_adversarial.sh (plan 9006).
+ * DEPRECATED — Replaced by pev_subagent_adversarial.sh (plan 9006).
  *
  * This Dynamic Workflow-based PEV orchestrator is superseded by the tmux
  * arbiter architecture defined in docs/exec-plans/active/9006-pev-tmux-convergence.md.
@@ -10,7 +10,7 @@
  * pattern and the failure classification taxonomy. It will be moved to
  * .claude/scripts/archived/ at M7.
  *
- * Do not use for new ExecPlans. Use pev_tmux_adversarial.sh instead.
+ * Do not use for new ExecPlans. Use pev_subagent_adversarial.sh instead.
  *
  * --- Original docstring below ---
  *
