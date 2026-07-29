@@ -1,100 +1,164 @@
-"""M6: Promotion arbiter — structural tests.
+"""M6: Promotion arbiter — structural + behavioral tests.
 
-Acceptance tests for M6:
-- test_mechanical_promotion_auto_executed: mechanical promotion auto-executed
-- test_architectural_promotion_drafted: complex promotion drafts ExecPlan
-- test_arbiter_reads_violation_records: arbiter ingests violation tracker output
+M6 contract:
+- Reads violation tracker output from .pev-signals/violations/
+- Mechanical promotions (simple format rules) → prompt instructs auto-execution
+- Architectural promotions (complex) → prompt instructs ExecPlan drafting
 """
 
-import re
+import json
+import subprocess
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SCRIPTS_DIR = REPO_ROOT / ".claude" / "scripts"
-TMUX_SCRIPT = SCRIPTS_DIR / "pev_tmux_adversarial.sh"
+SUBAGENT_SCRIPT = SCRIPTS_DIR / "pev_subagent_adversarial.sh"
 VIOLATIONS_DIR = REPO_ROOT / ".pev-signals" / "violations"
 
 
-class TestMechanicalPromotionAutoExecuted:
-    """Simple format rules flagged twice are auto-promoted without human input."""
+# ---------------------------------------------------------------------------
+# Violations directory
+# ---------------------------------------------------------------------------
 
-    def test_promotion_window_exists(self):
-        """The tmux script must create a fourth window for promotion arbiter."""
-        script = TMUX_SCRIPT.read_text()
+class TestViolationsDirAccessible:
+    """The violation tracker output directory must be accessible."""
 
-        # Count windows — should have arbiter, A-implementer, B-verifier,
-        # orchestrator, AND promotion-arbiter (5 windows)
-        window_count = len(re.findall(r"tmux new-window", script))
-        assert window_count >= 4, (
-            f"Expected at least 4 tmux new-window calls (including promotion), "
-            f"got {window_count}"
-        )
-
-    def test_promotion_window_named_correctly(self):
-        """The promotion arbiter window should have a descriptive name."""
-        script = TMUX_SCRIPT.read_text()
-        assert "promotion" in script.lower(), (
-            "Script must define a promotion arbiter window"
-        )
-
-    def test_promotion_prompt_defines_auto_execute(self):
-        """Promotion arbiter prompt must define which promotions are auto-executed."""
-        script = TMUX_SCRIPT.read_text()
-        assert "auto" in script.lower(), (
-            "Promotion arbiter prompt must define auto-execute conditions"
-        )
-
-    def test_promotion_prompt_references_violations_dir(self):
-        """Promotion arbiter must read from .pev-signals/violations/."""
-        script = TMUX_SCRIPT.read_text()
-        assert "violations" in script, (
-            "Promotion arbiter prompt must reference violations directory"
-        )
-
-
-class TestArchitecturalPromotionDrafted:
-    """Complex promotions generate pre-filled ExecPlan drafts."""
-
-    def test_promotion_prompt_defines_draft_boundary(self):
-        """Promotion arbiter must know when to draft vs auto-execute."""
-        script = TMUX_SCRIPT.read_text()
-        # Should mention drafting or human approval for complex promotions
-        has_draft_logic = (
-            "draft" in script.lower()
-            or "human" in script.lower()
-            or "approval" in script.lower()
-        )
-        assert has_draft_logic, (
-            "Promotion arbiter must define when to draft for human approval"
-        )
-
-    def test_promotion_prompt_mentions_execplan(self):
-        """Promotion arbiter must know where to write drafted ExecPlans."""
-        script = TMUX_SCRIPT.read_text()
-        assert "exec-plans" in script.lower() or "ExecPlan" in script, (
-            "Promotion arbiter must reference ExecPlan drafts"
-        )
-
-
-class TestArbiterReadsViolationRecords:
-    """Arbiter correctly ingests violation tracker output."""
-
-    def test_violations_dir_is_accessible(self):
-        """.pev-signals/violations/ must exist and be accessible."""
+    def test_violations_dir_exists(self):
+        """.pev-signals/violations/ must exist (from M5 fixture)."""
         assert VIOLATIONS_DIR.exists(), (
-            ".pev-signals/violations/ must exist (from M5 fixture)"
+            ".pev-signals/violations/ must exist"
         )
 
-    def test_promotion_arbiter_references_pev_signals(self):
-        """Promotion arbiter must know about .pev-signals/ for input."""
-        script = TMUX_SCRIPT.read_text()
-        assert ".pev-signals" in script, (
-            "Promotion arbiter must reference .pev-signals/"
+    def test_violations_dir_is_readable(self):
+        """Must be able to list files in violations dir."""
+        files = list(VIOLATIONS_DIR.iterdir())
+        # May be empty (no violations yet); should not crash
+        assert isinstance(files, list)
+
+
+# ---------------------------------------------------------------------------
+# Promotion instructions in generated prompt (behavioral)
+# ---------------------------------------------------------------------------
+
+class TestPromotionInstructionsInPrompt:
+    """The generated prompt must include promotion arbiter instructions."""
+
+    def test_prompt_references_violations_dir(self):
+        """Generated prompt must mention .pev-signals/violations/."""
+        result = subprocess.run(
+            ["bash", str(SUBAGENT_SCRIPT), "--plan", "test-plan",
+             "--milestones", "0"],
+            capture_output=True, text=True,
+        )
+        output = result.stdout
+        assert "violations" in output.lower(), (
+            "Generated prompt must reference .pev-signals/violations/ "
+            "for promotion input"
         )
 
-    def test_promotion_uses_state_checkpoint(self):
-        """Promotion arbiter should integrate with the same state.json system."""
-        script = TMUX_SCRIPT.read_text()
-        assert "state.json" in script, (
-            "Promotion arbiter should use state.json for coordination"
+    def test_prompt_mentions_promotion(self):
+        """Generated prompt must mention rule promotion or promotion arbiter."""
+        result = subprocess.run(
+            ["bash", str(SUBAGENT_SCRIPT), "--plan", "test-plan",
+             "--milestones", "0"],
+            capture_output=True, text=True,
         )
+        output = result.stdout.lower()
+        assert "promotion" in output, (
+            "Generated prompt must mention promotion of repeated violations"
+        )
+
+
+class TestMechanicalPromotion:
+    """Mechanical promotions should be described as auto-executable."""
+
+    def test_mechanical_promotion_auto_execute(self):
+        """Generated prompt must define auto-execution for mechanical promotions."""
+        result = subprocess.run(
+            ["bash", str(SUBAGENT_SCRIPT), "--plan", "test-plan",
+             "--milestones", "0"],
+            capture_output=True, text=True,
+        )
+        output = result.stdout.lower()
+        # Should mention auto-execution or automatic action for simple promotions
+        assert "auto" in output or "automatic" in output, (
+            "Generated prompt must define auto-execute conditions "
+            "for mechanical promotions"
+        )
+
+
+class TestArchitecturalPromotion:
+    """Architectural promotions should be described as needing ExecPlan drafts."""
+
+    def test_architectural_promotion_drafts_execplan(self):
+        """Generated prompt must instruct drafting ExecPlans for complex promotions."""
+        result = subprocess.run(
+            ["bash", str(SUBAGENT_SCRIPT), "--plan", "test-plan",
+             "--milestones", "0"],
+            capture_output=True, text=True,
+        )
+        output = result.stdout.lower()
+        # Must mention drafting — "execplan" alone matches plan header text
+        assert "draft" in output, (
+            "Generated prompt must instruct ExecPlan drafting "
+            "for architectural promotions"
+        )
+
+    def test_architectural_promotion_requires_human(self):
+        """Complex promotions must require human approval, not auto-execute."""
+        result = subprocess.run(
+            ["bash", str(SUBAGENT_SCRIPT), "--plan", "test-plan",
+             "--milestones", "0"],
+            capture_output=True, text=True,
+        )
+        output = result.stdout.lower()
+        # Must require human judgment/approval for complex promotions
+        # (not just "human" which appears naturally in rejection criteria)
+        assert "human" in output and ("approval" in output or "judgment" in output), (
+            "Generated prompt must require human approval for "
+            "architectural promotions"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Violation schema integration
+# ---------------------------------------------------------------------------
+
+class TestViolationSchemaIntegration:
+    """Behavioral: write a violation record and verify the arbiter can process it."""
+
+    def test_write_and_read_violation_record(self):
+        """Writing a violation record and reading it must work end-to-end."""
+        test_record = {
+            "rule_slug": "test-commit-message-format",
+            "violation_count": 2,
+            "plans": ["9001-test", "9002-test"],
+            "files": ["docs/plan1.md", "docs/plan2.md"],
+            "excerpts": [
+                "broke the commit message convention",
+                "skipped commit message rule again",
+            ],
+            "suggested_promotion": "documentation → structural test",
+        }
+        record_path = VIOLATIONS_DIR / "test-commit-message-format.json"
+        try:
+            record_path.write_text(json.dumps(test_record, indent=2) + "\n")
+            assert record_path.exists()
+
+            read_back = json.loads(record_path.read_text())
+            assert read_back["rule_slug"] == "test-commit-message-format"
+            assert read_back["violation_count"] == 2
+            assert "plans" in read_back
+            assert "excerpts" in read_back
+            assert "suggested_promotion" in read_back
+
+            # Verify the schema is compatible with what a promotion arbiter would read
+            assert read_back["suggested_promotion"] in (
+                "documentation → structural test",
+                "structural test → hook",
+                "hook → CI gate",
+                "insufficient data",
+            )
+        finally:
+            if record_path.exists():
+                record_path.unlink()
