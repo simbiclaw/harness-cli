@@ -120,7 +120,7 @@ End-to-end structural test. Cross-reference cleanup.
 - [x] M1: Subagent adversarial script
 - [x] M2: Verdict/notes unification
 - [x] M3: Arbiter autonomy and hook exemptions
-- [ ] M4: Checkpoint recovery
+- [x] M4: Checkpoint recovery
 - [ ] M5: Violation tracker
 - [ ] M6: Promotion arbiter
 - [ ] M7: Integration, E2E, and cleanup

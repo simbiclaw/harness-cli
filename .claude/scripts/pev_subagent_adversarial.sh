@@ -187,6 +187,10 @@ Use the following entry types for your verdicts:
   [discovery]       — REJECTED (mechanical): specific defect, test failure,
                       or assertion error found.
 
+After each verdict, update the checkpoint at .pev-signals/state.json to
+record the milestone status. This enables --resume recovery if the session
+is interrupted.
+
 Rules:
 - Your default stance is SKEPTICISM. Try hard to find defects.
 - Do NOT read A's commit messages, decision logs, or implementation notes.
