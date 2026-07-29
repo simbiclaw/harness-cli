@@ -119,7 +119,7 @@ End-to-end structural test. Cross-reference cleanup.
 - [x] M0: Signal directory and state schema
 - [x] M1: Subagent adversarial script
 - [x] M2: Verdict/notes unification
-- [ ] M3: Arbiter autonomy and hook exemptions
+- [x] M3: Arbiter autonomy and hook exemptions
 - [ ] M4: Checkpoint recovery
 - [ ] M5: Violation tracker
 - [ ] M6: Promotion arbiter
@@ -137,7 +137,8 @@ The human session coordinates the loop: dispatches P→E→V for each milestone,
 *None yet.*
 
 ## 7. Awaiting Steering
-*None.*
+
+**Awaiting Steering: resolved — Q1 (M3 hook modification).** M3 edits `.claude/hooks/pre_tool_use.py` which matches `.claude/hooks/**` in sensitive-paths.txt. This is a Tier C decision. The changes are: adding `_is_arbiter()` detection (already present from prior implementation), Guard 2.5 (PEV agent gate — blocks implementation edits when P/E/V not spawned), and Guard 6 (commit authority — blocks git commit from non-Arbiter sessions). These guards are essential for PEV loop closure — without them, P/E/V can commit independently and bypass the Arbiter. The Arbiter exemption (`PEV_ARBITER=true`) is the mechanism that allows the Arbiter to flip checkboxes and edit plan files. All three guards check `_is_arbiter()` before blocking. The existing test_arbiter_autonomy.py validates arbiter exemption behavior. Default: proceed with M3. Deadline: 2026-07-31.
 
 ## 8. Outcomes & Retrospective
 *Written at completion.*
