@@ -1,14 +1,16 @@
-"""M3: Arbiter autonomy and hook exemptions — structural tests.
+"""M3: Arbiter autonomy and hook exemptions — structural + behavioral tests.
 
-Acceptance tests for M3:
-- test_hook_allows_arbiter_checkbox_flip: arbiter edit to [ ] → [x] is not blocked
-- test_hook_blocks_non_arbiter_checkbox_flip: non-arbiter checkbox flip still blocked
-- test_arbiter_goal_includes_autonomy_scope: goal prompt has explicit autonomy boundaries
+M3 contract:
+- pre_tool_use.py has PEV_ARBITER detection (_is_arbiter()) for Guards 0, 0.5, 1, 2.5, 6
+- Behavioral: PEV_ARBITER=true bypasses guards that would block arbiter actions
+- Guards 2.5 (PEV agent gate) and 6 (commit authority) also check _is_arbiter()
+- pev-loop.md documents arbiter autonomy scope
 """
 
+import importlib
+import io
 import json
 import os
-import re
 import sys
 from pathlib import Path
 
@@ -16,130 +18,268 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 HOOKS_DIR = REPO_ROOT / ".claude" / "hooks"
-TMUX_SCRIPT = REPO_ROOT / ".claude" / "scripts" / "pev_tmux_adversarial.sh"
+HOOK_PATH = HOOKS_DIR / "pre_tool_use.py"
+SCRIPTS_DIR = REPO_ROOT / ".claude" / "scripts"
+SUBAGENT_SCRIPT = SCRIPTS_DIR / "pev_subagent_adversarial.sh"
 
 # Add hooks dir to path to import hook modules
 sys.path.insert(0, str(HOOKS_DIR))
 
 
-class TestHookAllowsArbiterCheckboxFlip:
-    """Arbiter-originated checkbox flips in plan files are not blocked."""
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
-    def test_pre_tool_use_has_arbiter_exemption(self):
-        """pre_tool_use.py must contain arbiter exemption logic."""
-        hook_path = HOOKS_DIR / "pre_tool_use.py"
-        content = hook_path.read_text()
-        # Must reference arbiter detection mechanism
-        has_arbiter_check = (
-            "PEV_ARBITER" in content
-            or "arbiter" in content.lower()
+def _reimport_hook():
+    """Force-reimport pre_tool_use to clear cached state."""
+    for mod in list(sys.modules.keys()):
+        if mod.startswith("pre_tool_use"):
+            del sys.modules[mod]
+    import pre_tool_use as m
+    return m
+
+
+def _run_hook_main(tool_name: str, tool_input: dict) -> dict:
+    """Run pre_tool_use.main() with a simulated event and return the JSON output."""
+    hook = _reimport_hook()
+    event = json.dumps({
+        "tool_name": tool_name,
+        "tool_input": tool_input,
+    })
+    old_stdin = sys.stdin
+    old_stdout = sys.stdout
+    try:
+        sys.stdin = io.StringIO(event)
+        sys.stdout = io.StringIO()
+        hook.main()
+        output = sys.stdout.getvalue()
+    finally:
+        sys.stdin = old_stdin
+        sys.stdout = old_stdout
+    return json.loads(output.strip())
+
+
+# ---------------------------------------------------------------------------
+# Arbiter detection
+# ---------------------------------------------------------------------------
+
+class TestArbiterDetection:
+    """Behavioral: _is_arbiter() correctly detects PEV_ARBITER env var."""
+
+    def test_arbiter_detected_when_env_true(self):
+        """PEV_ARBITER=true makes _is_arbiter() return True."""
+        hook = _reimport_hook()
+        os.environ["PEV_ARBITER"] = "true"
+        try:
+            assert hook._is_arbiter() is True
+        finally:
+            del os.environ["PEV_ARBITER"]
+
+    def test_not_arbiter_when_env_false(self):
+        """PEV_ARBITER=false makes _is_arbiter() return False."""
+        hook = _reimport_hook()
+        os.environ["PEV_ARBITER"] = "false"
+        try:
+            assert hook._is_arbiter() is False
+        finally:
+            del os.environ["PEV_ARBITER"]
+
+    def test_not_arbiter_when_env_unset(self):
+        """No PEV_ARBITER makes _is_arbiter() return False."""
+        hook = _reimport_hook()
+        os.environ.pop("PEV_ARBITER", None)
+        assert hook._is_arbiter() is False
+
+    def test_arbiter_case_insensitive_check(self):
+        """PEV_ARBITER=True (mixed case) is also detected."""
+        hook = _reimport_hook()
+        os.environ["PEV_ARBITER"] = "True"
+        try:
+            assert hook._is_arbiter() is True
+        finally:
+            del os.environ["PEV_ARBITER"]
+
+
+# ---------------------------------------------------------------------------
+# Guard 0: single checkbox flip
+# ---------------------------------------------------------------------------
+
+class TestGuard0CheckboxFlip:
+    """Guard 0: single checkbox flip enforced for non-arbiter, skipped for arbiter."""
+
+    def test_guard0_arbiter_can_flip(self):
+        """PEV_ARBITER=true: arbiter flipping checkboxes is not blocked."""
+        os.environ["PEV_ARBITER"] = "true"
+        try:
+            # Edit to active plan — would normally trigger Guard 0
+            result = _run_hook_main("Edit", {
+                "file_path": str(REPO_ROOT / "docs" / "exec-plans" / "active"
+                                 / "9006-pev-tmux-convergence.md"),
+                "old_string": "- [ ] M0",
+                "new_string": "- [x] M0",
+            })
+            assert result.get("continue") is True, (
+                f"Arbiter checkbox flip should be allowed. Got: {result}"
+            )
+        finally:
+            os.environ.pop("PEV_ARBITER", None)
+
+
+class TestGuard05VerificationGate:
+    """Guard 0.5: PEV verification gate skipped for arbiter."""
+
+    def test_guard05_has_arbiter_exemption(self):
+        """Guard 0.5 source code shows _is_arbiter() check."""
+        content = HOOK_PATH.read_text()
+        assert "Guard 0.5" in content
+        assert "_is_arbiter()" in content
+
+
+# ---------------------------------------------------------------------------
+# Guard 1: uncommitted flip blocks code edits
+# ---------------------------------------------------------------------------
+
+class TestGuard1UncommittedFlip:
+    """Guard 1: uncommitted flip blocks code edits for non-arbiter."""
+
+    def test_guard1_has_arbiter_exemption(self):
+        """Guard 1 source code shows _is_arbiter() check."""
+        content = HOOK_PATH.read_text()
+        assert "Guard 1" in content
+        assert "_is_arbiter()" in content
+
+
+# ---------------------------------------------------------------------------
+# Guard 2.5: PEV agent gate
+# ---------------------------------------------------------------------------
+
+class TestGuard25AgentGate:
+    """Guard 2.5: PEV agent gate blocks code edits unless agents spawned."""
+
+    def test_guard25_exists_in_hook(self):
+        """Guard 2.5 is present in pre_tool_use.py with an _is_arbiter() check."""
+        content = HOOK_PATH.read_text()
+        assert "Guard 2.5" in content, "Guard 2.5 section must exist"
+        assert "_is_arbiter_safe_path" in content, (
+            "Guard 2.5 must use _is_arbiter_safe_path"
         )
-        assert has_arbiter_check, (
-            "pre_tool_use.py must contain arbiter detection/exemption logic"
+        assert "_pev_agents_spawned" in content, (
+            "Guard 2.5 must check _pev_agents_spawned"
         )
 
-    def test_arbiter_env_allows_multi_flip(self):
-        """When PEV_ARBITER is set, multi-checkbox flips (up to 1) are still enforced
-        but the arbiter exemption prevents the uncommitted-flip blocker from
-        stopping checkbox flips in plan files."""
-        # Import the hook module and test its logic directly
-        import pre_tool_use
+    def test_is_arbiter_safe_path_active_plan(self):
+        """_is_arbiter_safe_path returns True for active plan files."""
+        hook = _reimport_hook()
+        plan_path = str(REPO_ROOT / "docs" / "exec-plans" / "active"
+                        / "9006-pev-tmux-convergence.md")
+        assert hook._is_arbiter_safe_path(plan_path) is True
 
-        # Simulate arbiter flipping a checkbox in a plan file
-        # The hook should allow this because (a) it's at most 1 flip, and
-        # (b) it's in an active plan file
-        test_plan = REPO_ROOT / "docs" / "exec-plans" / "active" / "9006-pev-tmux-convergence.md"
-        if test_plan.exists():
-            # With PEV_ARBITER=true, the uncommitted-flip guard should not block
-            # edits to plan files (arbiter needs to flip checkboxes autonomously)
-            os.environ["PEV_ARBITER"] = "true"
-            try:
-                # Guard 1 (uncommitted flip) should skip when PEV_ARBITER is set
-                assert pre_tool_use.is_active_plan(str(test_plan)), (
-                    "Test plan should be recognized as an active plan"
-                )
-            finally:
-                del os.environ["PEV_ARBITER"]
+    def test_is_arbiter_safe_path_notes(self):
+        """_is_arbiter_safe_path returns True for notes files."""
+        hook = _reimport_hook()
+        notes_path = str(REPO_ROOT / "docs" / "exec-plans" / "active"
+                         / "9006-pev-tmux-convergence-notes" / "M0.md")
+        assert hook._is_arbiter_safe_path(notes_path) is True
 
-    def test_hook_imports_and_has_functions(self):
-        """The hook module should be importable and have required helpers."""
-        import pre_tool_use
+    def test_is_arbiter_safe_path_signals(self):
+        """_is_arbiter_safe_path returns True for .pev-signals/ paths."""
+        hook = _reimport_hook()
+        sig_path = str(REPO_ROOT / ".pev-signals" / "state.json")
+        assert hook._is_arbiter_safe_path(sig_path) is True
 
-        assert hasattr(pre_tool_use, "is_active_plan"), (
-            "pre_tool_use must export is_active_plan"
-        )
-        assert hasattr(pre_tool_use, "count_new_flips"), (
-            "pre_tool_use must export count_new_flips"
-        )
+    def test_is_arbiter_safe_path_src_not_safe(self):
+        """_is_arbiter_safe_path returns False for src/ paths."""
+        hook = _reimport_hook()
+        src_path = str(REPO_ROOT / "src" / "argus" / "cli" / "main.py")
+        assert hook._is_arbiter_safe_path(src_path) is False
 
 
-class TestHookBlocksNonArbiterCheckboxFlip:
-    """Non-arbiter checkbox flips are still subject to existing guards."""
+# ---------------------------------------------------------------------------
+# Guard 6: commit authority
+# ---------------------------------------------------------------------------
 
-    def test_without_arbiter_env_guards_active(self):
-        """Without PEV_ARBITER, existing guards (single flip, uncommitted flip)
-        should still apply normally."""
-        import pre_tool_use
+class TestGuard6CommitAuthority:
+    """Guard 6: only arbiter may commit."""
 
-        # Verify the guard functions exist and work
-        assert pre_tool_use.CHECKBOX_LINE is not None
-        assert callable(pre_tool_use.count_checked)
-
-
-class TestArbiterGoalIncludesAutonomyScope:
-    """Arbiter's goal prompt contains explicit autonomy boundaries."""
-
-    def test_goal_mentions_autonomy(self):
-        """Arbiter goal prompt must mention autonomy and what it can do."""
-        script = TMUX_SCRIPT.read_text()
-        # Find the arbiter prompt
-        assert "ARBITER_PROMPT=" in script, "Script must define ARBITER_PROMPT"
-
-        # The arbiter prompt should mention autonomous actions
-        assert "flip" in script.lower(), (
-            "Arbiter prompt must mention flipping checkboxes"
-        )
-        assert "autonom" in script.lower(), (
-            "Arbiter prompt must mention autonomy/autonomous actions"
+    def test_guard6_exists_in_hook(self):
+        """Guard 6 section is present in pre_tool_use.py."""
+        content = HOOK_PATH.read_text()
+        assert "Guard 6" in content, "Guard 6 section must exist"
+        assert "_is_arbiter()" in content, (
+            "Guard 6 must use _is_arbiter()"
         )
 
-    def test_goal_defines_autonomy_boundaries(self):
-        """Arbiter goal must define what it CAN and CANNOT do autonomously."""
-        script = TMUX_SCRIPT.read_text()
+    def test_arbiter_can_commit(self):
+        """PEV_ARBITER=true: arbiter can commit."""
+        os.environ["PEV_ARBITER"] = "true"
+        try:
+            result = _run_hook_main("Bash", {
+                "command": "git commit -m 'test: arbiter commit'",
+            })
+            assert result.get("continue") is True, (
+                f"Arbiter commit should be allowed. Got: {result}"
+            )
+        finally:
+            os.environ.pop("PEV_ARBITER", None)
 
-        # Find arbiter prompt section
-        arbiter_start = script.find("ARBITER_PROMPT=")
-        assert arbiter_start != -1, "ARBITER_PROMPT not found"
-
-        # The arbiter prompt should define its boundaries
-        arbiter_section = script[arbiter_start:]
-        arbiter_end = arbiter_section.find('B_PROMPT="')
-        if arbiter_end == -1:
-            arbiter_end = len(arbiter_section)
-        arbiter_text = arbiter_section[:arbiter_end]
-
-        # Must mention what it CAN do
-        assert "flip" in arbiter_text.lower(), (
-            "Arbiter must be told it can flip checkboxes"
+    def test_non_arbiter_commit_blocked(self):
+        """Without PEV_ARBITER, git commit is blocked."""
+        os.environ.pop("PEV_ARBITER", None)
+        result = _run_hook_main("Bash", {
+            "command": "git commit -m 'test: non-arbiter commit'",
+        })
+        assert result.get("continue") is False, (
+            f"Non-arbiter commit should be blocked. Got: {result}"
+        )
+        assert "commit" in result.get("reason", "").lower(), (
+            f"Block reason must mention 'commit'. Got: {result}"
         )
 
-        # Must mention what requires human input
-        has_human_gate = "human" in arbiter_text.lower() or "semantic" in arbiter_text.lower()
-        assert has_human_gate, (
-            "Arbiter goal must define when to pause for human input"
+
+# ---------------------------------------------------------------------------
+# Guard 2: sensitive path (regression — must still work)
+# ---------------------------------------------------------------------------
+
+class TestSensitivePathGuard:
+    """Guard 2: sensitive path guard must still be present and functional."""
+
+    def test_sensitive_path_check_exists(self):
+        """Sensitive path checking logic still present."""
+        content = HOOK_PATH.read_text()
+        assert "Guard 2" in content
+        assert "has_resolved_steering_for" in content
+
+    def test_sensitive_path_patterns_loaded(self):
+        """Sensitive path patterns load from .claude/sensitive-paths.txt."""
+        hook = _reimport_hook()
+        patterns = hook.load_sensitive_patterns()
+        assert len(patterns) > 0
+        assert any("hooks" in p for p in patterns)
+
+
+# ---------------------------------------------------------------------------
+# pev-loop.md documentation
+# ---------------------------------------------------------------------------
+
+class TestPevLoopDocs:
+    """pev-loop.md documents arbiter autonomy scope."""
+
+    def test_pev_loop_mentions_arbiter(self):
+        """pev-loop.md must reference arbiter and its autonomy."""
+        pev_loop = REPO_ROOT / "docs" / "conventions" / "pev-loop.md"
+        assert pev_loop.exists(), "pev-loop.md must exist"
+        content = pev_loop.read_text()
+        assert "arbiter" in content.lower(), (
+            "pev-loop.md must mention the arbiter"
+        )
+        assert "PEV_ARBITER" in content, (
+            "pev-loop.md must document the PEV_ARBITER env var"
         )
 
-    def test_arbiter_goal_mentions_signals_dir(self):
-        """Arbiter must know about .pev-signals/ for checkpoint state."""
-        script = TMUX_SCRIPT.read_text()
-        assert ".pev-signals" in script.lower(), (
-            "Arbiter goal must reference .pev-signals/ for coordination"
-        )
-
-    def test_arbiter_knows_tmux_session_name(self):
-        """Arbiter must know the tmux session name for IPC."""
-        script = TMUX_SCRIPT.read_text()
-        # Should reference the session name for capture-pane / send-keys
-        assert "pev-adversarial" in script, (
-            "Arbiter prompt must know the tmux session name for IPC commands"
+    def test_pev_loop_documents_guard_exemptions(self):
+        """pev-loop.md must describe which guards the arbiter bypasses."""
+        pev_loop = REPO_ROOT / "docs" / "conventions" / "pev-loop.md"
+        content = pev_loop.read_text()
+        assert "checkbox" in content.lower() or "commit" in content.lower(), (
+            "pev-loop.md must document arbiter's guard exemptions"
         )
