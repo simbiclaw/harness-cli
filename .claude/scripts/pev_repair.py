@@ -1,4 +1,18 @@
-"""Autonomous repair loop for PEV REJECTED verdicts.
+"""DEPRECATED — Replaced by pev_tmux_adversarial.sh (plan 9006).
+
+This Python repair library is superseded by the tmux arbiter architecture
+defined in docs/exec-plans/active/9006-pev-tmux-convergence.md. Hardcoded
+if/else failure classification is replaced by Claude reasoning in the
+arbiter session.
+
+This file is kept as a reference implementation for the failure classification
+taxonomy. It will be moved to .claude/scripts/archived/ at M7.
+
+Do not use for new ExecPlans. Use pev_tmux_adversarial.sh instead.
+
+--- Original docstring below ---
+
+Autonomous repair loop for PEV REJECTED verdicts.
 
 On REJECTED from subagent B: reads the milestone's implementation notes,
 classifies the failure, and decides the next action.

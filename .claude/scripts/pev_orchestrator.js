@@ -1,4 +1,19 @@
 /**
+ * DEPRECATED — Replaced by pev_tmux_adversarial.sh (plan 9006).
+ *
+ * This Dynamic Workflow-based PEV orchestrator is superseded by the tmux
+ * arbiter architecture defined in docs/exec-plans/active/9006-pev-tmux-convergence.md.
+ * The tmux script replaces all hardcoded repair classification with Claude
+ * reasoning and converges three PEV implementations into one.
+ *
+ * This file is kept as a reference implementation for the Dynamic Workflow
+ * pattern and the failure classification taxonomy. It will be moved to
+ * .claude/scripts/archived/ at M7.
+ *
+ * Do not use for new ExecPlans. Use pev_tmux_adversarial.sh instead.
+ *
+ * --- Original docstring below ---
+ *
  * PEV Orchestrator — Dynamic Workflow script.
  *
  * Orchestrates the Plan→Execute→Verify loop for ExecPlan milestones using
