@@ -137,6 +137,8 @@ extract_acceptance_test() {
 # ── Setup ─────────────────────────────────────────────────────────────────────
 
 mkdir -p "$SIGNAL_DIR"
+NOTES_DIR="$ACTIVE_DIR/${PLAN_ID}-notes"
+mkdir -p "$NOTES_DIR"
 
 # Clean up previous signal files (but not state.json for resume)
 if ! $RESUME_MODE; then
@@ -179,6 +181,7 @@ Rules:
 /goal Implement ${M_LIST} sequentially. Print __DONE_M<N>__ after each milestone. All tests pass. All local commits have Plan:/Decision: trailers. Stop when all milestones done or after 40 turns."
 
 # B's prompt: receives milestone spec + commit SHA via tmux send-keys, falsifies
+# B writes verdicts DIRECTLY into the implementation notes file (single source of truth).
 B_PROMPT="You are the ADVERSARIAL VERIFIER (subagent B) for ExecPlan $PLAN_ID.
 
 Your job is to FALSIFY A's implementations. You will receive instructions
@@ -195,22 +198,53 @@ For each request:
 3. Design at least 3 edge cases NOT covered by the test. Run them.
 4. Run structural tests: uv run pytest .claude/tests/ -q
 5. Run lint: uv run ruff check . && uv run ruff format --check .
-6. Write your verdict to .pev-signals/M<N>-verdict.txt
-   If CONFIRMED: write only the word 'CONFIRMED'
-   If REJECTED: write 'REJECTED' on line 1, then your findings on subsequent lines
-     Include: failure_class (mechanical/semantic/constraint-violation),
-     specific evidence, and which edge cases failed
+6. Write your verdict DIRECTLY to the implementation notes file:
+   docs/exec-plans/active/${PLAN_ID}-notes/M<N>.md
+
+   Use the following entry types:
+   - If CONFIRMED: write a [plan-confirmed] entry summarizing what passed
+     Example:
+     ### [plan-confirmed] <timestamp> — M<N> adversarial verification passed
+
+     Acceptance test passed. Edge cases held. Structural tests all green.
+
+   - If REJECTED (constraint-violation): write a [deviation] entry with all 4 devgrid fields
+     Example:
+     ### [deviation] <timestamp> — M<N> exceeded declared constraints
+
+     - **What the plan said:** <quoted constraint from plan>
+     - **What the code revealed:** <actual scope discovered>
+     - **Conservative choice:** <decision made>
+     - **Revisit:** <when to reconsider>
+
+   - If REJECTED (semantic): write a [human-todo] entry
+     Example:
+     ### [human-todo] <timestamp> — M<N> requires human judgment
+
+     <B's findings requiring human decision>
+
+   - If REJECTED (mechanical): write a [discovery] entry noting the defect
+     Example:
+     ### [discovery] <timestamp> — M<N> mechanical failure found
+
+     <specific defect, test failure, or assertion error>
+
+7. Print the EXACT sentinel line on its own line:
+   __VERDICT_M<N>__
+   (example: __VERDICT_M1__)
 
 Rules:
 - Your default stance is SKEPTICISM. Try hard to find defects.
 - Do NOT read A's commit messages, decision logs, or implementation notes.
   (git checkout the SHA, do NOT run git log)
 - Judge the code by its BEHAVIOR, not its intentions.
+- Your verdict IS the notes entry. Write it directly. No separate file.
 - Use model=opus for stronger adversarial reasoning.
 
-/goal Wait for verification requests. Each request arrives via this terminal. Run tests + edge cases. Write verdicts to .pev-signals/. Use model=opus. Stop after ${M_COUNT} verdicts or 40 turns."
+/goal Wait for verification requests. Each request arrives via this terminal. Run tests + edge cases. Write verdicts as notes entries to docs/exec-plans/active/${PLAN_ID}-notes/M<N>.md using the entry types above. Use model=opus. Stop after ${M_COUNT} verdicts or 40 turns."
 
 # Arber prompt: orchestrates the loop via tmux IPC
+# Arbiter reads B's verdicts from implementation notes (single source of truth).
 ARBITER_PROMPT="You are the ARBITER for the PEV adversarial loop.
 
 Plan: $PLAN_ID
@@ -235,29 +269,32 @@ For each milestone (${M_COUNT} total):
    Acceptance test: <test name from spec>
    A's commit: $(git log -1 --format='%H')
    Run: git checkout <sha> && uv run pytest <test> -v
-   Design edge cases. Write verdict to .pev-signals/M<N>-verdict.txt.
+   Write verdict as notes entry to docs/exec-plans/active/${PLAN_ID}-notes/M<N>.md.
    Print __VERDICT_M<N>__ when done.
 
 5. Wait for B's sentinel: __VERDICT_M<N>__
    (monitor B's tmux pane)
 
-6. Read the verdict from .pev-signals/M<N>-verdict.txt
+6. Read the verdict from the implementation notes file:
+   cat docs/exec-plans/active/${PLAN_ID}-notes/M<N>.md
 
-7. Report the result clearly:
-   - If CONFIRMED: flip the milestone checkbox in ${PLAN_ID}.md from [ ] to [x]
-   - If REJECTED: display B's findings. Ask the human: 'M<N> REJECTED. Tell A to fix or accept risk?'
+   Determine routing from the entry type:
+   - [plan-confirmed] → CONFIRMED. Flip the milestone checkbox to [x].
+   - [deviation] → REJECTED (constraint-violation). Display B's findings.
+   - [human-todo] → REJECTED (semantic). Pause for human judgment.
+   - [discovery] (mechanical) → REJECTED. Auto-retry.
 
-8. Move to the next milestone.
+7. Report the result clearly and act accordingly.
 
 Commands you can use:
 - tmux capture-pane -t pev-adversarial:A-implementer -p -S -200
   (captures last 200 lines of A's output)
 - tmux send-keys -t pev-adversarial:B-verifier '<text>' Enter
   (sends text to B's terminal)
-- cat .pev-signals/M<N>-verdict.txt
-  (reads B's verdict)
+- cat docs/exec-plans/active/${PLAN_ID}-notes/M<N>.md
+  (reads B's verdict from implementation notes)
 
-/goal Orchestrate the adversarial loop for ${M_LIST}. Watch A, dispatch to B, read verdicts, flip checkboxes. Stop when all milestones verified or after 30 turns."
+/goal Orchestrate the adversarial loop for ${M_LIST}. Watch A, dispatch to B, read verdicts from notes, flip checkboxes. Stop when all milestones verified or after 30 turns."
 
 # ── Create tmux session ──────────────────────────────────────────────────────
 
@@ -279,18 +316,25 @@ echo '║  No git push/fetch between A and B.                ║'
 echo '╚══════════════════════════════════════════════════════╝'
 echo ''
 echo 'Signal files (.pev-signals/):'
+echo 'Notes directory: docs/exec-plans/active/${PLAN_ID}-notes/'
 while true; do
   clear
-  echo '=== Verdict Log ==='
+  echo '=== Verdict Log (from implementation notes) ==='
   echo ''
   for m in ${MS[@]}; do
-    vf=\"\$SIGNAL_DIR/M\${m}-verdict.txt\"
-    if [ -f \"\$vf\" ]; then
-      first_line=\$(head -1 \"\$vf\")
-      if [ \"\$first_line\" = 'CONFIRMED' ]; then
-        echo \"  M\${m}  ✓ CONFIRMED\"
+    nf=\"\$NOTES_DIR/M\${m}.md\"
+    if [ -f \"\$nf\" ]; then
+      first_badge=\$(head -20 \"\$nf\" | grep -o '\[plan-confirmed\]\|\[deviation\]\|\[human-todo\]\|\[discovery\]' | head -1)
+      if [ \"\$first_badge\" = '[plan-confirmed]' ]; then
+        echo \"  M\${m}  ✓ CONFIRMED (plan-confirmed)\"
+      elif [ \"\$first_badge\" = '[deviation]' ]; then
+        echo \"  M\${m}  ✗ REJECTED — constraint-violation (deviation)\"
+      elif [ \"\$first_badge\" = '[human-todo]' ]; then
+        echo \"  M\${m}  ✗ REJECTED — semantic (human-todo)\"
+      elif [ \"\$first_badge\" = '[discovery]' ]; then
+        echo \"  M\${m}  ✗ REJECTED — mechanical (discovery)\"
       else
-        echo \"  M\${m}  ✗ REJECTED — see \$vf\"
+        echo \"  M\${m}  ? verdict in notes — see \$nf\"
       fi
     else
       echo \"  M\${m}  — waiting\"

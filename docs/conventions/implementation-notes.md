@@ -82,16 +82,17 @@ change in `exportPolicy.ts` — but it changes what "can't download assets"
 means to customers, so it should be your call.
 ```
 
-## How the repair loop consumes notes
+## How the PEV loop consumes notes
 
 On REJECTED verdict from subagent B:
 
-1. The repair loop reads the milestone's notes file.
-2. It classifies each unresolved deviation's failure class:
-   - `mechanical` — auto-repair (fix test, adjust assertion, retry)
-   - `semantic` — add `human-todo` entry, pause milestone for human
-   - `constraint-violation` — auto-repair + update milestone constraints
-3. `plan-confirmed` and `discovery` entries are informational only — they don't trigger repair.
+1. B writes the verdict directly into the milestone's notes file — the verdict IS the notes entry.
+2. The arbiter reads the notes file to determine routing by entry type:
+   - `[plan-confirmed]` → CONFIRMED. Arbiter flips the milestone checkbox.
+   - `[deviation]` → REJECTED (constraint-violation). 4 devgrid fields required.
+   - `[human-todo]` → REJECTED (semantic). Pauses milestone for human judgment.
+   - `[discovery]` → REJECTED (mechanical). Auto-retry with findings documented.
+3. There is no separate verdict file. The notes file is the single source of truth.
 
 ## Fold back into the plan
 
@@ -104,15 +105,16 @@ At milestone completion (or plan archival), the notes file's deviations and huma
 
 ## Feedback gate rule
 
-When subagent B returns a REJECTED verdict, the milestone's implementation notes file MUST contain the appropriate entry before the next PEV iteration begins. The mapping is:
+When subagent B completes verification, the milestone's implementation notes file MUST contain the verdict as a typed entry. B writes directly to notes — no separate verdict file. The mapping is:
 
-| Failure class | Required entry type | Purpose |
+| Verdict | Required entry type | Purpose |
 |---|---|---|
-| `semantic` | `[human-todo]` | Documents what requires human judgment; pauses milestone |
-| `constraint-violation` | `[deviation]` (with all 4 devgrid fields) | Documents scope violation and conservative choice |
-| `mechanical` | None | Auto-retry — no human action needed |
+| CONFIRMED | `[plan-confirmed]` | Documents what was verified and how; arbiter flips checkbox |
+| REJECTED (semantic) | `[human-todo]` | Documents what requires human judgment; pauses milestone |
+| REJECTED (constraint-violation) | `[deviation]` (with all 4 devgrid fields) | Documents scope violation and conservative choice |
+| REJECTED (mechanical) | `[discovery]` | Documents the defect; auto-retry |
 
-The repair loop's `write_notes_entry()` writes the entry; this gate verifies the write happened. Without it, REJECTED verdicts can be silently ignored — the adversarial verification gate only blocks flip without CONFIRMED, but doesn't check that the agent addressed the REJECTED findings.
+The arbiter reads the entry type to determine routing. The structural test verifies that REJECTED verdicts produce the appropriate notes entries.
 
 > `Source: docs/conventions/verification-floor.md` rule #6; enforced by `.claude/tests/test_repair_feedback_gate.py`.
 
