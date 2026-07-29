@@ -1,18 +1,18 @@
 {
   "plan_id": "9006-pev-tmux-convergence",
   "phase": "execute",
-  "current_milestone": 3,
+  "current_milestone": 0,
   "milestones": {
-    "M0": "confirmed",
-    "M1": "confirmed",
-    "M2": "confirmed",
+    "M0": "pending_verdict",
+    "M1": "pending",
+    "M2": "pending",
     "M3": "pending",
     "M4": "pending",
     "M5": "pending",
     "M6": "pending",
     "M7": "pending"
   },
-  "last_checkpoint_at": "2026-07-29T00:00:00Z",
+  "last_checkpoint_at": "2026-07-29T11:49:48Z",
   "arbiter_pid": null,
   "tmux_session": null
 }
