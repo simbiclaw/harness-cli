@@ -193,7 +193,7 @@ A milestone may take multiple PEV iterations to converge. Each iteration produce
 | **Checkbox flip gate** | `[ ]` → `[x]` only on CONFIRMED verdict | `pre_tool_use.py` (Guard 0: single-flip, Guard 1: uncommitted-flip blocker); Verifier skill |
 | **Tier C gate** | Plan phase may not proceed past an unresolved Tier C question | `docs/conventions/ask-threshold.md`; session agent must park in Awaiting Steering |
 | **Loop closure gate** | M(N+1) may not enter Plan phase until M(N) reaches `confirmed` | `.claude/tests/test_pev_loop_closure.py` (structural test); `.pev-signals/state.json` (runtime checkpoint) |
-| **Arbiter autonomy boundary** | Arbiter may auto-execute mechanical actions; semantic failures and Tier C edits pause for human | `pre_tool_use.py` (`PEV_ARBITER` exemption); `pev_tmux_adversarial.sh` Arbiter prompt |
+| **Arbiter autonomy boundary** | Arbiter may auto-execute mechanical actions; semantic failures and Tier C edits pause for human | `pre_tool_use.py` (`PEV_ARBITER` exemption); `pev_subagent_adversarial.sh` Arbiter prompt |
 
 These are not four separate rules — they are four instantiations of the same principle: **state transitions are gated.** A checkbox flip, a milestone advance, a Tier C bypass, an arbiter action — each is a state transition, and each requires a specific permission derived from a verification outcome.
 
@@ -259,7 +259,7 @@ Validated by `.claude/tests/test_milestone_constraints.py`.
 
 ## Arbiter autonomy
 
-The PEV tmux arbiter (`pev_tmux_adversarial.sh`) runs as a Claude Code session with `PEV_ARBITER=true` set. The hooks (`pre_tool_use.py`) recognize this and grant autonomy for PEV coordination operations.
+The PEV tmux arbiter (`pev_subagent_adversarial.sh`) runs as a Claude Code session with `PEV_ARBITER=true` set. The hooks (`pre_tool_use.py`) recognize this and grant autonomy for PEV coordination operations.
 
 ### Allowed autonomously
 

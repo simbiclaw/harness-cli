@@ -123,7 +123,7 @@ End-to-end structural test. Cross-reference cleanup.
 - [x] M4: Checkpoint recovery
 - [x] M5: Violation tracker
 - [x] M6: Promotion arbiter
-- [ ] M7: Integration, E2E, and cleanup
+- [x] M7: Integration, E2E, and cleanup
 
 ## 5. Decision Log
 
