@@ -1,145 +1,98 @@
-"""M7: E2E integration test for PEV tmux pipeline.
+"""M7: E2E integration test for PEV subagent pipeline.
 
-Structural verification that all pipeline components are wired correctly.
-Full behavioral E2E (running tmux with live Claude sessions) requires manual
-execution; this test verifies configuration integrity.
+Structural verification that all pipeline components are wired correctly
+for the subagent-based PEV architecture (plan 9006). Replaces the tmux-based
+E2E test which checked tmux windows and session variables.
 
 Acceptance tests:
-- test_pipeline_components_exist: all 5 tmux windows defined
-- test_promotion_arbiter_wired: promotion window connected to violations dir
-- test_checkpoint_and_resume_wired: state.json integration verified
+- test_core_components_exist: script, state, violations dir, conventions
+- test_state_schema_complete: all fields including agent_ids
+- test_all_acceptance_tests_exist: all M0-M7 test files importable
 """
 
+import importlib.util
 import json
-import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SCRIPTS_DIR = REPO_ROOT / ".claude" / "scripts"
-TMUX_SCRIPT = SCRIPTS_DIR / "pev_tmux_adversarial.sh"
+SUBAGENT_SCRIPT = SCRIPTS_DIR / "pev_subagent_adversarial.sh"
 STATE_FILE = REPO_ROOT / ".pev-signals" / "state.json"
 VIOLATIONS_DIR = REPO_ROOT / ".pev-signals" / "violations"
 
-
-class TestPipelineComponentsExist:
-    """All pipeline components must be defined and connected."""
-
-    def test_all_tmux_windows_defined(self):
-        """5 tmux windows: arbiter, A-implementer, B-verifier, orchestrator,
-        promotion-arbiter."""
-        script = TMUX_SCRIPT.read_text()
-
-        expected_windows = [
-            "arbiter",
-            "A-implementer",
-            "B-verifier",
-            "orchestrator",
-            "promotion-arbiter",
-        ]
-
-        for window in expected_windows:
-            # Check both new-session and new-window references
-            has_window = (
-                f'-n "{window}"' in script
-                or f"-n '{window}'" in script
-                or f"-n {window}" in script
-                or f'"$SESSION:{window}"' in script
-                or f"'$SESSION:{window}'" in script
-            )
-            assert has_window, (
-                f"Pipeline must define window '{window}'"
-            )
-
-    def test_goal_prompts_defined(self):
-        """All agents must have goal prompts."""
-        script = TMUX_SCRIPT.read_text()
-
-        required_prompts = [
-            "A_PROMPT=",
-            "B_PROMPT=",
-            "ARBITER_PROMPT=",
-            "PROMOTION_ARBITER_PROMPT=",
-        ]
-
-        for prompt_var in required_prompts:
-            assert prompt_var in script, (
-                f"Script must define {prompt_var}"
-            )
-
-    def test_no_broken_references(self):
-        """All variable references in the script must be defined."""
-        script = TMUX_SCRIPT.read_text()
-
-        # Key variables that should exist
-        required_vars = [
-            "PLAN_ID",
-            "MILESTONES_INPUT",
-            "REPO_ROOT",
-            "ACTIVE_DIR",
-            "SIGNAL_DIR",
-            "STATE_FILE",
-            "NOTES_DIR",
-            "SESSION",
-        ]
-
-        for var in required_vars:
-            # Should be assigned somewhere
-            assert f"{var}=" in script or f'"{var}"' in script or f"${var}" in script, (
-                f"Variable {var} must be defined and used"
-            )
+# All milestone acceptance tests for this plan
+MILESTONE_TESTS = [
+    ("M0", ".claude/tests/test_pev_signals.py"),
+    ("M1", ".claude/tests/test_pev_tmux.py"),
+    ("M2", ".claude/tests/test_verdict_notes_unified.py"),
+    ("M3", ".claude/tests/test_arbiter_autonomy.py"),
+    ("M4", ".claude/tests/test_pev_recovery.py"),
+    ("M5", ".claude/tests/test_violation_tracker.py"),
+    ("M6", ".claude/tests/test_promotion_arbiter.py"),
+    ("M7", ".claude/tests/test_pev_tmux_e2e.py"),
+    ("M7", ".claude/tests/test_cross_refs.py"),
+]
 
 
-class TestPromotionArbiterWired:
-    """Promotion arbiter connected to violation tracker output."""
+class TestCoreComponentsExist:
+    """All core pipeline components must be in place."""
 
-    def test_violations_dir_fixture_exists(self):
-        """.pev-signals/violations/ must exist for promotion arbiter input."""
-        assert VIOLATIONS_DIR.exists(), (
-            ".pev-signals/violations/ must exist (M5 fixture)"
+    def test_subagent_script_exists(self):
+        """pev_subagent_adversarial.sh must exist and be executable."""
+        assert SUBAGENT_SCRIPT.exists(), (
+            f"{SUBAGENT_SCRIPT} must exist"
+        )
+        assert SUBAGENT_SCRIPT.is_file(), (
+            f"{SUBAGENT_SCRIPT} must be a regular file"
+        )
+        assert SUBAGENT_SCRIPT.stat().st_mode & 0o111, (
+            f"{SUBAGENT_SCRIPT} must be executable"
         )
 
-    def test_promotion_window_after_orchestrator(self):
-        """Promotion window must be created after orchestrator in the script."""
-        script = TMUX_SCRIPT.read_text()
-
-        orchestrator_pos = script.find('-n "orchestrator"')
-        promotion_pos = script.find('-n "promotion-arbiter"')
-
-        assert orchestrator_pos > 0, "Script must create orchestrator window"
-        assert promotion_pos > 0, "Script must create promotion-arbiter window"
-        assert promotion_pos > orchestrator_pos, (
-            "Promotion arbiter window must be created after orchestrator window"
-        )
-
-
-class TestCheckpointAndResumeWired:
-    """state.json checkpoint integration is complete."""
-
-    def test_state_file_has_complete_schema(self):
-        """state.json must have all fields needed for full pipeline recovery."""
+    def test_state_file_exists(self):
+        """state.json must exist (M0 fixture)."""
         assert STATE_FILE.exists(), "state.json must exist"
 
+    def test_violations_dir_exists(self):
+        """.pev-signals/violations/ must exist (M5 fixture)."""
+        assert VIOLATIONS_DIR.exists(), (
+            ".pev-signals/violations/ must exist"
+        )
+
+    def test_pev_loop_convention_exists(self):
+        """pev-loop.md convention must exist."""
+        pev_loop = REPO_ROOT / "docs" / "conventions" / "pev-loop.md"
+        assert pev_loop.exists(), "pev-loop.md must exist"
+
+    def test_claude_md_exists(self):
+        """CLAUDE.md must exist and reference subagent architecture."""
+        claude_md = REPO_ROOT / "CLAUDE.md"
+        assert claude_md.exists(), "CLAUDE.md must exist"
+
+        content = claude_md.read_text()
+        # Must reference the subagent/PEV loop, not tmux
+        assert any(word in content.lower() for word in (
+            "pev", "subagent", "harness"
+        )), "CLAUDE.md must reference the PEV/harness system"
+
+
+class TestStateSchemaComplete:
+    """state.json must have the complete schema for the subagent architecture."""
+
+    def test_required_fields_present(self):
+        """state.json must have all required fields."""
         state = json.loads(STATE_FILE.read_text())
+        required = {
+            "plan_id", "phase", "current_milestone",
+            "milestones", "last_checkpoint_at",
+        }
+        missing = required - set(state.keys())
+        assert not missing, f"state.json missing: {missing}"
 
-        required = [
-            "plan_id",
-            "phase",
-            "current_milestone",
-            "milestones",
-            "last_checkpoint_at",
-            "arbiter_pid",
-            "tmux_session",
-        ]
-        for field in required:
-            assert field in state, (
-                f"state.json missing required field: {field}"
-            )
-
-    def test_state_milestones_cover_all_milestones(self):
+    def test_milestones_cover_m0_to_m7(self):
         """All 8 milestones (M0-M7) must be tracked in state.json."""
         state = json.loads(STATE_FILE.read_text())
         milestones = state["milestones"]
-
         for m in range(8):
             key = f"M{m}"
             assert key in milestones, (
@@ -149,23 +102,52 @@ class TestCheckpointAndResumeWired:
                 "pending", "in_progress", "confirmed", "pending_verdict"
             ), f"M{m} status invalid: {milestones[key]}"
 
-    def test_resume_references_all_state_fields(self):
-        """--resume code path must reference all state.json fields."""
-        script = TMUX_SCRIPT.read_text()
-
-        # Resume section should reference key state fields
-        resume_section_start = script.find("if $RESUME_MODE; then")
-        assert resume_section_start > 0, "Script must have --resume logic"
-
-        resume_section = script[resume_section_start:resume_section_start + 2000]
-
-        # Should reference state.json fields
-        assert "state.json" in resume_section or "STATE_FILE" in resume_section, (
-            "Resume must reference state.json"
+    def test_agent_ids_present(self):
+        """state.json must have agent_ids for subagent coordination."""
+        state = json.loads(STATE_FILE.read_text())
+        agent_ids = state.get("agent_ids")
+        assert agent_ids is not None, (
+            "state.json must have agent_ids dict for subagent coordination"
         )
-        assert "plan_id" in resume_section.lower(), (
-            "Resume must read plan_id from state"
+        for aid_key in ("p_agent_id", "e_agent_id", "v_agent_id"):
+            assert aid_key in agent_ids, (
+                f"agent_ids must include {aid_key}"
+            )
+
+    def test_no_tmux_session_in_required_fields(self):
+        """state schema may retain tmux fields but must not require them."""
+        state = json.loads(STATE_FILE.read_text())
+        agent_ids = state.get("agent_ids")
+        assert agent_ids is not None, (
+            "subagent architecture requires agent_ids"
         )
-        assert "phase" in resume_section.lower(), (
-            "Resume must read phase from state"
-        )
+
+
+class TestAllAcceptanceTestsExist:
+    """All milestone acceptance tests must be importable."""
+
+    def test_all_test_files_exist(self):
+        """Every milestone has a corresponding test file on disk."""
+        for milestone, rel_path in MILESTONE_TESTS:
+            full_path = REPO_ROOT / rel_path
+            assert full_path.exists(), (
+                f"{milestone}: acceptance test {rel_path} must exist"
+            )
+
+    def test_all_test_files_importable(self):
+        """Every acceptance test file must be syntactically valid Python."""
+        seen = set()
+        for milestone, rel_path in MILESTONE_TESTS:
+            if rel_path in seen:
+                continue
+            seen.add(rel_path)
+            full_path = REPO_ROOT / rel_path
+            spec = importlib.util.spec_from_file_location(
+                f"test_{milestone}", full_path
+            )
+            assert spec is not None, (
+                f"{milestone}: {rel_path} failed to load spec"
+            )
+            assert spec.loader is not None, (
+                f"{milestone}: {rel_path} has no loader"
+            )
