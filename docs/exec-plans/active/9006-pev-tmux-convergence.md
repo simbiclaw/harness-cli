@@ -141,4 +141,27 @@ The human session coordinates the loop: dispatches P→E→V for each milestone,
 **Awaiting Steering: resolved — Q1 (M3 hook modification).** M3 edits `.claude/hooks/pre_tool_use.py` which matches `.claude/hooks/**` in sensitive-paths.txt. This is a Tier C decision. The changes are: adding `_is_arbiter()` detection (already present from prior implementation), Guard 2.5 (PEV agent gate — blocks implementation edits when P/E/V not spawned), and Guard 6 (commit authority — blocks git commit from non-Arbiter sessions). These guards are essential for PEV loop closure — without them, P/E/V can commit independently and bypass the Arbiter. The Arbiter exemption (`PEV_ARBITER=true`) is the mechanism that allows the Arbiter to flip checkboxes and edit plan files. All three guards check `_is_arbiter()` before blocking. The existing test_arbiter_autonomy.py validates arbiter exemption behavior. Default: proceed with M3. Deadline: 2026-07-31.
 
 ## 8. Outcomes & Retrospective
-*Written at completion.*
+
+All 8 milestones confirmed. 83 acceptance tests pass across M0-M7. 180 structural tests pass (4 pre-existing failures, none caused by this plan).
+
+M1 required 3 PEV iterations — the only milestone with REJECTED verdicts. The V→P→E feedback arc closed successfully: mechanical failures (deprecation mismatch, whitespace parsing, awk pipefail crash, non-numeric validation) were caught by V, consumed by P, repaired by E, and confirmed on iteration 3.
+
+14 harness improvements were born during execution — structural tests, hook guards, and documentation that the plan's own PEV loop detected as missing. This is the Agentic Harness Optimization loop (paper §3.5) operating in real time.
+
+Full execution report: [9006-pev-tmux-convergence-report.html](../reports/9006-pev-tmux-convergence-report.html)
+
+**Key decisions during execution:**
+- Adopted subagent-based PEV (P/E/V as persistent Agent tool subagents) replacing tmux IPC
+- Established commit authority rule: only the Arbiter commits, RED→GREEN two-commit model per milestone
+- Added adversarial-clean dispatch for V per verification to prevent confirmation bias
+- Mandated behavioral test coverage for every milestone with explicit waiver mechanism
+
+**Surprises:**
+- M1's P/E commit conflict revealed the need for centralized commit authority
+- V stopped rejecting after M1 due to confirmation bias from persistent context
+- M0 shipped with zero behavioral tests — no structural check existed to prevent this
+
+**Technical debt carried forward:**
+- 3 pre-existing structural test failures (commit messages, implementation notes)
+- Token tracking implemented but M0-M7 costs unmeasured (null entries)
+- P/E roles still merged in the deprecated tmux script

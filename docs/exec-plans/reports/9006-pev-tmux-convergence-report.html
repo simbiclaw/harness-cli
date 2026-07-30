@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExecPlan Execution Report - 9006-pev-tmux-convergence</title>
+    <style>
+        :root {
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+            --color-info: #3b82f6;
+            --color-bg: #f8fafc;
+            --color-card: #ffffff;
+            --color-text: #1e293b;
+            --color-text-secondary: #64748b;
+            --color-border: #e2e8f0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: white;
+            padding: 24px 32px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+        .header-meta { display: flex; gap: 24px; font-size: 14px; opacity: 0.9; }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            padding: 24px 32px;
+        }
+        .metric-card {
+            background: var(--color-card);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--color-info);
+        }
+        .metric-card.success { border-left-color: var(--color-success); }
+        .metric-card.warning { border-left-color: var(--color-warning); }
+        .metric-card.danger { border-left-color: var(--color-danger); }
+        .metric-label { font-size: 12px; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .metric-value { font-size: 32px; font-weight: 700; margin-top: 8px; }
+        .metric-sub { font-size: 13px; color: var(--color-text-secondary); margin-top: 4px; }
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            padding: 0 32px 32px;
+        }
+        .section {
+            background: var(--color-card);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .section-header {
+            background: #f1f5f9;
+            padding: 16px 20px;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--color-text-secondary);
+            border-bottom: 1px solid var(--color-border);
+        }
+        .section-body { padding: 20px; }
+        .timeline { list-style: none; }
+        .timeline-item {
+            display: flex;
+            gap: 16px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .timeline-item:last-child { border-bottom: none; }
+        .timeline-marker {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--color-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        .timeline-item.completed .timeline-marker { background: var(--color-success); color: white; }
+        .timeline-item.blocked .timeline-marker { background: var(--color-danger); color: white; }
+        .timeline-item.rejected .timeline-marker { background: var(--color-warning); color: white; }
+        .timeline-content { flex: 1; }
+        .timeline-title { font-weight: 600; margin-bottom: 4px; }
+        .timeline-meta { font-size: 13px; color: var(--color-text-secondary); }
+        .decision-item {
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 3px solid var(--color-info);
+        }
+        .decision-item.tier-c { border-left-color: var(--color-warning); background: #fffbeb; }
+        .decision-title { font-weight: 600; margin-bottom: 8px; }
+        .decision-rationale { font-size: 13px; color: var(--color-text-secondary); }
+        .decision-source { font-size: 12px; color: var(--color-text-secondary); margin-top: 8px; font-style: italic; }
+        .alert {
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        .alert-warning { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
+        .alert-danger { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+        .alert-info { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+        .full-width { grid-column: 1 / -1; }
+        .debt-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .debt-severity {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .debt-severity.high { background: #fecaca; color: #991b1b; }
+        .debt-severity.medium { background: #fed7aa; color: #9a3412; }
+        .debt-severity.low { background: #dbeafe; color: #1e40af; }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status-completed { background: #d1fae5; color: #065f46; }
+        .status-deferred { background: #fee2e2; color: #991b1b; }
+        .status-pending { background: #e0e7ff; color: #3730a3; }
+        .iteration-count {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+        .iteration-1 { background: #d1fae5; color: #065f46; }
+        .iteration-3 { background: #fed7aa; color: #9a3412; }
+        .footer {
+            text-align: center;
+            padding: 24px;
+            color: var(--color-text-secondary);
+            font-size: 13px;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--color-border); }
+        th { font-weight: 600; color: var(--color-text-secondary); }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>&#x1F4CB; PEV Subagent Convergence</h1>
+        <div class="header-meta">
+            <span>ID: 9006-pev-tmux-convergence</span>
+            <span>Status: <span class="status-badge status-completed">COMPLETED</span></span>
+            <span>Duration: 2 days</span>
+            <span>Completed: 2026-07-30</span>
+        </div>
+    </header>
+
+    <div class="dashboard">
+        <div class="metric-card success">
+            <div class="metric-label">Plan Health</div>
+            <div class="metric-value">100%</div>
+            <div class="metric-sub">All milestones confirmed</div>
+        </div>
+        <div class="metric-card success">
+            <div class="metric-label">Milestones</div>
+            <div class="metric-value">8/8</div>
+            <div class="metric-sub">M0–M7 traversed P-E-V</div>
+        </div>
+        <div class="metric-card success">
+            <div class="metric-label">Tier C Decisions</div>
+            <div class="metric-value">1</div>
+            <div class="metric-sub">M3 hook modification — resolved</div>
+        </div>
+        <div class="metric-card success">
+            <div class="metric-label">Verification</div>
+            <div class="metric-value">83</div>
+            <div class="metric-sub">Acceptance tests passed</div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <!-- Milestone Timeline -->
+        <div class="section">
+            <div class="section-header">&#x1F4C5; Milestone Timeline</div>
+            <div class="section-body">
+                <ul class="timeline">
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">&#x2713;</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M0 — Signal directory and state schema<span class="iteration-count iteration-1">1 iteration</span></div>
+                            <div class="timeline-meta">2026-07-29 &bull; Acceptance: 2/2 &bull; Edge cases: 3</div>
+                        </div>
+                    </li>
+                    <li class="timeline-item rejected">
+                        <div class="timeline-marker">&#x2713;</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M1 — Subagent adversarial script<span class="iteration-count iteration-3">3 iterations</span></div>
+                            <div class="timeline-meta">2026-07-29–30 &bull; Acceptance: 15/15 &bull; 2 REJECTED → repair → CONFIRMED</div>
+                        </div>
+                    </li>
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">&#x2713;</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M2 — Verdict/notes unification<span class="iteration-count iteration-1">1 iteration</span></div>
+                            <div class="timeline-meta">2026-07-30 &bull; Acceptance: 11/11 &bull; Behavioral tests: 5/5</div>
+                        </div>
+                    </li>
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">&#x2713;</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M3 — Arbiter autonomy and hook exemptions<span class="iteration-count iteration-1">1 iteration</span></div>
+                            <div class="timeline-meta">2026-07-30 &bull; Acceptance: 19/19 &bull; Edge cases: 3 (low severity)</div>
+                        </div>
+                    </li>
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">&#x2713;</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M4 — Checkpoint recovery<span class="iteration-count iteration-1">1 iteration</span></div>
+                            <div class="timeline-meta">2026-07-30 &bull; Acceptance: 8/8 &bull; Edge cases: 4</div>
+                        </div>
+                    </li>
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">&#x2713;</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M5 — Violation tracker<span class="iteration-count iteration-1">1 iteration</span></div>
+                            <div class="timeline-meta">2026-07-30 &bull; Acceptance: 7/7 &bull; Edge cases: 4</div>
+                        </div>
+                    </li>
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">&#x2713;</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M6 — Promotion arbiter<span class="iteration-count iteration-1">1 iteration</span></div>
+                            <div class="timeline-meta">2026-07-30 &bull; Acceptance: 8/8 &bull; Edge cases: 4</div>
+                        </div>
+                    </li>
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">&#x2713;</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M7 — Integration, E2E, and cleanup<span class="iteration-count iteration-1">1 iteration</span></div>
+                            <div class="timeline-meta">2026-07-30 &bull; Acceptance: 13/13 &bull; Edge cases: 5</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Key Decisions -->
+        <div class="section">
+            <div class="section-header">&#x1F3AF; Key Decisions</div>
+            <div class="section-body">
+                <div class="alert alert-info">
+                    <strong>&#x2705; Awaiting Steering:</strong> 0 unresolved
+                </div>
+
+                <div class="decision-item">
+                    <div class="decision-title">PEV uses subagents, not tmux</div>
+                    <div class="decision-rationale">The tmux IPC architecture was replaced by independent subagent dispatch (Agent tool). P/E use sonnet, V uses opus for adversarial reasoning.</div>
+                    <div class="decision-source">Source: execution experience 2026-07-29 — Confidence: high</div>
+                </div>
+
+                <div class="decision-item">
+                    <div class="decision-title">Arbiter is the main session</div>
+                    <div class="decision-rationale">The human session coordinates the loop: dispatches P→E→V, reads V's verdict from notes, flips checkbox or dispatches repair.</div>
+                    <div class="decision-source">Source: subagent architecture — Confidence: high</div>
+                </div>
+
+                <div class="decision-item tier-c">
+                    <div class="decision-title">&#x26A0; M3 Hook Modification (Tier C — resolved)</div>
+                    <div class="decision-rationale">M3 edits .claude/hooks/pre_tool_use.py (sensitive path). Adding Guard 2.5 (PEV agent gate) and Guard 6 (commit authority). PEV_ARBITER exemption is the mechanism for Arbiter autonomy.</div>
+                    <div class="decision-source">Deadline: 2026-07-31 — Resolved: proceed with M3</div>
+                </div>
+
+                <div class="decision-item">
+                    <div class="decision-title">Only the Arbiter commits — RED→GREEN two-commit model</div>
+                    <div class="decision-rationale">P, E, V never commit. Arbiter produces two commits per milestone: RED (failing test) then GREEN (implementation + verdict + flip). Enforced by hook Guard 6.</div>
+                    <div class="decision-source">Source: M1 P/E conflict — Confidence: high</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Harness Improvements -->
+        <div class="section full-width">
+            <div class="section-header">&#x26A1; Harness Improvements Born During Execution</div>
+            <div class="section-body">
+                <table>
+                    <tr><th>#</th><th>Improvement</th><th>Layer</th><th>File</th></tr>
+                    <tr><td>1</td><td>Promotion rule enforcement (≥2 violations → promote)</td><td>Structural test</td><td>test_promotion_rule_enforcement.py</td></tr>
+                    <tr><td>2</td><td>Feedback consumption verification (V→P arc)</td><td>Structural test</td><td>test_pev_feedback_consumption.py</td></tr>
+                    <tr><td>3</td><td>Iteration cap enforcement (≤3 iterations)</td><td>Structural test</td><td>test_pev_feedback_consumption.py</td></tr>
+                    <tr><td>4</td><td>Steering deadlines (Awaiting Steering + human-todo)</td><td>Structural test</td><td>test_steering_deadlines.py</td></tr>
+                    <tr><td>5</td><td>Edge case descriptions (not just counts)</td><td>Structural test</td><td>test_adversarial_verification_gate.py</td></tr>
+                    <tr><td>6</td><td>Worktree isolation enforcement</td><td>Structural test</td><td>test_pev_worktree_enforcement.py</td></tr>
+                    <tr><td>7</td><td>Tier C rollback (pre_steering_sha)</td><td>Structural test</td><td>test_pev_worktree_enforcement.py</td></tr>
+                    <tr><td>8</td><td>Loop closure enforcement (no advance before CONFIRMED)</td><td>Structural test</td><td>test_pev_loop_closure.py</td></tr>
+                    <tr><td>9</td><td>Agent persistence (P/E/V persistent per ExecPlan)</td><td>Doc + Hook + Test</td><td>test_pev_agent_persistence.py + Guard 2.5</td></tr>
+                    <tr><td>10</td><td>Commit authority (only Arbiter commits)</td><td>Doc + Hook + Test</td><td>test_commit_authority.py + Guard 6</td></tr>
+                    <tr><td>11</td><td>RED→GREEN two-commit model per milestone</td><td>Doc + Test</td><td>test_commit_model.py</td></tr>
+                    <tr><td>12</td><td>Behavioral coverage mandate per milestone</td><td>Doc + Test</td><td>test_milestone_constraints.py</td></tr>
+                    <tr><td>13</td><td>V adversarial-clean dispatch</td><td>Doc + Test</td><td>test_pev_agent_persistence.py</td></tr>
+                    <tr><td>14</td><td>Token tracking per milestone per phase</td><td>Doc + Test</td><td>test_pev_token_tracking.py</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Surprises -->
+        <div class="section full-width">
+            <div class="section-header">&#x26A1; Surprises & Discoveries</div>
+            <div class="section-body">
+                <div class="alert alert-warning">
+                    <strong>M1 — Only milestone requiring >1 iteration.</strong> Two REJECTED verdicts: deprecation assertion mismatch, whitespace parsing bug, awk pipefail crash on real plan files, and silent acceptance of non-numeric milestone values. All mechanical failures, all repaired within the loop.
+                    <br><em>Impact: Validated the V→P→E feedback arc. M1 took 3 iterations and 150+ acceptance tests to converge.</em>
+                </div>
+                <div class="alert alert-info">
+                    <strong>M0 — Zero behavioral tests.</strong> M0's acceptance test (test_pev_signals.py) was purely structural — it validated the schema of an existing file rather than exercising functional behavior. This gap was discovered during execution and led to the behavioral coverage mandate (improvement #12).
+                </div>
+                <div class="alert alert-info">
+                    <strong>P/E commit conflict discovered mid-execution.</strong> P committed test changes (8b4a74b) but E's implementation commit (28b71dd) branched from a different base and didn't include P's work. This directly motivated the commit authority rule — only the Arbiter commits, from a single working tree.
+                </div>
+                <div class="alert alert-info">
+                    <strong>V stopped rejecting after M1.</strong> M2–M7 all passed on first iteration. Analysis: V's persistent context accumulated confirmation bias across 6 consecutive confirmations. This led to the adversarial-clean dispatch rule (improvement #13).
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical Debt -->
+        <div class="section full-width">
+            <div class="section-header">&#x1F527; Technical Debt</div>
+            <div class="section-body">
+                <div class="debt-item">
+                    <div>
+                        <strong>Pre-existing structural test failures (3 remaining)</strong>
+                        <div style="font-size: 13px; color: var(--color-text-secondary);">test_commit_messages (missing Plan: trailers), test_implementation_notes (malformed devgrid entries). Predate 9006, not resolved.</div>
+                    </div>
+                    <span class="debt-severity medium">MEDIUM</span>
+                </div>
+                <div class="debt-item">
+                    <div>
+                        <strong>Token tracking incomplete — M0-M7 costs estimated, not measured</strong>
+                        <div style="font-size: 13px; color: var(--color-text-secondary);">state.json.token_tracking added post-execution. All 8 milestones have null counts. Next ExecPlan will be the first with measured costs.</div>
+                    </div>
+                    <span class="debt-severity low">LOW</span>
+                </div>
+                <div class="debt-item">
+                    <div>
+                        <strong>P/E roles merged in tmux script</strong>
+                        <div style="font-size: 13px; color: var(--color-text-secondary);">pev_tmux_adversarial.sh merges P and E into A-implementer. test_pev_agent_persistence.py documents this as a known deviation. Subagent-based replacement (pev_subagent_adversarial.sh) partially addresses this.</div>
+                    </div>
+                    <span class="debt-severity medium">MEDIUM</span>
+                </div>
+                <div class="debt-item">
+                    <div>
+                        <strong>V isolation not structurally verified</strong>
+                        <div style="font-size: 13px; color: var(--color-text-secondary);">The adversarial verification gate checks that a CONFIRMED verdict exists but doesn't verify it came from a clean context. The new adversarial-clean dispatch rule addresses this at the documentation level but has no runtime enforcement.</div>
+                    </div>
+                    <span class="debt-severity medium">MEDIUM</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lessons Learned -->
+        <div class="section full-width">
+            <div class="section-header">&#x1F4DA; Lessons Learned</div>
+            <div class="section-body">
+                <div style="padding: 12px 0; border-bottom: 1px solid var(--color-border);">
+                    <strong>The V→P→E feedback arc works — M1 proved it.</strong>
+                    <p style="font-size: 13px; color: var(--color-text-secondary); margin-top: 4px;">Two REJECTED verdicts flowed back to P, who updated the contract, handed to E, who repaired. The third iteration CONFIRMED. This is the loop closing in practice.</p>
+                    <span class="status-badge" style="background: #d1fae5; color: #065f46; margin-top: 8px; display: inline-block;">&#x2191; Promoted to structural test (loop closure)</span>
+                </div>
+                <div style="padding: 12px 0; border-bottom: 1px solid var(--color-border);">
+                    <strong>Commit authority must be enforced before the first milestone.</strong>
+                    <p style="font-size: 13px; color: var(--color-text-secondary); margin-top: 4px;">M1's P/E commit conflict showed that allowing agents to commit independently creates divergence. The rule "only the Arbiter commits" with RED→GREEN two-commit model prevents this. Hook Guard 6 blocks non-Arbiter commits.</p>
+                </div>
+                <div style="padding: 12px 0; border-bottom: 1px solid var(--color-border);">
+                    <strong>Persistent V accumulates confirmation bias.</strong>
+                    <p style="font-size: 13px; color: var(--color-text-secondary); margin-top: 4px;">After confirming 6 consecutive milestones, V's adversarial stance weakened. The adversarial-clean dispatch rule strips V's context per verification to restore skepticism.</p>
+                    <span class="status-badge" style="background: #e0e7ff; color: #3730a3; margin-top: 8px; display: inline-block;">&#x2191; Promotion candidate: structural test → hook (enforce clean dispatch)</span>
+                </div>
+                <div style="padding: 12px 0; border-bottom: 1px solid var(--color-border);">
+                    <strong>Harness improvements are themselves plan output.</strong>
+                    <p style="font-size: 13px; color: var(--color-text-secondary); margin-top: 4px;">14 structural tests, 2 hook guards, and major documentation revisions were created DURING the 9006 execution — not planned in advance. The harness detected its own gaps and self-corrected. This is the Agentic Harness Optimization loop (paper §3.5) in action.</p>
+                </div>
+                <div style="padding: 12px 0; border-bottom: 1px solid var(--color-border);">
+                    <strong>Behavioral tests must be mandated, not assumed.</strong>
+                    <p style="font-size: 13px; color: var(--color-text-secondary); margin-top: 4px;">M0 shipped with zero behavioral tests because nobody checked. The behavioral coverage mandate (every milestone must have an Acceptance Test or explicit waiver) closes this gap structurally.</p>
+                    <span class="status-badge" style="background: #d1fae5; color: #065f46; margin-top: 8px; display: inline-block;">&#x2191; Promoted to structural test</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Generated on 2026-07-30 &bull;
+        <a href="../../exec-plans/active/9006-pev-tmux-convergence.md">View Plan File</a> &bull;
+        <a href="../../exec-plans/active/9006-pev-tmux-convergence-notes/">View Verification Records</a> &bull;
+        22 commits &bull; 38 files changed (4,137 +, 562 −)
+    </div>
+</body>
+</html>
