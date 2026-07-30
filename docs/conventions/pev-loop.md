@@ -175,6 +175,29 @@ Decision: test-first, adversarial-verification-passed
 
 ---
 
+## Token tracking
+
+Every phase dispatch consumes tokens. Without tracking, the cost of an ExecPlan is invisible and unbounded. The Arbiter records token counts in `.pev-signals/state.json` after each phase completes.
+
+**Schema** (`state.json.token_tracking`):
+
+```json
+{
+  "M0": {"plan": 30212, "execute": 20226, "verify": 31572, "total_estimated": 82010},
+  "M1": {"plan": null, "execute": null, "verify": null, "total_estimated": null}
+}
+```
+
+Each field is the token count reported by the Agent tool after dispatch, or `null` if the phase was completed before tracking was implemented. `total_estimated` sums plan + execute + verify for the milestone. Note that Arbiter main-session overhead is not tracked per-milestone — only subagent dispatch tokens are recorded.
+
+**Enforcement:** `.claude/tests/test_pev_token_tracking.py` verifies:
+- `token_tracking` field exists in state.json
+- Every milestone has a tracking entry
+- Each entry has `plan`, `execute`, `verify`, and `total_estimated` fields
+- Value types are int or null (not string, not missing)
+
+---
+
 ## Loop boundaries
 
 One PEV iteration is bounded by:

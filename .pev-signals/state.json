@@ -1,16 +1,16 @@
 {
   "plan_id": "9006-pev-tmux-convergence",
-  "phase": "plan",
-  "current_milestone": 0,
+  "phase": "complete",
+  "current_milestone": 7,
   "milestones": {
     "M0": "confirmed",
-    "M1": "pending",
-    "M2": "pending",
-    "M3": "pending",
-    "M4": "pending",
-    "M5": "pending",
-    "M6": "pending",
-    "M7": "pending"
+    "M1": "confirmed",
+    "M2": "confirmed",
+    "M3": "confirmed",
+    "M4": "confirmed",
+    "M5": "confirmed",
+    "M6": "confirmed",
+    "M7": "confirmed"
   },
   "last_checkpoint_at": "2026-07-30T00:00:00Z",
   "arbiter_pid": null,
@@ -19,5 +19,16 @@
     "p_agent_id": "aedac4f2c35c48adb",
     "e_agent_id": "a82e2f6278c74d795",
     "v_agent_id": "a949931168595ec94"
+  },
+  "token_tracking": {
+    "M0": { "plan": 30212, "execute": null, "verify": null, "total_estimated": 30212 },
+    "M1": { "plan": null, "execute": null, "verify": null, "total_estimated": null },
+    "M2": { "plan": null, "execute": null, "verify": null, "total_estimated": null },
+    "M3": { "plan": null, "execute": null, "verify": null, "total_estimated": null },
+    "M4": { "plan": null, "execute": null, "verify": null, "total_estimated": null },
+    "M5": { "plan": null, "execute": null, "verify": null, "total_estimated": null },
+    "M6": { "plan": null, "execute": null, "verify": null, "total_estimated": null },
+    "M7": { "plan": null, "execute": null, "verify": null, "total_estimated": null },
+    "_note": "Token counts recorded by the Arbiter after each phase dispatch. null = not recorded (phases completed before tracking was implemented). Total includes main-session Arbiter overhead (not tracked per-milestone)."
   }
 }
