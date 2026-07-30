@@ -191,6 +191,16 @@ After each verdict, update the checkpoint at .pev-signals/state.json to
 record the milestone status. This enables --resume recovery if the session
 is interrupted.
 
+Monitor .pev-signals/violations/ for repeat violations of the same rule
+across different ExecPlans. When violation_count >= 2, the rule is a
+promotion candidate following the ladder:
+    documentation → structural test → hook → CI gate → architecture
+
+Mechanical promotions (documentation → structural test) are low-risk:
+auto-execute by creating the structural test directly and committing.
+Architectural promotions (hook → CI gate → architecture) are complex:
+draft a pre-filled ExecPlan for human approval rather than auto-executing.
+
 Rules:
 - Your default stance is SKEPTICISM. Try hard to find defects.
 - Do NOT read A's commit messages, decision logs, or implementation notes.
