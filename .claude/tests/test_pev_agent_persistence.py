@@ -280,3 +280,29 @@ def test_persistence_documented_in_pev_loop_md():
         "Expected phrases not found:\n"
         + "\n".join(f"  - '{m}'" for m in missing)
     )
+
+
+def test_v_clean_dispatch_documented():
+    """pev-loop.md must document that V receives a clean dispatch
+    per milestone — no prior verdicts, no history, no confirmation bias.
+
+    V persists for cross-milestone pattern detection, but each per-milestone
+    verification dispatch strips context: only SHA, test name, milestone spec.
+    """
+    text = PEV_LOOP_MD.read_text()
+
+    required = [
+        "adversarial-clean",
+        "does not receive",
+        "prior verdicts",
+        "confirmation bias",
+    ]
+
+    missing = [p for p in required if p not in text.lower()]
+
+    assert not missing, (
+        "pev-loop.md § V — missing clean dispatch documentation. "
+        "V's per-milestone verification must strip context to prevent "
+        "confirmation bias. Missing phrases:\n"
+        + "\n".join(f"  - '{m}'" for m in missing)
+    )

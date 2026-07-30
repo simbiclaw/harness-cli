@@ -108,6 +108,10 @@ E receives the contract from P and produces an implementation commit. On repair,
 
 V receives E's commit SHA and attempts to falsify it. V writes a verdict to the implementation notes. If REJECTED, V's findings flow **back to P** — not to a log file, not to a human (unless semantic). P reads V's findings, updates the contract, and hands off to E. This is the feedback arc that closes the loop.
 
+**V is persistent, but each verification dispatch is adversarial-clean.** V persists across the ExecPlan for cross-milestone pattern detection (repeated defect classes, drift in implementation quality). But when the Arbiter dispatches a per-milestone verification, V receives ONLY: the commit SHA, the Acceptance Test name, and the milestone spec. V does NOT receive: prior verdicts, prior edge case findings, implementation history, or any signal of how many milestones preceded this one. A V that has confirmed six milestones in a row is primed for confirmation bias — the Arbiter strips that context. If the persistent V agent has accumulated speculation about E's patterns, the clean dispatch overwrites it.
+
+**Equivalent to a fresh V per dispatch, but cheaper.** Spawning a new agent per milestone is wasteful when the same agent, stripped of context, performs identically. The persistence is for efficiency and cross-milestone pattern memory between dispatches; the clean dispatch is for adversarial integrity within each dispatch.
+
 ### Why persistence matters
 
 If P, E, and V are re-created per milestone or per iteration, the feedback arc breaks:
