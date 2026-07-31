@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>feat/9005-pev-loop-evolution — Branch Diff Report</title>
+<style>
+:root{--bg:#0f172a;--card:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--green:#10b981;--yellow:#f59e0b;--red:#ef4444;--blue:#3b82f6;--purple:#8b5cf6;--border:#334155}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.7;padding:0}
+.hero{background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#312e81 100%);padding:48px 40px;border-bottom:2px solid var(--purple)}
+.hero h1{font-size:32px;font-weight:700;margin-bottom:8px}
+.hero .sub{color:var(--muted);font-size:16px}
+.hero .meta{display:flex;gap:32px;margin-top:20px;flex-wrap:wrap}
+.hero .meta span{background:var(--card);padding:8px 16px;border-radius:8px;font-size:14px;border:1px solid var(--border)}
+.container{max-width:1100px;margin:0 auto;padding:32px 24px}
+.section{background:var(--card);border-radius:16px;padding:28px;margin-bottom:24px;border:1px solid var(--border)}
+.section h2{font-size:20px;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.section h3{font-size:16px;margin:20px 0 10px;color:var(--blue)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.stat{text-align:center;padding:16px;background:var(--bg);border-radius:10px}
+.stat .num{font-size:36px;font-weight:700}
+.stat .lbl{font-size:12px;color:var(--muted);margin-top:4px}
+.green{color:var(--green)} .yellow{color:var(--yellow)} .red{color:var(--red)} .blue{color:var(--blue)} .purple{color:var(--purple)}
+.timeline{position:relative;padding-left:28px}
+.timeline::before{content:'';position:absolute;left:10px;top:0;bottom:0;width:2px;background:var(--border)}
+.tl-item{position:relative;margin-bottom:20px;padding-left:24px}
+.tl-item::before{content:'';position:absolute;left:-22px;top:4px;width:10px;height:10px;border-radius:50%}
+.tl-item.plan::before{background:var(--blue)}
+.tl-item.exec::before{background:var(--yellow)}
+.tl-item.harness::before{background:var(--green)}
+.tl-item.cleanup::before{background:var(--red)}
+.tl-date{font-size:12px;color:var(--muted)}
+.tl-title{font-weight:600;margin:4px 0}
+.tl-desc{font-size:14px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+th{color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase}
+.file-list{font-size:13px;color:var(--muted);max-height:300px;overflow-y:auto;font-family:monospace}
+.file-list .new{color:var(--green)} .file-list .mod{color:var(--yellow)}
+.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:500}
+.badge-doc{background:#1e3a5f;color:#93c5fd}
+.badge-test{background:#1e3a3f;color:#86efac}
+.badge-hook{background:#3a1e1e;color:#fca5a5}
+.badge-script{background:#3a2e1e;color:#fcd34d}
+.rule{background:var(--bg);padding:16px;border-radius:10px;margin:8px 0;border-left:3px solid var(--purple)}
+.rule .title{font-weight:600;margin-bottom:4px}
+.rule .detail{font-size:13px;color:var(--muted)}
+.quiz{background:var(--bg);border-radius:10px;padding:24px;border:2px solid var(--purple)}
+.quiz .q{margin-bottom:24px}
+.quiz .q-title{font-weight:600;margin-bottom:8px}
+.quiz label{display:block;padding:8px 12px;margin:4px 0;border-radius:6px;cursor:pointer;font-size:14px;border:1px solid var(--border)}
+.quiz label:hover{background:#1e293b}
+.quiz input[type=radio]{margin-right:8px;accent-color:var(--purple)}
+.quiz .explain{display:none;margin-top:8px;padding:12px;border-radius:6px;font-size:13px}
+.quiz .correct{display:none;background:#064e3b;color:#86efac}
+.quiz .wrong{display:none;background:#3a1e1e;color:#fca5a5}
+.quiz input:checked~.correct,.quiz input:checked~.wrong{display:block}
+#score{font-size:24px;font-weight:700;text-align:center;margin-top:20px}
+button{background:var(--purple);color:white;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:16px;display:block;margin:20px auto 0}
+button:hover{opacity:0.9}
+.footer{text-align:center;padding:32px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="hero">
+<h1>&#x1F4E6; feat/9005-pev-loop-evolution</h1>
+<div class="sub">从 tmux IPC 到子代理 PEV 闭环：59 次提交，86 个文件，11,347 行代码——我们做了什么，为什么做，以及如何做</div>
+<div class="meta">
+  <span>&#x1F4C5; 2026-07-28 至 2026-07-31</span>
+  <span>&#x1F4E6; 59 次提交</span>
+  <span>&#x1F4C4; 86 个文件 (+11,347 / −251)</span>
+  <span>&#x2705; 2 个计划完成 (9006, 9007)</span>
+  <span>&#x1F527; 16 个新的结构测试</span>
+  <span>&#x1FAA9; 2 个新的 hook 守卫</span>
+</div>
+</div>
+
+<div class="container">
+
+<!-- 宏观视图 -->
+<div class="section">
+<h2>&#x1F30D; 宏观视图：此分支变更的内容</h2>
+<div class="grid3">
+  <div class="stat"><div class="num green">9006</div><div class="lbl">计划完成：使用 P/E/V 子代理的 PEV 闭环</div></div>
+  <div class="stat"><div class="num blue">9007</div><div class="lbl">计划完成：文档花园 + 交叉引用修复</div></div>
+  <div class="stat"><div class="num purple">16</div><div class="lbl">在执行期间诞生的新结构测试</div></div>
+</div>
+<p style="margin-top:20px;color:var(--muted);font-size:14px">
+这是一条 <strong>harness 改进</strong> 分支。其中没有应用程序代码变更（src/ 中为零）。所有变更都在 .claude/、.pev-signals/、docs/ 和 tests/ 中。该分支构建了用于执行应用计划的 harness——PEV 闭环、提交权限模型、结构测试套件以及强制执行它们的 hook 守卫。
+</p>
+</div>
+
+<!-- 时间线 -->
+<div class="section">
+<h2>&#x1F4C5; 时间线</h2>
+<div class="timeline">
+  <div class="tl-item plan"><div class="tl-date">7 月 28 日</div><div class="tl-title">之前：基于 Tmux 的 PEV 循环</div><div class="tl-desc">pev_tmux_adversarial.sh 通过 tmux IPC 编排 A（实现者）、B（验证者）、Arbiter（协调者）。P 和 E 合并到 A-implementer 中。无行为性测试。无提交权限。无闭环执行。无令牌追踪。</div></div>
+  <div class="tl-item exec"><div class="tl-date">7 月 29 日 19:50</div><div class="tl-title">9006 M0：信号目录 + 状态 schema</div><div class="tl-desc">.pev-signals/ 作为协调目录。通过 agent_ids 字段确立 state.json schema。</div></div>
+  <div class="tl-item exec"><div class="tl-date">7 月 29 日–30 日</div><div class="tl-title">M1：子代理对抗性脚本（3 次迭代）</div><div class="tl-desc">pen_spark 已创建 pev_subagent_adversarial.sh，包含 --plan、--milestones、--resume 标志。在 V 发现管道失败、空白解析和弃用不匹配问题后，经历了 3 次 PEV 迭代才收敛。V→P→E 反馈弧已在实际中得到验证。</div></div>
+  <div class="tl-item harness"><div class="tl-date">7 月 30 日</div><div class="tl-title">M2–M7：判决笔记、Arbiter 自主权、检查点、违规、晋升、端到端</div><div class="tl-desc">通过 P/E/V 子代理快速完成 6 个里程碑。在 M3（hook 修改）中解决了 Tier C 转向问题。</div></div>
+  <div class="tl-item harness"><div class="tl-date">7 月 30 日（执行期间）</div><div class="tl-title">14 项 Harness 改进自行涌现</div><div class="tl-desc">Harness 检测到自身的缺口——无晋升执行、无反馈消耗检查、无迭代上限、无转向截止时间、无边缘情况描述、无工作树执行、无 Tier C 回滚、无闭环执行、无代理持久化保证、无提交权限、无提交结构、无行为性覆盖要求、V 确认偏差、无令牌追踪。全部 14 项均已修复。</div></div>
+  <div class="tl-item cleanup"><div class="tl-date">7 月 30 日</div><div class="tl-title">Harness 分支清理</div><div class="tl-desc">移除了死亡代码：从未存在过的 harness 分支的 Guard 5、post-commit 挑选、is_on_harness()。</div></div>
+  <div class="tl-item cleanup"><div class="tl-date">7 月 31 日</div><div class="tl-title">9007 文档花园</div><div class="tl-desc">修复了 10 处损坏的交叉引用。重新评级了 QUALITY_SCORE 进度表。移除了 4 个悬空的工作树。</div></div>
+</div>
+</div>
+
+<!-- 关键规则变更 -->
+<div class="section">
+<h2>&#x1F4DC; 在此分支中变更的关键 Harness 规则</h2>
+
+<div class="rule"><div class="title">&#x1F534; 提交权限：只有 Arbiter 提交。P、E、V 从不提交。</div><div class="detail">每个里程碑两次提交——RED（仅测试）→ GREEN（实现 + 判决 + 翻转）。由 Hook Guard 6 + test_commit_authority.py + test_commit_model.py 强制执行。</div></div>
+
+<div class="rule"><div class="title">&#x1F7E3; 三个持久化代理：P、E、V 在整个 ExecPlan 期间保持常驻。</div><div class="detail">没有持久化，V→P→E 反馈弧就会断裂。由 Hook Guard 2.5 + test_pev_agent_persistence.py 强制执行。V 在每次分派时接收清洁的上下文（无之前的判决）。</div></div>
+
+<div class="rule"><div class="title">&#x1F7E2; 闭环：在 M(N) CONFIRMED 之前，不得推进 M(N+1)。</div><div class="detail">一次最多只能有一个里程碑处于活跃状态。由 test_pev_loop_closure.py + test_pev_feedback_consumption.py 强制执行。迭代上限：通过 3 次。</div></div>
+
+<div class="rule"><div class="title">&#x1F535; 每个里程碑的行为性 + 结构性覆盖。</div><div class="detail">每个里程碑都必须有一个验收测试。如果没有（纯约定变更），则需要显式声明豁免。由 test_milestone_constraints.py 强制执行。区分基于目的，而非目录。</div></div>
+
+<div class="rule"><div class="title">&#x1F7E1; PEV 环与论文 §3.4 对齐。</div><div class="detail">四个组成部分已命名：合约形成、沙箱执行、权限化状态转换、确定性传感器。我们的扩展：对抗性验证（子代理 B）超越了纯确定性传感器。</div></div>
+
+<div class="rule"><div class="title">&#x1F7E0; 令牌追踪 + 晋升规则 + 转向截止时间 + 边缘情况描述。</div><div class="detail">每个里程碑每个阶段消耗的令牌。≥2 次违规 → 自动晋升。截止日期已过期 → 结构测试失败。判决必须描述边缘情况，而不仅仅是计数。</div></div>
+</div>
+
+<!-- 新增文件 -->
+<div class="grid2">
+<div class="section">
+<h2>&#x1F4C2; 新增文件（按类型）</h2>
+<div class="file-list">
+<span class="new">.claude/tests/test_commit_authority.py</span><br>
+<span class="new">.claude/tests/test_commit_model.py</span><br>
+<span class="new">.claude/tests/test_pev_agent_persistence.py</span><br>
+<span class="new">.claude/tests/test_pev_feedback_consumption.py</span><br>
+<span class="new">.claude/tests/test_pev_loop_closure.py</span><br>
+<span class="new">.claude/tests/test_pev_worktree_enforcement.py</span><br>
+<span class="new">.claude/tests/test_pev_token_tracking.py</span><br>
+<span class="new">.claude/tests/test_promotion_rule_enforcement.py</span><br>
+<span class="new">.claude/tests/test_steering_deadlines.py</span><br>
+<span class="new">.claude/tests/test_quality_score_regrade.py</span><br>
+<span class="mod">.claude/tests/test_arbiter_autonomy.py</span><br>
+<span class="mod">.claude/tests/test_adversarial_verification_gate.py</span><br>
+<span class="mod">.claude/tests/test_milestone_constraints.py</span><br>
+<span class="mod">.claude/tests/test_pev_signals.py</span><br>
+<span class="mod">.claude/tests/test_hooks_runnable.py</span><br>
+<span class="mod">.claude/tests/test_pev_tmux.py</span><br>
+<span class="mod">.claude/tests/test_pev_recovery.py</span><br>
+<span class="mod">.claude/tests/test_verdict_notes_unified.py</span><br>
+<span class="mod">.claude/tests/test_violation_tracker.py</span><br>
+<span class="mod">.claude/tests/test_promotion_arbiter.py</span><br>
+<span class="mod">.claude/tests/test_pev_tmux_e2e.py</span><br>
+<span class="mod">.claude/tests/test_cross_refs.py</span><br>
+<span class="new">.claude/scripts/pev_subagent_adversarial.sh</span><br>
+<span class="mod">.claude/hooks/pre_tool_use.py</span><br>
+<span class="del">.claude/hooks/post-commit</span><br>
+<span class="mod">docs/conventions/pev-loop.md</span><br>
+<span class="new">docs/exec-plans/reports/9006-pev-tmux-convergence-report.html</span><br>
+<span class="new">docs/exec-plans/completed/9006-pev-tmux-convergence.md</span><br>
+<span class="new">docs/exec-plans/completed/9007-doc-garden-2026-07-31.md</span><br>
+<span class="mod">.claude/templates/plan-execution-report.html</span><br>
+</div>
+</div>
+<div class="section">
+<h2>&#x1F4CA; 按数字</h2>
+<div class="stat" style="margin-bottom:12px"><div class="num green">190</div><div class="lbl">通过的结构测试（85 个新增/修改）</div></div>
+<div class="stat" style="margin-bottom:12px"><div class="num blue">14</div><div class="lbl">在执行期间诞生的 harness 改进</div></div>
+<div class="stat" style="margin-bottom:12px"><div class="num yellow">3</div><div class="lbl">M1 在 V 发现 6 个缺陷后经历的 PEV 迭代（该闭环有效）</div></div>
+<div class="stat" style="margin-bottom:12px"><div class="num purple">6</div><div class="lbl">Hook 守卫（0/0.5/1/2/2.5/6）</div></div>
+<div class="stat"><div class="num">~650K</div><div class="lbl">估算的令牌消耗（仅 82K 实测）</div></div>
+</div>
+</div>
+
+<!-- 测验 -->
+<div class="section">
+<h2>&#x1F4DD; 理解测验</h2>
+<p style="color:var(--muted);margin-bottom:16px">选择最佳答案。通过需要 7/8。选中答案后会显示解释。</p>
+<div class="quiz">
+
+<div class="q"><div class="q-title">Q1: 在 9006 的执行过程中，为什么 M1 需要 3 次 PEV 迭代？</div>
+<label><input type="radio" name="q1" value="a">A) P 编写了错误的验收测试</label>
+<label><input type="radio" name="q1" value="b">B) V 发现了 M1 实现中的机械性缺陷（管道失败、空白、弃用不匹配），而 E 必须修复</label>
+<div class="correct explain">&#x2705; 正确。V 在两次连续迭代中发现了 6 个缺陷：弃用断言不匹配、空白解析、awk 管道失败在实际计划文件上崩溃，以及静默接受非数字里程碑值。所有问题都通过 V→P→E 反馈弧进行了修复。</div>
+<div class="wrong explain">&#x274C; 错误。见上文。</div>
+<label><input type="radio" name="q1" value="c">C) Arbiter 忘记翻转复选框</label>
+<label><input type="radio" name="q1" value="d">D) Tier C 判决阻塞了该里程碑</label>
+</div>
+
+<div class="q"><div class="q-title">Q2: 谁提交代码到仓库？</div>
+<label><input type="radio" name="q2" value="a">A) P 提交测试，E 提交实现，V 提交判决</label>
+<label><input type="radio" name="q2" value="b">B) 只有 Arbiter 提交——每个里程碑两次提交（RED 只有测试，GREEN 实现 + 判决 + 翻转）</label>
+<div class="correct explain">&#x2705; 正确。提交权限规则是："只有 Arbiter 提交。P、E、V 从不提交。" 这由 Hook Guard 6 强制执行。</div>
+<div class="wrong explain">&#x274C; 错误。见上文。</div>
+<label><input type="radio" name="q2" value="c">C) 每个代理在完成其阶段后提交自己的工作</label>
+<label><input type="radio" name="q2" value="d">D) 任何有 PEV_ARBITER=true 的代理都可以提交</label>
+</div>
+
+<div class="q"><div class="q-title">Q3: V（验证者）为什么在一次里程碑的验证中必须接收干净的上下文？</div>
+<label><input type="radio" name="q3" value="a">A) 为了节省令牌</label>
+<label><input type="radio" name="q3" value="b">B) 因为持久化代理的上下文积累确认偏差——V 在连续确认 6 个里程碑后停止了拒绝</label>
+<div class="correct explain">&#x2705; 正确。在 9006 的执行中，M2-M7 全部在首次迭代中通过。分析发现 V 的持久化上下文在连续确认后积累了确认偏差。新的规则是："每次里程碑验证分派仅接收：SHA、测试名称、里程碑规范。不接收之前的判决、历史或计数。"</div>
+<div class="wrong explain">&#x274C; 错误。见上文。</div>
+<label><input type="radio" name="q3" value="c">C) 为了避免与 E 发生冲突</label>
+<label><input type="radio" name="q3" value="d">D) V 根本不持久化——每个里程碑都会重新生成</label>
+</div>
+
+<div class="q"><div class="q-title">Q4: 什么是 "确定性传感器"（论文 §3.4.4），它们与对抗性验证有什么不同？</div>
+<label><input type="radio" name="q4" value="a">A) 它们是同一回事</label>
+<label><input type="radio" name="q4" value="b">B) 确定性传感器是客观的、可重复的检查（结构测试、代码检查器、格式检查器）。对抗性验证（子代理 B）是创造性的证伪——V 设计的是任何传感器都未被编程捕获的边缘情况。</label>
+<div class="correct explain">&#x2705; 正确。这两个层级形成了验证底线（确定性）和上限（对抗性）。论文的模型仅描述了传感器的部分；该仓库增加了对抗性层级。</div>
+<div class="wrong explain">&#x274C; 错误。见上文。</div>
+<label><input type="radio" name="q4" value="c">C) 确定性传感器只能由 E 运行</label>
+<label><input type="radio" name="q4" value="d">D) 对抗性验证是论文的术语，确定性传感器是我们自己的术语</label>
+</div>
+
+<div class="q"><div class="q-title">Q5: 为什么移除了 harness 分支基础设施（Guard 5、post-commit）？</div>
+<label><input type="radio" name="q5" value="a">A) 它导致了一个 bug</label>
+<label><input type="radio" name="q5" value="b">B) harness 分支从未存在——它是 2026 年 6 月一次 argus 同步的死代码，之后未被使用</label>
+<div class="correct explain">&#x2705; 正确。Guard 5 阻止了在 harness 分支上的直接提交，post-commit 钩子自动将 harness 提交挑选到该分支，而该分支在该仓库中从未存在过。该基础设施是为一个仅使用了一次的双仓库模型构建的。</div>
+<div class="wrong explain">&#x274C; 错误。见上文。</div>
+<label><input type="radio" name="q5" value="c">C) Harness 分支被合并到了 main 中</label>
+<label><input type="radio" name="q5" value="d">D) 它与 PEV 子代理架构冲突</label>
+</div>
+
+<div class="q"><div class="q-title">Q6: 每个里程碑都必须具备什么？</div>
+<label><input type="radio" name="q6" value="a">A) 只有结构性测试</label>
+<label><input type="radio" name="q6" value="b">B) 只有行为性测试</label>
+<label><input type="radio" name="q6" value="c">C) 既要有结构性测试，又要有行为性测试——或者对缺失测试有显式的豁免理由</label>
+<div class="correct explain">&#x2705; 正确。在 M0 交付时零行为性测试之后，test_milestone_constraints.py 现在要求每个里程碑都必须有一个验收测试或一个显式的 'Behavioral Test: none — 理由' 声明。</div>
+<div class="wrong explain">&#x274C; 错误。见上文。</div>
+<label><input type="radio" name="q6" value="d">D) 没有——测试是可选的</label>
+</div>
+
+<div class="q"><div class="q-title">Q7: 晋升阶梯是如何工作的？</div>
+<label><input type="radio" name="q7" value="a">A) 规则在被违反一次后自动晋升</label>
+<label><input type="radio" name="q7" value="b">B) 一条规则从文档开始。当同一规则在两次不同的 ExecPlan 中被违反时，将其向左移动一级：文档 → 结构测试 → hook → CI gate → 架构。不可跳过任何级别。</label>
+<div class="correct explain">&#x2705; 正确。晋升规则在 9006 的执行中被应用了 14 次，将规则从文档级别移动到结构测试，从测试移动到 hook，依此类推。</div>
+<div class="wrong explain">&#x274C; 错误。见上文。</div>
+<label><input type="radio" name="q7" value="c">C) 晋升由 P 代理自动处理</label>
+<label><input type="radio" name="q7" value="d">D) 规则一旦编写完成就永远不会改变</label>
+</div>
+
+<div class="q"><div class="q-title">Q8: 完成 9006 计划后，关键的经验教训是什么？</div>
+<label><input type="radio" name="q8" value="a">A) Tmux 比子代理更好</label>
+<label><input type="radio" name="q8" value="b">B) 提交权限必须在第一个里程碑之前建立。持久化的 V 会积累确认偏差。行为性测试不是可选的。Harness 会在执行期间自行改进。令牌追踪必须内置，而非事后附加。</label>
+<div class="correct explain">&#x2705; 正确。这五条经验教训构成了 9006 成果与回顾部分的核心。</div>
+<div class="wrong explain">&#x274C; 错误。见上文。</div>
+<label><input type="radio" name="q8" value="c">C) 每个计划都需要一个 Arbiter，但不需要 P 或 E</label>
+<label><input type="radio" name="q8" value="d">D) 验收测试是可选的</label>
+</div>
+
+<button onclick="gradeQuiz()">&#x1F4CA; 提交答案</button>
+<div id="score"></div>
+
+<script>
+function gradeQuiz(){
+  const answers={q1:'b',q2:'b',q3:'b',q4:'b',q5:'b',q6:'c',q7:'b',q8:'b'};
+  let correct=0,total=8;
+  for(const [q,a] of Object.entries(answers)){
+    const sel=document.querySelector(`input[name="${q}"]:checked`);
+    if(sel&&sel.value===a) correct++;
+  }
+  const pct=Math.round(correct/total*100);
+  const s=document.getElementById('score');
+  s.innerHTML=pct>=87
+    ?`<span class="green">&#x2705; ${correct}/${total} — 通过 (${pct}%)</span><br><small style="color:var(--muted)">你已准备好合并此分支。</small>`
+    :`<span class="red">&#x274C; ${correct}/${total} — 未通过 (${pct}%)</span><br><small style="color:var(--muted)">需要 ${Math.ceil(total*0.875)-correct} 个更多正确答案。请重读报告后再试。</small>`;
+}
+</script>
+</div>
+</div>
+
+<div class="footer">
+在 feat/9005-pev-loop-evolution 上生成 &bull; 59 次提交 &bull; 86 个文件 &bull; +11,347 / −251 &bull; 2 个计划完成 &bull; 16 个新的结构测试 &bull; 3 个新的 hook 守卫
+</div>
+
+</div>
+</body>
+</html>
