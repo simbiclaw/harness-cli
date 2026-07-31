@@ -21,14 +21,54 @@
     "v_agent_id": "a949931168595ec94"
   },
   "token_tracking": {
-    "M0": { "plan": 30212, "execute": null, "verify": null, "total_estimated": 30212 },
-    "M1": { "plan": null, "execute": null, "verify": null, "total_estimated": null },
-    "M2": { "plan": null, "execute": null, "verify": null, "total_estimated": null },
-    "M3": { "plan": null, "execute": null, "verify": null, "total_estimated": null },
-    "M4": { "plan": null, "execute": null, "verify": null, "total_estimated": null },
-    "M5": { "plan": null, "execute": null, "verify": null, "total_estimated": null },
-    "M6": { "plan": null, "execute": null, "verify": null, "total_estimated": null },
-    "M7": { "plan": null, "execute": null, "verify": null, "total_estimated": null },
+    "M0": {
+      "plan": 30212,
+      "execute": null,
+      "verify": null,
+      "total_estimated": 30212
+    },
+    "M1": {
+      "plan": null,
+      "execute": null,
+      "verify": null,
+      "total_estimated": null
+    },
+    "M2": {
+      "plan": null,
+      "execute": null,
+      "verify": null,
+      "total_estimated": null
+    },
+    "M3": {
+      "plan": null,
+      "execute": null,
+      "verify": null,
+      "total_estimated": null
+    },
+    "M4": {
+      "plan": null,
+      "execute": null,
+      "verify": null,
+      "total_estimated": null
+    },
+    "M5": {
+      "plan": null,
+      "execute": null,
+      "verify": null,
+      "total_estimated": null
+    },
+    "M6": {
+      "plan": null,
+      "execute": null,
+      "verify": null,
+      "total_estimated": null
+    },
+    "M7": {
+      "plan": null,
+      "execute": null,
+      "verify": null,
+      "total_estimated": null
+    },
     "_note": "Token counts recorded by the Arbiter after each phase dispatch. null = not recorded (phases completed before tracking was implemented). Total includes main-session Arbiter overhead (not tracked per-milestone)."
   }
 }

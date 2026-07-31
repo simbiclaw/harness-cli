@@ -8,6 +8,18 @@ Three products --`Argus`,`Metis`,`Hermes`-- built end-to-end by Claude Code.  hu
 
 Read the most recent file in `docs/exec-plans/active/` end-to-end. Read its **Surprises & Discoveries** section first. That is the work in flight. If there is more than one active plan, ask the human which to pick up. Do not start work in the middle of a plan you have not read.
 
+## Plan Completion Report
+
+When an ExecPlan completes (all milestones verified and checkbox flipped):
+
+1. **Generate HTML report** using template `.claude/templates/plan-execution-report.html`
+2. **Output to** `docs/exec-plans/reports/{plan-id}-report.html`
+3. **Include:** milestones timeline, Tier C decisions, surprises, technical debt, lessons learned
+4. **Style:** dashboard (not document), with health metrics at top
+5. **Add link** in Outcomes & Retrospective section
+
+Use playground skill to render. See `.claude/templates/README.md` for variable mapping.
+
 ## Read these before doing any non-trivial work
 
 - `docs/PLANS.md` — the rubric every ExecPlan follows. Read once per session if you are creating or modifying a plan.
