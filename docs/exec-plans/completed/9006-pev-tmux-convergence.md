@@ -142,11 +142,65 @@ The human session coordinates the loop: dispatches P→E→V for each milestone,
 
 ## 8. Outcomes & Retrospective
 
-All 8 milestones confirmed. 83 acceptance tests pass across M0-M7. 180 structural tests pass (4 pre-existing failures, none caused by this plan).
+### What was accomplished
 
-M1 required 3 PEV iterations — the only milestone with REJECTED verdicts. The V→P→E feedback arc closed successfully: mechanical failures (deprecation mismatch, whitespace parsing, awk pipefail crash, non-numeric validation) were caught by V, consumed by P, repaired by E, and confirmed on iteration 3.
+Replaced the tmux-based PEV architecture with a subagent-based model. Three persistent agents (P, E, V) now carry each milestone through Plan→Execute→Verify, coordinated by an Arbiter (the main session). The `pev_subagent_adversarial.sh` script replaces `pev_tmux_adversarial.sh` as the adversarial B-prompt generator.
 
-14 harness improvements were born during execution — structural tests, hook guards, and documentation that the plan's own PEV loop detected as missing. This is the Agentic Harness Optimization loop (paper §3.5) operating in real time.
+All 8 milestones traversed the PEV loop. 83 acceptance tests pass. 180 structural tests pass. 24 commits on the branch, 38 files changed (+4,279 / −660 lines).
+
+### What the PEV loop itself produced (Agentic Harness Optimization)
+
+14 harness improvements were not planned — they were detected by the harness during execution and self-corrected:
+
+| # | Gap detected | Fix |
+|---|---|---|
+| 1 | Promotion rule unenforced | `test_promotion_rule_enforcement.py` |
+| 2 | V→P feedback unverified | `test_pev_feedback_consumption.py` |
+| 3 | Iteration cap unenforced | `test_pev_feedback_consumption.py` (3-iteration cap) |
+| 4 | Awaiting Steering indefinite | `test_steering_deadlines.py` |
+| 5 | Edge cases counted, not described | `test_adversarial_verification_gate.py` (edge case descriptions) |
+| 6 | Worktree isolation unverified | `test_pev_worktree_enforcement.py` |
+| 7 | No Tier C rollback mechanism | `test_pev_worktree_enforcement.py` (pre_steering_sha) |
+| 8 | Loop closure unenforced | `test_pev_loop_closure.py` |
+| 9 | No P/E/V persistence guarantee | `test_pev_agent_persistence.py` + Guard 2.5 (hook) |
+| 10 | Agents committing independently | `test_commit_authority.py` + Guard 6 (hook) |
+| 11 | No commit structure enforcement | `test_commit_model.py` (RED→GREEN two-commit pattern) |
+| 12 | Behavioral tests silently absent | `test_milestone_constraints.py` (coverage mandate) |
+| 13 | V confirmation bias from persistence | `test_pev_agent_persistence.py` (clean dispatch rule) |
+| 14 | Token consumption invisible | `test_pev_token_tracking.py` |
+
+This is the Agentic Harness Optimization loop (§3.5) operating in real time. The harness detected its own gaps and repaired them during plan execution. The promotion rule (documentation → structural test → hook → CI gate → architecture) was applied 14 times, moving rules left.
+
+### What went well
+
+- **M1 proved the feedback arc works.** Two REJECTED verdicts flowed V→P→E. P consumed V's findings, updated the contract, handed to E. E repaired. V confirmed on iteration 3. This is the closed loop in practice.
+- **Hooks blocked what they should.** Guard 6 stopped non-Arbiter commits. Guard 2.5 blocked implementation edits without P/E/V agents. The hook stack worked.
+- **The two-commit model (RED→GREEN) prevented divergence.** After M1's P/E commit conflict, centralized commit authority eliminated the class of error where agents commit from different bases.
+- **Behavioral coverage mandate prevented silent gaps.** M0 shipped with zero behavioral tests — the structural test now catches this before Plan phase completes.
+
+### Surprises
+
+- **P/E commit conflict (M1).** P committed test changes to one base, E committed implementation from another. The test changes weren't in E's commit. This directly motivated the commit authority rule.
+- **V stopped rejecting after M1.** Persistent context accumulated confirmation bias across 6 consecutive confirmations. The clean dispatch rule now strips V's context per verification.
+- **M0 had no behavioral tests.** The distinction between structural and behavioral coverage was undocumented when M0 was built. The mandate now requires explicit declaration.
+- **Harness branch infrastructure was dead code.** Guard 5 (harness branch commit blocking) and post-commit cherry-pick hook were built in May-June 2026 for a two-repo sync model that was used once and abandoned. Removed during execution.
+- **Token tracking was retroactive.** No subagent reported token counts after the initial spawn. The tracking schema was added post-execution; all M0-M7 counts are null. The next ExecPlan will have measured costs.
+
+### Lessons learned
+
+1. **Commit authority must be established before the first milestone.** The P/E commit conflict in M1 was preventable. The rule "only the Arbiter commits, RED→GREEN two-commit model" should be part of every ExecPlan's initial setup.
+2. **Persistent V ≠ adversarial V.** Persistence enables cross-milestone pattern detection but accumulates confirmation bias. Clean per-milestone dispatch (SHA + test name + spec, nothing else) restores adversarial integrity.
+3. **Behavioral coverage is not optional.** Every milestone must prove the thing it builds actually works. The structural test now enforces this, with an explicit waiver mechanism for pure-convention milestones.
+4. **The harness improves itself during execution.** 14 gaps were discovered and closed without a separate plan. This is not a bug — it's the design. The PEV loop is the mechanism; the promotion ladder is the policy.
+5. **Token tracking must be built into the orchestrator, not bolted on later.** Subagent token counts are available at dispatch time but must be recorded immediately. A post-execution schema cannot recover lost data.
+
+### Technical debt carried forward
+
+- 3 pre-existing structural test failures (commit messages, implementation notes format)
+- Token tracking schema exists but M0-M7 costs are null (not recoverable)
+- P/E roles still merged in the deprecated `pev_tmux_adversarial.sh`
+- V isolation from E's context is documented but not structurally enforced
+- `pev_repair.py` and `pev_orchestrator.js` are marked DEPRECATED but still in the repo
 
 Full execution report: [9006-pev-tmux-convergence-report.html](../reports/9006-pev-tmux-convergence-report.html)
 
