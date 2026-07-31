@@ -3,7 +3,7 @@ feature-slug: business-diagnosis
 verification-status: proposed
 last-reviewed: 2026-07-20
 ---
-**Corresponding product-spec:** [docs/product-specs/business-diagnosis.md](../docs/product-specs/business-diagnosis.md)
+**Corresponding product-spec:** [docs/product-specs/business-diagnosis.md](../product-specs/business-diagnosis.md)
 
 
 # business-diagnosis Design Doc
