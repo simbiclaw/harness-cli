@@ -15,9 +15,7 @@ This is the final gate before the plan archives.
 
 from __future__ import annotations
 
-import json
 import subprocess
-import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -144,5 +142,10 @@ class TestPEVConventionDocs:
         text = (REPO_ROOT / "docs/conventions/implementation-notes.md").read_text()
         for entry_type in ["plan-confirmed", "discovery", "deviation", "human-todo"]:
             assert entry_type in text
-        for field in ["What the plan said", "What the code revealed", "Conservative choice", "Revisit"]:
+        for field in [
+            "What the plan said",
+            "What the code revealed",
+            "Conservative choice",
+            "Revisit",
+        ]:
             assert field in text

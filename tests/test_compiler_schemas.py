@@ -8,10 +8,7 @@ Red phase: these tests FAIL until src/argus/types/compiler_schemas.py is impleme
 
 from __future__ import annotations
 
-import json
-
 import pytest
-
 
 # ── Import the schemas (will fail until implemented) ──────────────────────
 # Intentionally at module level so the import error is visible.
@@ -121,7 +118,10 @@ class TestAllInputSchemasRoundtrip:
         # Round-trip through JSON
         dumped = skill.model_dump_json()
         reloaded = GenericEvaluatorSkill.model_validate_json(dumped)
-        assert reloaded.dimensions[0].failure_signatures == skill_data["dimensions"][0]["failure_signatures"]
+        assert (
+            reloaded.dimensions[0].failure_signatures
+            == skill_data["dimensions"][0]["failure_signatures"]
+        )
 
     def test_align_map_roundtrip(self):
         """An AlignMap round-trips through JSON."""
@@ -201,9 +201,7 @@ class TestAuthoredNodeRoundtrip:
                 "checkable": True,
                 "extraction_method": "ordered_relation",
             },
-            "fail_condition": {
-                "logic": "no ack_span OR ack_span FOLLOWS resolution_span"
-            },
+            "fail_condition": {"logic": "no ack_span OR ack_span FOLLOWS resolution_span"},
             "deduction": 5.0,
             # §3 judgment-layer fields
             "authored_by": "qa_lead_22",
@@ -245,10 +243,15 @@ class TestAuthoredNodeRoundtrip:
                 "programmatic": [
                     {
                         "facet_name": "ack_sequence_check",
-                        "enables_signals": [{"signal_id": "sig-fail-001", "extraction_shape": "ordered_relation"}],
+                        "enables_signals": [
+                            {"signal_id": "sig-fail-001", "extraction_shape": "ordered_relation"}
+                        ],
                         "indicator": "ack_span precedes resolution_span",
                         "calculation": "check_ordering(ack_span, resolution_span)",
-                        "output_schema": {"type": "object", "properties": {"precedes": {"type": "boolean"}}},
+                        "output_schema": {
+                            "type": "object",
+                            "properties": {"precedes": {"type": "boolean"}},
+                        },
                     }
                 ],
                 "model_based": [],
@@ -271,9 +274,7 @@ class TestAuthoredNodeRoundtrip:
             "proposed_score_hook": True,
             "source_binary_items": ["item-22"],
             "dimension_ref": "empathy",
-            "applicability_gate": {
-                "spec": "customer_message.emotional_content == True"
-            },
+            "applicability_gate": {"spec": "customer_message.emotional_content == True"},
             "severity_map": "calibration:emp-sev-v3",
             "data_dependency": None,
             "gap_type": "perceiver",
@@ -356,7 +357,10 @@ class TestResidueManifestRoundtrip:
                     "source_items": ["item-24"],
                     "measures": "consequential business harm — callback inevitability, unnecessary cost",
                     "compiled_to": ["signal-biz-0007"],
-                    "data_dependency": {"source": "callback_logs+ticket_status", "connected": False},
+                    "data_dependency": {
+                        "source": "callback_logs+ticket_status",
+                        "connected": False,
+                    },
                     "disposition": "defer_until_source_connected",
                     "proposes": "new sub-dimension: Business Impact",
                 },
@@ -389,14 +393,16 @@ class TestResidueManifestRoundtrip:
         """A ResidueManifest with no rows (all items fully compiled) is valid."""
         ResidueManifest = src_argus_types.ResidueManifest
 
-        empty_manifest = ResidueManifest.model_validate({
-            "sources": {
-                "specific_rubric": "cs-qa-rubric v3.2",
-                "generic_skill": "evaluator-criteria-customer-service-generic v1.3",
-                "calibration_epoch": "cs-calibration v3",
-                "align": "align.md@git:abcdef",
-            },
-            "rows": [],
-        })
+        empty_manifest = ResidueManifest.model_validate(
+            {
+                "sources": {
+                    "specific_rubric": "cs-qa-rubric v3.2",
+                    "generic_skill": "evaluator-criteria-customer-service-generic v1.3",
+                    "calibration_epoch": "cs-calibration v3",
+                    "align": "align.md@git:abcdef",
+                },
+                "rows": [],
+            }
+        )
         assert empty_manifest.rows == []
         assert empty_manifest.sources["calibration_epoch"] == "cs-calibration v3"

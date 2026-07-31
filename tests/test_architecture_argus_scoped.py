@@ -4,7 +4,7 @@ Asserts ARCHITECTURE.md is scoped to Argus-only with five domains mapped
 onto the five layers .importlinter enforces.
 """
 
-# ruff: noqa: S607  # subprocess calls in tests use known-safe paths
+# subprocess calls in tests use known-safe paths
 
 from __future__ import annotations
 

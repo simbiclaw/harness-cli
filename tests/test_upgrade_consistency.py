@@ -5,7 +5,7 @@ facts outside explicitly-superseded ADR blocks). Also confirms the pre-existing
 harness suite passes.
 """
 
-# ruff: noqa: S603, S607  # subprocess calls in tests use known-safe paths
+# subprocess calls in tests use known-safe paths
 
 from __future__ import annotations
 

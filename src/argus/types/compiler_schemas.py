@@ -15,7 +15,7 @@ Reference: docs/retrospectives/soft-criteria-authoring-spec-v4.html
 
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal, Union
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -214,9 +214,9 @@ class AuthoredNode(BaseModel):
     applicability_gate: dict[str, Any] | None = None
     severity_map: str | None = None
     data_dependency: dict[str, Any] | None = None
-    gap_type: Literal[
-        "values", "perceiver", "proxy", "calibration_surface_form", "coverage"
-    ] | None = None
+    gap_type: (
+        Literal["values", "perceiver", "proxy", "calibration_surface_form", "coverage"] | None
+    ) = None
     escape_tier: Literal["standard", "aggressive"] | None = None
     iteration_policy: str | None = None
 
@@ -250,7 +250,7 @@ class DimensionCoverageGapRow(BaseModel):
 
 
 ResidueRow = Annotated[
-    Union[WithinDimensionRow, DimensionCoverageGapRow],
+    WithinDimensionRow | DimensionCoverageGapRow,
     Field(discriminator="kind"),
 ]
 
