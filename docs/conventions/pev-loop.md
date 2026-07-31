@@ -171,7 +171,7 @@ Decision: test-first, adversarial-verification-passed
 - **Consistency.** No risk of P's RED commit and E's GREEN commit diverging — the Arbiter controls the commit sequence from a single working tree.
 - **No dangling WIP commits.** If V REJECTS, the Arbiter discards uncommitted changes and restarts. git history stays clean.
 
-**Enforcement.** The pre-tool-use hook blocks `git commit` commands from non-Arbiter sessions. P, E, and V sessions do not have `PEV_ARBITER=true` set, so Guard 5 (harness-branch guard) and a new commit-authority guard block their commits. The structural test `test_commit_authority.py` verifies that no commit in the current branch was authored by a subagent.
+**Enforcement.** The pre-tool-use hook blocks `git commit` commands from non-Arbiter sessions (Guard 6 — commit authority). P, E, and V sessions do not have `PEV_ARBITER=true` set. The structural test `test_commit_authority.py` verifies the guard exists and the documentation is in place.
 
 ---
 

@@ -2,12 +2,14 @@
 """
 PreToolUse hook for Claude Code.
 
-Multiplexes five guards:
+Multiplexes six guards:
   0. Single-checkbox-flip guard (Harness 4: one milestone flip per edit).
   1. Uncommitted-flip guard (Harness 4: commit flip before writing code).
   2. Sensitive-path guard (Harness 1: Tier C escalation).
+  2.5. PEV agent gate — blocks implementation edits when P/E/V not spawned.
   3. Package-manager guard (Harness 1 + Harness 3: dep vetting).
   4. Force-push guard (Harness 4: commit hygiene).
+  5. Commit authority — only the Arbiter commits (Guard 6 in code, legacy numbering).
 
 Hook contract: read JSON event from stdin. Print JSON to stdout.
 Exit 0 with {"continue": true} to allow.
@@ -305,34 +307,6 @@ def _is_arbiter_safe_path(target: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# harness-branch guard helpers
-# ---------------------------------------------------------------------------
-
-# Match git commands that add commits to the current branch.
-# commit, merge, and cherry-pick all create new commits.
-COMMIT_LIKE_RE = re.compile(
-    r"(?:^|;|&&|\|\|)\s*git\s+(commit|merge)\b"
-)
-
-
-def is_on_harness() -> bool:
-    """True if HEAD is the harness branch."""
-    try:
-        result = subprocess.run(
-            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-            capture_output=True, text=True, cwd=REPO_ROOT, timeout=5,
-        )
-        return result.stdout.strip() == "harness"
-    except (OSError, subprocess.TimeoutExpired):
-        return False
-
-
-def is_cherry_pick(cmd: str) -> bool:
-    """True if cmd is a git cherry-pick."""
-    return bool(re.search(r"(?:^|;|&&|\|\|)\s*git\s+cherry-pick\b", cmd))
-
-
-# ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
 
@@ -472,25 +446,14 @@ def main() -> int:
             }))
             return 0
 
-        # ---- Guard 5: block direct commits on harness ----
-        if is_on_harness() and COMMIT_LIKE_RE.search(cmd) and not is_cherry_pick(cmd):
-            print(json.dumps({
-                "continue": False,
-                "reason": (
-                    "Direct commits and merges on the harness branch are "
-                    "blocked. All changes must land on main first. Harness-type "
-                    "commits are cherry-picked from main to harness by "
-                    "automation. If you need to add harness commits to this "
-                    "branch, use git cherry-pick from main."
-                ),
-            }))
-            return 0
-
         # ---- Guard 6: commit authority — only the Arbiter commits ----
         # Per docs/conventions/pev-loop.md § Commit authority, only the
         # Arbiter may commit. P, E, and V subagents never commit. Their
         # changes accumulate in the working tree; the Arbiter bundles
         # everything into one commit per milestone after CONFIRMED.
+        COMMIT_LIKE_RE = re.compile(
+            r"(?:^|;|&&|\|\|)\s*git\s+(commit|merge)\b"
+        )
         if COMMIT_LIKE_RE.search(cmd) and not _is_arbiter():
             print(json.dumps({
                 "continue": False,
