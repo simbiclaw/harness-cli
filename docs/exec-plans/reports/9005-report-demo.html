@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExecPlan Execution Report - 9005</title>
+    <style>
+        :root {
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+            --color-info: #3b82f6;
+            --color-bg: #f8fafc;
+            --color-card: #ffffff;
+            --color-text: #1e293b;
+            --color-text-secondary: #64748b;
+            --color-border: #e2e8f0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: white;
+            padding: 24px 32px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+        .header-meta { display: flex; gap: 24px; font-size: 14px; opacity: 0.9; flex-wrap: wrap; }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 24px 32px;
+        }
+        .metric-card {
+            background: var(--color-card);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--color-info);
+            transition: transform 0.2s;
+        }
+        .metric-card:hover { transform: translateY(-2px); }
+        .metric-card.success { border-left-color: var(--color-success); }
+        .metric-card.warning { border-left-color: var(--color-warning); }
+        .metric-card.danger { border-left-color: var(--color-danger); }
+        .metric-label { font-size: 12px; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .metric-value { font-size: 32px; font-weight: 700; margin-top: 8px; }
+        .metric-sub { font-size: 13px; color: var(--color-text-secondary); margin-top: 4px; }
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            padding: 0 32px 32px;
+        }
+        @media (max-width: 1024px) {
+            .main-content { grid-template-columns: 1fr; }
+        }
+        .section {
+            background: var(--color-card);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .section-header {
+            background: #f1f5f9;
+            padding: 16px 20px;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--color-text-secondary);
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-body { padding: 20px; }
+        .timeline { list-style: none; }
+        .timeline-item {
+            display: flex;
+            gap: 16px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .timeline-item:last-child { border-bottom: none; }
+        .timeline-marker {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--color-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .timeline-item.completed .timeline-marker { background: var(--color-success); color: white; }
+        .timeline-item.blocked .timeline-marker { background: var(--color-danger); color: white; }
+        .timeline-item.in-progress .timeline-marker { background: var(--color-warning); color: white; }
+        .timeline-content { flex: 1; }
+        .timeline-title { font-weight: 600; margin-bottom: 4px; font-size: 14px; }
+        .timeline-meta { font-size: 12px; color: var(--color-text-secondary); display: flex; gap: 12px; flex-wrap: wrap; }
+        .timeline-meta span { display: flex; align-items: center; gap: 4px; }
+        .decision-item {
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 3px solid var(--color-info);
+        }
+        .decision-item:last-child { margin-bottom: 0; }
+        .decision-item.tier-c { border-left-color: var(--color-warning); background: #fffbeb; }
+        .decision-title { font-weight: 600; margin-bottom: 8px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+        .decision-rationale { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 8px; }
+        .decision-source { font-size: 11px; color: var(--color-text-secondary); font-style: italic; }
+        .alert {
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        .alert:last-child { margin-bottom: 0; }
+        .alert-warning { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
+        .alert-danger { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+        .alert-info { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+        .alert strong { display: block; margin-bottom: 4px; }
+        .full-width { grid-column: 1 / -1; }
+        .debt-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        .debt-item:last-child { margin-bottom: 0; }
+        .debt-content { flex: 1; }
+        .debt-title { font-weight: 600; margin-bottom: 4px; font-size: 14px; }
+        .debt-desc { font-size: 13px; color: var(--color-text-secondary); }
+        .debt-severity {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            margin-left: 12px;
+        }
+        .debt-severity.high { background: #fecaca; color: #991b1b; }
+        .debt-severity.medium { background: #fed7aa; color: #9a3412; }
+        .debt-severity.low { background: #dbeafe; color: #1e40af; }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-completed { background: #d1fae5; color: #065f46; }
+        .status-deferred { background: #fee2e2; color: #991b1b; }
+        .status-pending { background: #e0e7ff; color: #3730a3; }
+        .lesson-item {
+            padding: 16px 0;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .lesson-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .lesson-item:first-child { padding-top: 0; }
+        .lesson-title { font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+        .lesson-text { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 8px; }
+        .promotion-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+        .footer {
+            text-align: center;
+            padding: 24px;
+            color: var(--color-text-secondary);
+            font-size: 13px;
+            border-top: 1px solid var(--color-border);
+            margin-top: 32px;
+        }
+        .footer a { color: var(--color-info); text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            background: #e2e8f0;
+            color: #475569;
+        }
+        .tag.tier-c { background: #fef3c7; color: #92400e; }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <h1>📋 PEV Loop Evolution</h1>
+        <div class="header-meta">
+            <span>ID: 9005</span>
+            <span>Status: <span class="status-badge status-completed">COMPLETED</span></span>
+            <span>Duration: 6 days</span>
+            <span>Completed: 2026-07-29</span>
+            <span>Milestones: 10/10</span>
+        </div>
+    </header>
+
+    <!-- Dashboard Metrics -->
+    <div class="dashboard">
+        <div class="metric-card success">
+            <div class="metric-label">Plan Health</div>
+            <div class="metric-value">100%</div>
+            <div class="metric-sub">All milestones verified</div>
+        </div>
+
+        <div class="metric-card success">
+            <div class="metric-label">Milestones</div>
+            <div class="metric-value">10/10</div>
+            <div class="metric-sub">✓ All completed</div>
+        </div>
+
+        <div class="metric-card warning">
+            <div class="metric-label">Tier C Decisions</div>
+            <div class="metric-value">3</div>
+            <div class="metric-sub">2 resolved, 1 documented</div>
+        </div>
+
+        <div class="metric-card success">
+            <div class="metric-label">Verification</div>
+            <div class="metric-value">10</div>
+            <div class="metric-sub">Adversarial verified</div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Left Column: Timeline -->
+        <div class="section">
+            <div class="section-header">📅 Milestone Timeline</div>
+            <div class="section-body">
+                <ul class="timeline">
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">✓</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M1: Signal directory and state schema</div>
+                            <div class="timeline-meta">
+                                <span>📅 2026-07-24</span>
+                                <span>⏱️ 4h</span>
+                                <span>✅ VERIFIED</span>
+                            </div>
+                        </div>
+                    </li>
+
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">✓</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M2: Verdict and implementation notes unification</div>
+                            <div class="timeline-meta">
+                                <span>📅 2026-07-24</span>
+                                <span>⏱️ 6h</span>
+                                <span>✅ VERIFIED</span>
+                            </div>
+                        </div>
+                    </li>
+
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">✓</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M3: Arbiter autonomy and hook exemptions</div>
+                            <div class="timeline-meta">
+                                <span>📅 2026-07-25</span>
+                                <span>⏱️ 5h</span>
+                                <span>✅ VERIFIED</span>
+                            </div>
+                        </div>
+                    </li>
+
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">✓</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M4: Checkpoint recovery path in tmux script</div>
+                            <div class="timeline-meta">
+                                <span>📅 2026-07-25</span>
+                                <span>⏱️ 4h</span>
+                                <span>✅ VERIFIED</span>
+                            </div>
+                        </div>
+                    </li>
+
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">✓</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M5: Violation tracker for repeat violations</div>
+                            <div class="timeline-meta">
+                                <span>📅 2026-07-26</span>
+                                <span>⏱️ 6h</span>
+                                <span>✅ VERIFIED</span>
+                            </div>
+                        </div>
+                    </li>
+
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">✓</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M6: Promotion arbiter for rule promotion</div>
+                            <div class="timeline-meta">
+                                <span>📅 2026-07-27</span>
+                                <span>⏱️ 8h</span>
+                                <span>✅ VERIFIED</span>
+                            </div>
+                        </div>
+                    </li>
+
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">✓</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M7: Execute-phase worktree sandbox</div>
+                            <div class="timeline-meta">
+                                <span>📅 2026-07-27</span>
+                                <span>⏱️ 5h</span>
+                                <span>✅ VERIFIED</span>
+                            </div>
+                        </div>
+                    </li>
+
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">✓</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M8: Workflow pipeline orchestrator</div>
+                            <div class="timeline-meta">
+                                <span>📅 2026-07-28</span>
+                                <span>⏱️ 7h</span>
+                                <span>✅ VERIFIED</span>
+                            </div>
+                        </div>
+                    </li>
+
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">✓</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M9: Autonomous repair loop</div>
+                            <div class="timeline-meta">
+                                <span>📅 2026-07-28</span>
+                                <span>⏱️ 6h</span>
+                                <span>✅ VERIFIED</span>
+                            </div>
+                        </div>
+                    </li>
+
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">✓</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M10: E2E integration and cross-references</div>
+                            <div class="timeline-meta">
+                                <span>📅 2026-07-29</span>
+                                <span>⏱️ 5h</span>
+                                <span>✅ VERIFIED</span>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Right Column: Decisions -->
+        <div class="section">
+            <div class="section-header">🎯 Key Decisions</div>
+            <div class="section-body">
+                <div class="decision-item tier-c">
+                    <div class="decision-title">
+                        <span class="tag tier-c">TIER C</span>
+                        Use worktree isolation for sequential dependent agents
+                    </div>
+                    <div class="decision-rationale">
+                        Initial assumption was that sequential dependent tasks should use worktree isolation.
+                        However, this creates a category error — sequential tasks need shared filesystem state,
+                        not isolation. Changed to "no worktree for sequential dependent agents".
+                    </div>
+                    <div class="decision-source">Source: Execution note M3, docs/conventions/pev-loop.md</div>
+                </div>
+
+                <div class="decision-item tier-c">
+                    <div class="decision-title">
+                        <span class="tag tier-c">TIER C</span>
+                        Push write operations to structural test layer
+                    </div>
+                    <div class="decision-rationale">
+                        Instead of hooks writing directly, push write operations (like checkbox flips)
+                        to be validated by structural tests first. This creates a cleaner separation
+                        between detection and action.
+                    </div>
+                    <div class="decision-source">Source: 9005 M4 repair feedback gate implementation</div>
+                </div>
+
+                <div class="decision-item tier-c">
+                    <div class="decision-title">
+                        <span class="tag tier-c">TIER C</span>
+                        File Scope rubric with collision detection
+                    </div>
+                    <div class="decision-rationale">
+                        Added plan-level file scope tracking to detect when multiple milestones
+                        attempt to modify the same files, preventing merge conflicts and race conditions.
+                    </div>
+                    <div class="decision-source">Source: 9005 M5 plan-level constraint system</div>
+                </div>
+
+                <div class="decision-item">
+                    <div class="decision-title">
+                        <span class="tag">TECHNICAL</span>
+                        Use tmux for multi-window orchestration
+                    </div>
+                    <div class="decision-rationale">
+                        Selected tmux over alternatives (screen, custom process manager) for
+                        reliable multi-pane terminal orchestration with scriptable interface.
+                    </div>
+                    <div class="decision-source">Source: Experiment docs/experiments/tmux-orchestration/</div>
+                </div>
+
+                <div class="decision-item">
+                    <div class="decision-title">
+                        <span class="tag">TECHNICAL</span>
+                        YAML over JSON for state files
+                    </div>
+                    <div class="decision-rationale">
+                        YAML allows comments and is more human-readable for the signal directory
+                        and state schema files that humans may need to debug.
+                    </div>
+                    <div class="decision-source">Source: docs/adr/0002-intents-path-as-ontology.md convention</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Full Width: Surprises -->
+        <div class="section full-width">
+            <div class="section-header">⚡ Surprises & Discoveries</div>
+            <div class="section-body">
+                <div class="alert alert-warning">
+                    <strong>⚠️ Hook cannot trigger skill (discovered M3)</strong>
+                    We initially assumed hooks could trigger skills for complex workflows.
+                    However, this creates circular dependency risks and makes debugging difficult.
+                    Skills are now explicitly forbidden from being triggered by hooks.
+                    <br><br>
+                    <em>Impact: Structural test added to enforce this constraint (test/harness/forbid-skill-from-hook.md)</em>
+                </div>
+
+                <div class="alert alert-info">
+                    <strong>ℹ️ Worktree path resolution nuance (discovered M4)</strong>
+                    Found that absolute paths in hooks cause issues when worktrees are moved.
+                    Changed all hook paths to be repo-relative, which resolved path resolution
+                    across different worktree locations.
+                </div>
+
+                <div class="alert alert-info">
+                    <strong>ℹ️ Adversarial verification timing (discovered M7)</strong>
+                    Discovered that running adversarial verification immediately after implementation
+                    catches more issues than waiting. The "fresh eyes" effect is real —
+                    subagent B performs better when not influenced by A's reasoning trail.
+                </div>
+            </div>
+        </div>
+
+        <!-- Full Width: Technical Debt -->
+        <div class="section full-width">
+            <div class="section-header">🔧 Technical Debt</div>
+            <div class="section-body">
+                <div class="debt-item">
+                    <div class="debt-content">
+                        <div class="debt-title">Tmux script error handling</div>
+                        <div class="debt-desc">
+                            Current tmux script doesn't gracefully handle pane crashes.
+                            Need to add trap handlers and automatic recovery for pane failures.
+                        </div>
+                    </div>
+                    <span class="debt-severity medium">MEDIUM</span>
+                </div>
+
+                <div class="debt-item">
+                    <div class="debt-content">
+                        <div class="debt-title">Violation tracker persistence</div>
+                        <div class="debt-desc">
+                            Violation history is currently in-memory only. Should persist to
+                            `.claude/violations/` for cross-session tracking and trend analysis.
+                        </div>
+                    </div>
+                    <span class="debt-severity low">LOW</span>
+                </div>
+
+                <div class="debt-item">
+                    <div class="debt-content">
+                        <div class="debt-title">Promotion arbiter UI</div>
+                        <div class="debt-desc">
+                            The fourth tmux window for promotion decisions is functional but
+                            has minimal UI. Could benefit from better visual distinction of rule categories.
+                        </div>
+                    </div>
+                    <span class="debt-severity low">LOW</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Full Width: Lessons Learned -->
+        <div class="section full-width">
+            <div class="section-header">📚 Lessons Learned</div>
+            <div class="section-body">
+                <div class="lesson-item">
+                    <div class="lesson-title">1. PEV loop must be enforced by code, not convention</div>
+                    <div class="lesson-text">
+                        We initially documented PEV as a "recommended workflow" but found it was
+                        easily skipped under time pressure. Only after adding structural test gates
+                        (test-first-gate, adversarial-verification-gate) did compliance become reliable.
+                    </div>
+                    <span class="promotion-badge">
+                        ⬆️ Promoted to: structural test + CI gate
+                    </span>
+                </div>
+
+                <div class="lesson-item">
+                    <div class="lesson-title">2. Worktree isolation is a category error for sequential tasks</div>
+                    <div class="lesson-text">
+                        The mistake of using worktrees for sequential dependent agents taught us that
+                        "isolation" and "dependency" are fundamentally incompatible. This insight is
+                        now documented in pev-loop.md as an explicit anti-pattern.
+                    </div>
+                    <span class="promotion-badge">
+                        ⬆️ Promoted to: documentation + convention
+                    </span>
+                </div>
+
+                <div class="lesson-item">
+                    <div class="lesson-title">3. Implementation notes are essential for knowledge transfer</div>
+                    <div class="lesson-text">
+                        The unified verdict/notes system (M2) revealed that implementation notes
+                        are not just for debugging—they're the primary mechanism for transferring
+                        context between subagent A and B, and to future sessions.
+                    </div>
+                </div>
+
+                <div class="lesson-item">
+                    <div class="lesson-title">4. Checkbox flips must be gated</div>
+                    <div class="lesson-text">
+                        Adding the requirement that checkbox flips must pass structural tests
+                        caught several cases where milestones were marked complete before
+                        adversarial verification. This gate is now mandatory.
+                    </div>
+                    <span class="promotion-badge">
+                        ⬆️ Promoted to: structural test + hook
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Generated on 2026-07-29 14:30 UTC •
+        <a href="docs/exec-plans/completed/9005-pev-loop-evolution.md">View Plan File</a> •
+        <a href=".claude/verification/9005/">View Verification Records</a> •
+        <a href="docs/exec-plans/reports/">All Reports</a>
+    </div>
+</body>
+</html>

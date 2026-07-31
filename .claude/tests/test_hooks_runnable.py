@@ -40,8 +40,17 @@ def test_pre_tool_use_runs() -> None:
 
 
 def test_pre_tool_use_allows_safe_edit() -> None:
-    # An Edit to a non-sensitive path should be allowed.
-    event = json.dumps({"tool_name": "Edit", "tool_input": {"file_path": "/tmp/test.txt"}})
+    # An Edit to an arbiter-safe path (active plan file) should be allowed
+    # without PEV agents spawned. Non-arbiter-safe paths require agent_ids.
+    repo_root = CLAUDE_DIR.parent
+    event = json.dumps({
+        "tool_name": "Edit",
+        "tool_input": {
+            "file_path": str(
+                repo_root / "docs" / "exec-plans" / "active" / "test-fake.md"
+            )
+        },
+    })
     result = run_hook("pre_tool_use.py", stdin=event)
     assert result.returncode == 0, f"stderr: {result.stderr}"
     output = json.loads(result.stdout)

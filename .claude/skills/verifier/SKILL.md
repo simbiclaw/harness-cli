@@ -1,7 +1,7 @@
 ---
 name: verifier
-description: Triggered when an ExecPlan progress checkbox flips from `[ ]`
-  to `[x]`. Re-runs the milestone's named Acceptance Test in a clean
+description: Manually invoked before flipping a milestone checkbox.
+  Re-runs the milestone's named Acceptance Test in a clean
   checkout. On pass, writes a 'verified at SHA' Decision Log entry. On
   fail, reverts the checkbox flip and adds a Surprises entry.
 ---
@@ -10,9 +10,12 @@ description: Triggered when an ExecPlan progress checkbox flips from `[ ]`
 
 ## When to use this skill
 
-Automatically, by the PostToolUse hook on Edit/Write to a file under
-`docs/exec-plans/active/`, when the diff includes a checkbox flip from `[ ]`
-to `[x]`.
+Before flipping a milestone checkbox in an ExecPlan under
+`docs/exec-plans/active/`. Invoked by the model, never by a hook.
+(Hooks only block/allow — they cannot invoke skills. The adversarial
+verification gate enforces the evidence requirement: a `Verdict: CONFIRMED`
+entry must exist in the Decision Log before the flip. This skill helps
+create that evidence.)
 
 ## Pre-condition: adversarial verification
 

@@ -20,6 +20,30 @@ The CLI surface this plan introduces: `argus eval <call-record>` (run the full p
 
 Deliberately out of scope: S0 ingest (audio → transcript, acoustic measurement extraction), S6 correction (write-time, producer-owned), the companion 9003 compiler itself (this plan READS `_rubric/`, 9003 WRITES it), population of INTENTS beyond the existing worked domain, `references/node_contract.md` (human-owned), Hermes/Metis integration, browser automation scaffolding.
 
+**File Scope:**
+- `src/argus/types/call_record.py` (new)
+- `src/argus/types/schemas.py` (new)
+- `src/argus/io/intents_provider.py` (new)
+- `src/argus/io/proposer.py` (new)
+- `src/argus/core/grounding.py` (new)
+- `src/argus/core/corroboration.py` (new)
+- `src/argus/core/score.py` (new)
+- `src/argus/core/adjust.py` (new)
+- `src/argus/core/routing.py` (new)
+- `src/argus/core/escape_rate.py` (new)
+- `tests/test_intents_provider.py` (new)
+- `tests/test_call_record.py` (new)
+- `tests/test_schemas.py` (new)
+- `tests/test_grounding.py` (new)
+- `tests/test_corroboration.py` (new)
+- `tests/test_score.py` (new)
+- `tests/test_adjust.py` (new)
+- `tests/test_routing.py` (new)
+- `tests/test_escape_rate.py` (new)
+- `tests/test_proposer.py` (new)
+- `tests/test_no_write_path.py` (new)
+- `docs/exec-plans/active/9002-implement-argus-eval-pipeline.md` (modify — this plan)
+
 ## 3. Milestones
 
 ### M0 — INTENTS Provider (io)

@@ -7,7 +7,16 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 /Users/prometheus/workspace/argus/.claude/hooks/pre_tool_use.py"
+            "command": "python3 .claude/hooks/pre_tool_use.py"
+          }
+        ]
+      },
+      {
+        "matcher": "^(Edit|Write|MultiEdit)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/pre_execution_gate.py"
           }
         ]
       }
@@ -18,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 /Users/prometheus/workspace/argus/.claude/hooks/post_tool_use.py"
+            "command": "python3 .claude/hooks/post_tool_use.py"
           }
         ]
       }

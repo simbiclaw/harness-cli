@@ -38,6 +38,28 @@ The compiler touches `types/` (node schema, manifest schema, input schemas), `io
 
 **Deliberately out of scope:** the companion 9002 runtime pipeline (reads _rubric/ but doesn't write it). The §3.6b per-item compile over all 27 items — that is a FOLLOW-ON task gated on receiving the real Specific QA Rubric + align.md inputs (do not invent item values). Population of the Calibration Manifest — it arrives on its own channel, outside the compiler. The runtime evaluation pipeline. Any model call during compilation — the compiler transforms structured inputs deterministically; it does not use an LLM to author signals.
 
+**File Scope:**
+- `src/argus/types/compiler_schemas.py` (new)
+- `src/argus/core/compiler/validator.py` (new)
+- `src/argus/core/compiler/signals.py` (new)
+- `src/argus/core/compiler/classify.py` (new)
+- `src/argus/core/compiler/agreement.py` (new)
+- `src/argus/core/compiler/bridge.py` (new)
+- `src/argus/core/compiler/compile.py` (new)
+- `src/argus/io/compiler_io.py` (new)
+- `src/argus/io/calibration_io.py` (new)
+- `src/argus/cli/main.py` (modify — compile + validate subcommands)
+- `tests/test_compiler_schemas.py` (new)
+- `tests/test_validator.py` (new)
+- `tests/test_signals.py` (new)
+- `tests/test_classify.py` (new)
+- `tests/test_agreement_seed.py` (new)
+- `tests/test_bridge.py` (new)
+- `tests/test_compiler_pipeline.py` (new)
+- `tests/test_manifest_channel.py` (new)
+- `tests/test_worked_compilation.py` (new, gated on M8 inputs)
+- `docs/exec-plans/active/9003-implement-soft-criteria-compiler.md` (modify — this plan)
+
 ## 3. Milestones
 
 ### M0 — Compiler input schemas (types)
@@ -45,6 +67,11 @@ The compiler touches `types/` (node schema, manifest schema, input schemas), `io
 Define the Pydantic schemas for the three compiler inputs: `SpecificRubric` (27 items, each with id, text, values, NA condition, failure examples), `GenericEvaluatorSkill` (4 dimensions, 1–10 scale, failure signatures, hard-threshold mechanism — note: this is an AI template, not a human artifact), `AlignMap` (item → dimension routing). Plus the `CalibrationManifest` input schema (independent channel — fragments with scores, source_case refs from Error Case Library and Best Practice Cookbook). Plus the output schemas: the enriched `AuthoredNode` (extending IntentsNode with all §3 fields — corroborators, residue_declared, agreement block, applicability_gate, severity_map, gap_type, escape_tier, data_dependency, hard_fail_rule, iteration_policy) and `ResidueManifest` (§3.5 — within_dimension and dimension_coverage_gap rows, sources block tracking the three inputs + calibration epoch).
 
 `Acceptance Test:` `tests/test_compiler_schemas.py::test_all_input_schemas_roundtrip` — each input schema constructs, serializes, and deserializes. `tests/test_compiler_schemas.py::test_authored_node_roundtrip` — an AuthoredNode with all §3 fields round-trips. `tests/test_compiler_schemas.py::test_residue_manifest_roundtrip` — manifest with both row kinds round-trips.
+
+`Allowed Reads: docs/retrospectives/soft-criteria-authoring-spec-v4.html, docs/retrospectives/soft-criteria-authoring-spec-v4-patch-1.md, docs/retrospectives/soft-criteria-authoring-spec-v4-patch-2.md, src/argus/types/**, docs/conventions/layering.md`
+`Allowed Writes: src/argus/types/__init__.py, src/argus/types/compiler_schemas.py, tests/test_compiler_schemas.py`
+`Requires: none  (first milestone — no predecessor)`
+`Risk Tier: B`
 
 ### M1 — Validator (AUTH-1..10, core)
 
@@ -161,7 +188,7 @@ The filled-§3.6b table in the companion spec becomes the deliverable: every row
 
 ## 4. Progress
 
-- [ ] M0: Compiler input schemas  (created 2026-07-08)
+- [x] M0: Compiler input schemas  (done 2026-07-28)
 - [ ] M1: Validator (AUTH-1..10)  (created 2026-07-08)
 - [ ] M2: Trigger compiler (A1, A2, A2-ac, A2-ph)  (created 2026-07-08)
 - [ ] M3: Corroborator classifier + residue declarer (A3, A4)  (created 2026-07-08)
@@ -172,6 +199,12 @@ The filled-§3.6b table in the companion spec becomes the deliverable: every row
 - [ ] M8: Worked compilation §3.6b (gated on real inputs)  (created 2026-07-08)
 
 ## 5. Decision Log
+
+### M0 adversarial verification
+
+Verdict: CONFIRMED
+
+**Rationale:** `Source: subagent B adversarial verification (2026-07-28)` — Acceptance tests: 9/9 pass. Edge cases: 13/13 behave correctly (9 structural successes, 4 validation rejections correctly triggered). Three domain-level design gaps noted for future milestones (zero-dimension handling, text min_length, epoch_id format) but none are mechanical failures. Implementation notes validated — 2 plan-confirmed + 2 discovery entries, all with resolved actions.
 
 ### Decision: The compiler is the legitimate write path into INTENTS/_rubric/
 
@@ -199,7 +232,7 @@ The filled-§3.6b table in the companion spec becomes the deliverable: every row
 
 ## 6. Surprises & Discoveries
 
-*None yet — this section grows during execution. The Verifier records milestone-flip failures here.*
+* M0 adversarial verification found 3 domain-level design gaps (non-blocking): GenericEvaluatorSkill accepts 0 dimensions without error, RubricItem.text has no min_length constraint, CalibrationManifest.epoch_id has no format validation. All deferred — these are design choices for later milestones, not M0 mechanical failures.
 
 ## 7. Awaiting Steering
 

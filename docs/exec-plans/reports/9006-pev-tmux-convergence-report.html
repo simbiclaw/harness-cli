@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>9006 执行报告 - PEV Subagent Convergence</title>
+    <style>
+        :root {
+            --color-success: #10b981; --color-warning: #f59e0b; --color-danger: #ef4444;
+            --color-info: #3b82f6; --color-bg: #f8fafc; --color-card: #ffffff;
+            --color-text: #1e293b; --color-text-secondary: #64748b; --color-border: #e2e8f0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--color-bg); color: var(--color-text); line-height: 1.6; }
+        .header { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white; padding: 28px 36px; }
+        .header h1 { font-size: 26px; font-weight: 600; margin-bottom: 8px; }
+        .header .subtitle { font-size: 15px; opacity: 0.8; margin-bottom: 12px; }
+        .header-meta { display: flex; gap: 28px; font-size: 14px; opacity: 0.9; flex-wrap: wrap; }
+        .dashboard { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; padding: 24px 36px; }
+        .metric-card { background: var(--color-card); border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid var(--color-info); }
+        .metric-card.success { border-left-color: var(--color-success); }
+        .metric-card.warning { border-left-color: var(--color-warning); }
+        .metric-card.danger { border-left-color: var(--color-danger); }
+        .metric-label { font-size: 12px; color: var(--color-text-secondary); letter-spacing: 0.5px; }
+        .metric-value { font-size: 30px; font-weight: 700; margin-top: 8px; }
+        .metric-sub { font-size: 12px; color: var(--color-text-secondary); margin-top: 4px; }
+        .main-content { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 0 36px 36px; }
+        .section { background: var(--color-card); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
+        .section-header { background: #f1f5f9; padding: 14px 20px; font-weight: 600; font-size: 14px; letter-spacing: 0.5px; color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border); }
+        .section-body { padding: 20px; }
+        .timeline { list-style: none; }
+        .timeline-item { display: flex; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--color-border); }
+        .timeline-item:last-child { border-bottom: none; }
+        .timeline-marker { width: 26px; height: 26px; border-radius: 50%; background: var(--color-border); display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; font-weight: 700; }
+        .timeline-item.completed .timeline-marker { background: var(--color-success); color: white; }
+        .timeline-item.rejected .timeline-marker { background: var(--color-warning); color: white; }
+        .timeline-content { flex: 1; }
+        .timeline-title { font-weight: 600; margin-bottom: 4px; }
+        .timeline-meta { font-size: 13px; color: var(--color-text-secondary); }
+        .decision-item { padding: 16px; background: #f8fafc; border-radius: 8px; margin-bottom: 12px; border-left: 3px solid var(--color-info); }
+        .decision-item.tier-c { border-left-color: var(--color-warning); background: #fffbeb; }
+        .decision-title { font-weight: 600; margin-bottom: 6px; }
+        .decision-rationale { font-size: 13px; color: var(--color-text-secondary); }
+        .decision-source { font-size: 12px; color: var(--color-text-secondary); margin-top: 6px; font-style: italic; }
+        .alert { padding: 14px 18px; border-radius: 8px; margin-bottom: 14px; font-size: 14px; }
+        .alert-warning { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
+        .alert-info { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+        .alert-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+        .full-width { grid-column: 1 / -1; }
+        .debt-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #f8fafc; border-radius: 8px; margin-bottom: 8px; }
+        .debt-severity { padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+        .debt-severity.high { background: #fecaca; color: #991b1b; }
+        .debt-severity.medium { background: #fed7aa; color: #9a3412; }
+        .debt-severity.low { background: #dbeafe; color: #1e40af; }
+        .status-badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 12px; font-weight: 500; }
+        .status-completed { background: #d1fae5; color: #065f46; }
+        .iteration-count { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: 500; margin-left: 8px; }
+        .iteration-1 { background: #d1fae5; color: #065f46; }
+        .iteration-3 { background: #fed7aa; color: #9a3412; }
+        .footer { text-align: center; padding: 24px; color: var(--color-text-secondary); font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--color-border); }
+        th { font-weight: 600; color: var(--color-text-secondary); white-space: nowrap; }
+        .cost-table td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+        .note { font-size: 12px; color: var(--color-text-secondary); font-style: italic; margin-top: 8px; }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <h1>9006 — PEV Subagent Convergence</h1>
+    <div class="subtitle">用子代理架构替代 tmux IPC，建立持久化 P/E/V 三代理闭环</div>
+    <div class="header-meta">
+        <span>ID: 9006-pev-tmux-convergence</span>
+        <span>状态: <span class="status-badge status-completed">已完成</span></span>
+        <span>开始: 2026-07-29 19:50 CST</span>
+        <span>结束: 2026-07-30 18:10 CST</span>
+        <span>耗时: ~22 小时</span>
+        <span>分支: feat/9005-pev-loop-evolution</span>
+    </div>
+</header>
+
+<!-- 仪表盘 -->
+<div class="dashboard">
+    <div class="metric-card success">
+        <div class="metric-label">计划健康度</div>
+        <div class="metric-value">100%</div>
+        <div class="metric-sub">全部里程碑确认</div>
+    </div>
+    <div class="metric-card success">
+        <div class="metric-label">里程碑</div>
+        <div class="metric-value">8/8</div>
+        <div class="metric-sub">M0–M7 遍历 P-E-V</div>
+    </div>
+    <div class="metric-card success">
+        <div class="metric-label">Tier C 决策</div>
+        <div class="metric-value">1</div>
+        <div class="metric-sub">M3 hook 修改 — 已解决</div>
+    </div>
+    <div class="metric-card success">
+        <div class="metric-label">验收测试</div>
+        <div class="metric-value">83</div>
+        <div class="metric-sub">全部通过</div>
+    </div>
+    <div class="metric-card warning">
+        <div class="metric-label">Token 消耗（估算）</div>
+        <div class="metric-value">~650K</div>
+        <div class="metric-sub">子代理 80K 实测 + 剩余估算</div>
+    </div>
+</div>
+
+<div class="main-content">
+
+<!-- 里程碑时间线 -->
+<div class="section">
+    <div class="section-header">📅 里程碑时间线</div>
+    <div class="section-body">
+        <ul class="timeline">
+            <li class="timeline-item completed">
+                <div class="timeline-marker">✓</div>
+                <div class="timeline-content">
+                    <div class="timeline-title">M0 — 信号目录与状态 schema<span class="iteration-count iteration-1">1 次迭代</span></div>
+                    <div class="timeline-meta">7/29 19:50 &bull; 验收: 2/2 &bull; 行为性测试: 0 (豁免)</div>
+                </div>
+            </li>
+            <li class="timeline-item rejected">
+                <div class="timeline-marker">3</div>
+                <div class="timeline-content">
+                    <div class="timeline-title">M1 — 子代理对抗性脚本<span class="iteration-count iteration-3">3 次迭代</span></div>
+                    <div class="timeline-meta">7/29–7/30 01:05 &bull; 验收: 15/15 &bull; 2 次拒绝 → 修复 → 确认</div>
+                </div>
+            </li>
+            <li class="timeline-item completed">
+                <div class="timeline-marker">✓</div>
+                <div class="timeline-content">
+                    <div class="timeline-title">M2 — 判决/笔记统一<span class="iteration-count iteration-1">1 次迭代</span></div>
+                    <div class="timeline-meta">7/30 01:28–01:31 &bull; 验收: 11/11 &bull; 行为性测试: 5/5</div>
+                </div>
+            </li>
+            <li class="timeline-item completed">
+                <div class="timeline-marker">✓</div>
+                <div class="timeline-content">
+                    <div class="timeline-title">M3 — 仲裁者自主权与 Hook 豁免<span class="iteration-count iteration-1">1 次迭代</span></div>
+                    <div class="timeline-meta">7/30 01:36–01:39 &bull; 验收: 19/19 &bull; Tier C 已解决</div>
+                </div>
+            </li>
+            <li class="timeline-item completed">
+                <div class="timeline-marker">✓</div>
+                <div class="timeline-content">
+                    <div class="timeline-title">M4 — 检查点恢复<span class="iteration-count iteration-1">1 次迭代</span></div>
+                    <div class="timeline-meta">7/30 01:40–01:42 &bull; 验收: 8/8 &bull; 边缘情况: 4</div>
+                </div>
+            </li>
+            <li class="timeline-item completed">
+                <div class="timeline-marker">✓</div>
+                <div class="timeline-content">
+                    <div class="timeline-title">M5 — 违规跟踪器<span class="iteration-count iteration-1">1 次迭代</span></div>
+                    <div class="timeline-meta">7/30 01:46 &bull; 验收: 7/7 &bull; 边缘情况: 4</div>
+                </div>
+            </li>
+            <li class="timeline-item completed">
+                <div class="timeline-marker">✓</div>
+                <div class="timeline-content">
+                    <div class="timeline-title">M6 — 晋升仲裁者<span class="iteration-count iteration-1">1 次迭代</span></div>
+                    <div class="timeline-meta">7/30 01:47–15:39 &bull; 验收: 8/8 &bull; 边缘情况: 4</div>
+                </div>
+            </li>
+            <li class="timeline-item completed">
+                <div class="timeline-marker">✓</div>
+                <div class="timeline-content">
+                    <div class="timeline-title">M7 — 集成、端到端、清理<span class="iteration-count iteration-1">1 次迭代</span></div>
+                    <div class="timeline-meta">7/30 15:40–15:42 &bull; 验收: 13/13 &bull; 边缘情况: 5</div>
+                </div>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<!-- Token 成本分析 -->
+<div class="section">
+    <div class="section-header">💰 Token 消耗与成本</div>
+    <div class="section-body">
+        <table class="cost-table">
+            <tr><th>来源</th><th>Token 数</th><th>说明</th></tr>
+            <tr><td>P 代理初始化</td><td>30,212</td><td>首次生成，实测值</td></tr>
+            <tr><td>E 代理初始化</td><td>20,226</td><td>首次生成，实测值</td></tr>
+            <tr><td>V 代理初始化</td><td>31,572</td><td>首次生成，实测值</td></tr>
+            <tr><td>P 恢复 (8 次)</td><td>~60,000</td><td>每次约 5K–15K，估算</td></tr>
+            <tr><td>E 恢复 (9 次，含 M1 重试)</td><td>~60,000</td><td>每次约 5K–15K，估算</td></tr>
+            <tr><td>V 恢复 (9 次，含 M1 重试)</td><td>~80,000</td><td>每次约 8K–20K，估算</td></tr>
+            <tr><td>仲裁者主会话</td><td>~350,000</td><td>22 次提交、14 个新测试、文档、Hook，估算</td></tr>
+            <tr style="font-weight: 700; border-top: 2px solid var(--color-text);"><td>合计（估算）</td><td>~650,000</td><td>±30% 误差范围</td></tr>
+            <tr style="color: var(--color-text-secondary);"><td>实测值</td><td>81,910</td><td>仅 P/E/V 首次生成的 3 条记录</td></tr>
+            <tr style="color: var(--color-text-secondary);"><td>估算值</td><td>~568,000</td><td>无实测数据，基于分派次数估算</td></tr>
+        </table>
+        <div class="note">
+            ⚠️ 实测数据仅覆盖 P/E/V 首次生成（3/26 次分派）。M1-M7 的恢复 token、仲裁者主会话 token 均未追踪。
+            <code>state.json.token_tracking</code> 已添加，下一个 ExecPlan 将提供完整实测值。
+        </div>
+    </div>
+</div>
+
+<!-- 关键决策 -->
+<div class="section">
+    <div class="section-header">🎯 关键决策</div>
+    <div class="section-body">
+        <div class="decision-item">
+            <div class="decision-title">PEV 采用子代理架构，替代 tmux IPC</div>
+            <div class="decision-rationale">每个里程碑的 P/E/V 阶段作为独立子代理运行，P/E 使用 sonnet 模型，V 使用 opus 模型进行对抗性推理。主会话（仲裁者）协调整个闭环。</div>
+            <div class="decision-source">来源: 执行经验 2026-07-29 — 置信度: 高</div>
+        </div>
+        <div class="decision-item tier-c">
+            <div class="decision-title">⚠️ M3 Hook 修改 (Tier C — 已解决)</div>
+            <div class="decision-rationale">M3 编辑 .claude/hooks/pre_tool_use.py（敏感路径）。新增 Guard 2.5（PEV 代理门）和 Guard 6（提交权限）。PEV_ARBITER 豁免机制是仲裁者自主权的基础。</div>
+            <div class="decision-source">截止日期: 2026-07-31 — 已解决: 继续执行 M3</div>
+        </div>
+        <div class="decision-item">
+            <div class="decision-title">只有仲裁者可以提交 — RED→GREEN 两次提交模型</div>
+            <div class="decision-rationale">P/E/V 从不提交。仲裁者每个里程碑产生两次提交：RED（仅失败的测试）→ GREEN（实现 + 判决 + 复选框翻转）。由 Hook Guard 6 强制执行。</div>
+            <div class="decision-source">来源: M1 P/E 提交冲突 — 置信度: 高</div>
+        </div>
+        <div class="decision-item">
+            <div class="decision-title">V 对抗性清洁分派</div>
+            <div class="decision-rationale">V 在整个 ExecPlan 期间持久化用于跨里程碑模式检测，但每次里程碑验证分派仅接收：SHA、测试名称、里程碑规范。不接收之前的判决、历史记录或计数。</div>
+            <div class="decision-source">来源: M2-M7 连续确认后无拒绝 — 置信度: 高</div>
+        </div>
+        <div class="decision-item">
+            <div class="decision-title">每个里程碑必须具有行为性测试覆盖</div>
+            <div class="decision-rationale">M0 在零行为性测试的情况下交付。现在每个里程碑都需要一个 Acceptance Test 或显式的 "Behavioral Test: none — &lt;理由&gt;" 声明。</div>
+            <div class="decision-source">来源: M0 执行发现 — 置信度: 高</div>
+        </div>
+    </div>
+</div>
+
+<!-- 执行中诞生的 Harness 改进 -->
+<div class="section full-width">
+    <div class="section-header">⚡ 执行中诞生的 Harness 改进（14 项）</div>
+    <div class="section-body">
+        <table>
+            <tr><th>#</th><th>改进</th><th>层级</th><th>文件</th></tr>
+            <tr><td>1</td><td>晋升规则执行 (≥2 次违规 → 晋升)</td><td>结构测试</td><td>test_promotion_rule_enforcement.py</td></tr>
+            <tr><td>2</td><td>反馈消耗验证 (V→P 弧)</td><td>结构测试</td><td>test_pev_feedback_consumption.py</td></tr>
+            <tr><td>3</td><td>迭代上限执行 (≤3 次迭代)</td><td>结构测试</td><td>test_pev_feedback_consumption.py</td></tr>
+            <tr><td>4</td><td>转向截止时间 (Awaiting Steering + human-todo)</td><td>结构测试</td><td>test_steering_deadlines.py</td></tr>
+            <tr><td>5</td><td>边缘情况描述 (非仅计数)</td><td>结构测试</td><td>test_adversarial_verification_gate.py</td></tr>
+            <tr><td>6</td><td>工作树隔离执行</td><td>结构测试</td><td>test_pev_worktree_enforcement.py</td></tr>
+            <tr><td>7</td><td>Tier C 回滚 (pre_steering_sha)</td><td>结构测试</td><td>test_pev_worktree_enforcement.py</td></tr>
+            <tr><td>8</td><td>闭环执行 (CONFIRMED 之前不得推进)</td><td>结构测试</td><td>test_pev_loop_closure.py</td></tr>
+            <tr><td>9</td><td>代理持久化 (每个 ExecPlan 持久化 P/E/V)</td><td>文档 + Hook + 测试</td><td>test_pev_agent_persistence.py + Guard 2.5</td></tr>
+            <tr><td>10</td><td>提交权限 (只有仲裁者提交)</td><td>文档 + Hook + 测试</td><td>test_commit_authority.py + Guard 6</td></tr>
+            <tr><td>11</td><td>RED→GREEN 两次提交模型</td><td>文档 + 测试</td><td>test_commit_model.py</td></tr>
+            <tr><td>12</td><td>行为性覆盖要求</td><td>文档 + 测试</td><td>test_milestone_constraints.py</td></tr>
+            <tr><td>13</td><td>V 对抗性清洁分派</td><td>文档 + 测试</td><td>test_pev_agent_persistence.py</td></tr>
+            <tr><td>14</td><td>每个里程碑每个阶段的 Token 追踪</td><td>文档 + 测试</td><td>test_pev_token_tracking.py</td></tr>
+        </table>
+        <div class="note" style="margin-top: 12px;">
+            这些改进是在 9006 执行期间发现的——并非事先计划。Harness 检测到自身的缺口并进行了自我修正。这是论文 §3.5 Agentic Harness Optimization 循环的实际运作。
+        </div>
+    </div>
+</div>
+
+<!-- 意外与发现 -->
+<div class="section full-width">
+    <div class="section-header">⚡ 意外与发现</div>
+    <div class="section-body">
+        <div class="alert alert-warning">
+            <strong>M1 — 唯一需要超过 1 次迭代的里程碑。</strong>
+            两次 REJECTED 判决：弃用断言不匹配、空白解析缺陷、awk pipefail 在实际计划文件上崩溃、以及静默接受非数字里程碑值。全部为机械性故障，全部在闭环内修复。M1 耗时 3 次迭代，超过 150 项验收测试才收敛。
+            <br><em>影响: 验证了 V→P→E 反馈弧。证明了闭环可以处理真实的实现缺陷。</em>
+        </div>
+        <div class="alert alert-info">
+            <strong>M0 — 零行为性测试。</strong>
+            M0 的验收测试 (test_pev_signals.py) 纯粹是结构性的——它验证了一个现有文件的 schema，而非测试功能性行为。此缺口在执行过程中被发现，直接催生了行为性覆盖要求（改进 #12）。
+        </div>
+        <div class="alert alert-info">
+            <strong>P/E 提交冲突在执行中被发现。</strong>
+            P 提交了测试变更 (8b4a74b)，但 E 的实现提交 (28b71dd) 从不同的基点分支而出，未包含 P 的工作。这直接促成了提交权限规则——只有仲裁者从一个统一的工作树提交。
+        </div>
+        <div class="alert alert-info">
+            <strong>V 在 M1 之后停止了拒绝。</strong>
+            M2–M7 全部在第一次迭代中通过。分析: V 的持久化上下文在连续 6 次确认后积累了确认偏差。这导致了对抗性清洁分派规则（改进 #13）。
+        </div>
+    </div>
+</div>
+
+<!-- 技术债务 -->
+<div class="section full-width">
+    <div class="section-header">🔧 技术债务</div>
+    <div class="section-body">
+        <div class="debt-item">
+            <div>
+                <strong>预先存在的结构测试故障 (3 项)</strong>
+                <div style="font-size: 13px; color: var(--color-text-secondary);">test_commit_messages (缺少 Plan: 尾部信息), test_implementation_notes (devgrid 条目格式错误)。先于 9006，未解决。</div>
+            </div>
+            <span class="debt-severity medium">中</span>
+        </div>
+        <div class="debt-item">
+            <div>
+                <strong>Token 追踪不完整 — M0-M7 成本为估算值</strong>
+                <div style="font-size: 13px; color: var(--color-text-secondary);">state.json.token_tracking 在执行后添加。全部 8 个里程碑的计数为 null。下一个 ExecPlan 将是第一个具有实测成本的项目。</div>
+            </div>
+            <span class="debt-severity low">低</span>
+        </div>
+        <div class="debt-item">
+            <div>
+                <strong>P/E 角色在 tmux 脚本中合并</strong>
+                <div style="font-size: 13px; color: var(--color-text-secondary);">pev_tmux_adversarial.sh 将 P 和 E 合并到 A-implementer 中。test_pev_agent_persistence.py 将此记录为已知偏差。子代理替代方案部分解决了此问题。</div>
+            </div>
+            <span class="debt-severity medium">中</span>
+        </div>
+        <div class="debt-item">
+            <div>
+                <strong>V 隔离未经结构性验证</strong>
+                <div style="font-size: 13px; color: var(--color-text-secondary);">对抗性验证门检查 CONFIRMED 判决是否存在，但不验证其是否来自清洁上下文。新的对抗性清洁分派规则已在文档层面解决此问题，但无运行时执行。</div>
+            </div>
+            <span class="debt-severity medium">中</span>
+        </div>
+    </div>
+</div>
+
+<!-- 经验教训 -->
+<div class="section full-width">
+    <div class="section-header">📚 经验教训</div>
+    <div class="section-body">
+        <div style="padding: 14px 0; border-bottom: 1px solid var(--color-border);">
+            <strong>V→P→E 反馈弧在实践中有效 — M1 证明了这一点。</strong>
+            <p style="font-size: 13px; color: var(--color-text-secondary); margin-top: 4px;">两次 REJECTED 判决流回 P，P 更新合约并交给 E，E 修复。第三次迭代确认。这就是闭环在实际中的闭合。</p>
+            <span class="status-badge" style="background: #d1fae5; color: #065f46; margin-top: 8px; display: inline-block;">⬆️ 已晋升至结构测试 (闭环)</span>
+        </div>
+        <div style="padding: 14px 0; border-bottom: 1px solid var(--color-border);">
+            <strong>提交权限必须在第一个里程碑之前强制执行。</strong>
+            <p style="font-size: 13px; color: var(--color-text-secondary); margin-top: 4px;">M1 的 P/E 提交冲突表明，允许代理独立提交会导致分歧。"只有仲裁者提交"规则配合 RED→GREEN 两次提交模型可防止此问题。Hook Guard 6 阻止非仲裁者提交。</p>
+        </div>
+        <div style="padding: 14px 0; border-bottom: 1px solid var(--color-border);">
+            <strong>持久化的 V 会积累确认偏差。</strong>
+            <p style="font-size: 13px; color: var(--color-text-secondary); margin-top: 4px;">在确认了 6 个连续里程碑后，V 的对抗性立场减弱。对抗性清洁分派规则在每次验证时剥离 V 的上下文以恢复怀疑性。</p>
+            <span class="status-badge" style="background: #e0e7ff; color: #3730a3; margin-top: 8px; display: inline-block;">⬆️ 晋升候选: 结构测试 → Hook (强制执行清洁分派)</span>
+        </div>
+        <div style="padding: 14px 0; border-bottom: 1px solid var(--color-border);">
+            <strong>Harness 改进本身就是计划的产出。</strong>
+            <p style="font-size: 13px; color: var(--color-text-secondary); margin-top: 4px;">14 个结构测试、2 个 Hook 守卫和主要文档修订都是在 9006 执行期间创建的——而非事先计划。Harness 检测到自身的缺口并进行了自我修正。这是论文 §3.5 Agentic Harness Optimization 循环的实际运作。</p>
+        </div>
+        <div style="padding: 14px 0;">
+            <strong>行为性测试必须被强制要求，而非被假设。</strong>
+            <p style="font-size: 13px; color: var(--color-text-secondary); margin-top: 4px;">M0 在零行为性测试的情况下交付，因为没有人检查。行为性覆盖要求（每个里程碑必须具有 Acceptance Test 或显式豁免）在结构层面上关闭了这一缺口。</p>
+            <span class="status-badge" style="background: #d1fae5; color: #065f46; margin-top: 8px; display: inline-block;">⬆️ 已晋升至结构测试</span>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<div class="footer">
+    生成时间: 2026-07-30 18:10 CST &bull;
+    <a href="../../exec-plans/active/9006-pev-tmux-convergence.md">查看计划文件</a> &bull;
+    <a href="../../exec-plans/active/9006-pev-tmux-convergence-notes/">查看验证记录</a> &bull;
+    22 次提交 &bull; 38 个文件 &bull; +4,137 / −562 行 &bull;
+    实测 Token: 81,910 &bull; 估算 Token: ~650,000
+</div>
+
+</body>
+</html>

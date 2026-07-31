@@ -30,6 +30,20 @@ The architectural view. Which modules in `src/argus/` are touched. What is in sc
 
 For this CLI, also note: which subcommands the work introduces or modifies, what config surface it adds, what files on the user's filesystem it reads or writes.
 
+A `**File Scope:**` block follows the Big Picture prose, declaring every file the plan expects to create or modify. Each line is a repo-relative path; globs (`**`, `*`) are allowed. If the plan does not yet know its full scope, it says so explicitly (`TBD — will be filled during execution`). This declaration feeds the collision detector: two active plans whose declared scopes intersect produce a structural-test failure, forcing the plans to negotiate before either proceeds.
+
+Example:
+
+```
+**File Scope:**
+- `src/argus/types/compiler_schemas.py` (new)
+- `tests/test_compiler_schemas.py` (new)
+- `src/argus/core/compiler/*.py` (new)
+- `docs/conventions/layering.md` (read only)
+```
+
+Plans without a `**File Scope:**` block are flagged as needing one — the detection is advisory, not blocking, but the absence itself is reported.
+
 ### 3. Milestones
 
 A numbered list. Each milestone is a coherent shippable unit, typically one to five commits. Each milestone has:
@@ -101,14 +115,15 @@ If the plan surfaces patterns that recur across plans, write a cross-plan retros
 
 ## How a session uses an ExecPlan
 
-A typical loop:
+The session runs each milestone through the PEV loop (`docs/conventions/pev-loop.md`), the atomic control primitive of this repository:
 
-1. Read the most recent active plan end-to-end. Read Surprises & Discoveries first.
-2. Identify the next unflipped milestone. Read its Acceptance Test. If the test does not exist, create it first, in its own commit.
-3. Implement against the test. Commit when the test passes. Flip the checkbox in a separate commit.
-4. The Verifier runs. On pass, the flip stands. On fail, the flip reverts and an entry appears in Surprises.
-5. If you make a consequential decision en route, add it to Decision Log with a properly-shaped Rationale. If the decision is architectural and likely to outlive this plan, promote it to an ADR in the same commit.
-6. If you hit a Tier C question, stop, add to Awaiting Steering, and end the session.
+1. **Plan:** Read the most recent active plan end-to-end. Read Surprises & Discoveries first. Identify the next unflipped milestone. Read its Acceptance Test. If the test does not exist, create it first, in its own commit. If the milestone has constraint fields (`Allowed Reads`, `Allowed Writes`, `Requires`, `Risk Tier`), verify them. If the milestone touches a Tier C path, add to Awaiting Steering and end the session.
+
+2. **Execute:** Implement against the test (subagent A). Commit when the test passes, with `Plan:` and `Decision:` trailers. Run structural tests before proceeding — including the test-first gate (`.claude/tests/test_test_first_gate.py`). Log any deviations as implementation notes (`docs/conventions/implementation-notes.md`). Add consequential decisions to the Decision Log. If architectural, promote to an ADR.
+
+3. **Verify:** Subagent B runs the Acceptance Test in a clean checkout, designs edge cases, and returns CONFIRMED or REJECTED. On CONFIRMED, the Verifier writes "verified at SHA \<sha\>" and the checkbox flips in its own commit — the adversarial verification gate (`.claude/tests/test_adversarial_verification_gate.py`) enforces this. On REJECTED, the autonomous repair loop reads B's structured notes, classifies the failure (mechanical/semantic/constraint-violation), and decides the next action — retry, update constraints, or add a human-todo entry.
+
+No checkbox flips without a CONFIRMED verdict. No implementation begins without a failing test. Every PEV iteration leaves a commit trail.
 
 ## When this rubric is wrong
 
