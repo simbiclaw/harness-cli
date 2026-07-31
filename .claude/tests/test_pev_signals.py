@@ -91,3 +91,64 @@ def test_state_schema_validates():
                     f"agent_ids.{aid_key} must be null or a string, "
                     f"got {type(val).__name__}"
                 )
+
+
+def test_state_json_consistent_with_plan():
+    """state.json milestone statuses must match plan file checkboxes.
+
+    If a plan has M<N> checked ([x]), state.json must show it as
+    'confirmed'. If state.json shows 'confirmed' but the plan has [ ],
+    the checkbox was never flipped. Either direction is a sync gap.
+
+    This prevents the M7 edge case where V found state.json showing
+    M0=confirmed, M1-M7=pending while the plan had all 8 checked.
+    """
+    data = json.loads(STATE_FILE.read_text())
+    milestones = data.get("milestones", {})
+    plan_id = data.get("plan_id", "")
+
+    # Find the active plan file
+    active_dir = REPO_ROOT / "docs" / "exec-plans" / "active"
+    plan_file = active_dir / f"{plan_id}.md"
+    if not plan_file.exists():
+        # Plan might be in completed or archived
+        for d in ("completed", "archived"):
+            alt = REPO_ROOT / "docs" / "exec-plans" / d / f"{plan_id}.md"
+            if alt.exists():
+                plan_file = alt
+                break
+        if not plan_file.exists():
+            return  # Plan file not found — can't verify consistency
+
+    plan_text = plan_file.read_text()
+
+    checked_re = re.compile(r"^- \[x\] M(\d+)", re.MULTILINE)
+    unchecked_re = re.compile(r"^- \[ \] M(\d+)", re.MULTILINE)
+
+    checked_in_plan = {f"M{m.group(1)}" for m in checked_re.finditer(plan_text)}
+    unchecked_in_plan = {f"M{m.group(1)}" for m in unchecked_re.finditer(plan_text)}
+
+    failures: list[str] = []
+
+    for key in checked_in_plan:
+        status = milestones.get(key)
+        if status != "confirmed":
+            failures.append(
+                f"{key}: checked [x] in plan but state.json shows "
+                f"'{status}' (expected 'confirmed'). Arbiter must "
+                f"update state.json after each GREEN commit."
+            )
+
+    for key in unchecked_in_plan:
+        status = milestones.get(key)
+        if status == "confirmed":
+            failures.append(
+                f"{key}: unchecked [ ] in plan but state.json shows "
+                f"'confirmed'. Either the checkbox was flipped without "
+                f"committing, or state.json was not reset."
+            )
+
+    assert not failures, (
+        "State/plan consistency violations — state.json must match "
+        "plan file checkbox state:\n" + "\n".join(f"  - {f}" for f in failures)
+    )
