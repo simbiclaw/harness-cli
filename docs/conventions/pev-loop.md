@@ -36,7 +36,7 @@ The Plan phase is **Planning as Contract Formation** (paper §3.4.2). The milest
 
 ### 2. Execute — implement against the contract
 
-**Who:** Subagent A (the implementer). May be the session agent or a dispatched subagent.
+**Who:** Subagent A (the implementer) — a DISPATCHED subagent, never the main session. The main session is the **orchestrator**: it plans, dispatches A, dispatches B, reads B's verdict, and flips checkboxes — it does not implement milestone code inline. Any milestone work performed by the main session instead of a dispatched subagent is a harness violation; re-dispatch the phase to a subagent rather than completing it inline.
 
 **What happens:**
 1. Write code that makes the Acceptance Test pass.

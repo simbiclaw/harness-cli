@@ -1,7 +1,7 @@
 {
   "plan_id": "9006-pev-tmux-convergence",
   "phase": "complete",
-  "current_milestone": 7,
+  "current_milestone": 2,
   "milestones": {
     "M0": "confirmed",
     "M1": "confirmed",
