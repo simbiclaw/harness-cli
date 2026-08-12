@@ -1,6 +1,6 @@
 """M6a acceptance tests — rubric-compiler skill (9003).
 
-Gated on M1–M5 via `pytest.importorskip`: until `argus.core.compiler` lands,
+Gated on M1-M5 via `pytest.importorskip`: until `argus.core.compiler` lands,
 these tests SKIP (CI stays green) — that is the documented M6a test-first
 RED. When the core lands they auto-activate and exercise the real validator.
 
@@ -81,7 +81,7 @@ def test_skill_loop_output_passes_validator(tmp_path: Path) -> None:
     assert any("24" in r["source_items"] for r in gap_rows)
 
     # (e) every model-judged step has a recorded decision line
-    decisions = [json.loads(l) for l in (out / "compile-decisions.jsonl").read_text().splitlines() if l.strip()]
+    decisions = [json.loads(line) for line in (out / "compile-decisions.jsonl").read_text().splitlines() if line.strip()]
     assert decisions, "compile-decisions.jsonl must not be empty"
     assert all(d.get("step") and d.get("rationale") for d in decisions)
 

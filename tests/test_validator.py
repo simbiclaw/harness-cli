@@ -17,7 +17,8 @@ patch-2 checks (S1/S3/S4), D8, S5 (warn-level), and S2.
 
 from __future__ import annotations
 
-from argus.core.compiler.validator import (  # noqa: F401  (RED until M1 lands)
+from argus.core.compiler.validator import (
+    check_agreement_gate,
     check_applicability_gate,
     check_calibration_coverage,
     check_checkable_audited,
@@ -25,7 +26,6 @@ from argus.core.compiler.validator import (  # noqa: F401  (RED until M1 lands)
     check_data_dependency,
     check_depends_on,
     check_edited_consistency,
-    check_agreement_gate,
     check_escape_plan,
     check_exclusion_set_adversarial,
     check_manifest_present,
@@ -449,6 +449,265 @@ class TestS2SourceConflict:
             "marketing-scripts-v2.md": {"T001": ["移动证书", "解锁推荐"], "T003": ["年报"]},
         }
         assert validate_sources(sources) == []
+
+
+# ── B-verification fix round (2026-08-12): type confusion + bypass closures ──
+
+
+class TestBFixRound:
+    """Adversarial findings F1-F10 closed with red tests. RED phase."""
+
+    # F1: AUTH-8 string-bool type confusion
+    def test_auth8_string_false_rejected(self):
+        node = make_node(
+            data_dependency={"source": "s", "connected": "false", "disposition": "route_to_human"}
+        )
+        errors = check_data_dependency(node)
+        assert errors, "connected as truthy string 'false' must be rejected"
+
+    # F2: AUTH-8 defer substring denial
+    def test_auth8_disposition_denies_defer_rejected(self):
+        node = make_node(
+            data_dependency={"source": "s", "connected": False, "disposition": "no defer — judge anyway"}
+        )
+        errors = check_data_dependency(node)
+        assert errors, "disposition containing 'no defer' must be rejected"
+
+    # F3: AUTH-1 traditional / spaced adjectives
+    def test_auth1_traditional_chinese_adjective_rejected(self):
+        node = make_node(
+            signals={"fail": [{"id": "22-S01", "description": "坐席表現靈活", "severity": "high"}], "excellence": []}
+        )
+        errors = check_no_adjective_signals(node)
+        assert errors, "traditional-Chinese adjective must be rejected"
+
+    def test_auth1_spaced_adjective_rejected(self):
+        node = make_node(
+            signals={"fail": [{"id": "22-S01", "description": "坐席表现灵 活", "severity": "high"}], "excellence": []}
+        )
+        errors = check_no_adjective_signals(node)
+        assert errors, "space-split adjective must be rejected"
+
+    # F4: AUTH-3 degenerate / typed-wrong tau
+    def test_auth3_tau_string_rejected(self):
+        node = make_node(agreement={"tau": "0.8", "kappa_sample_plan": "rolling 200"})
+        errors = check_agreement_gate(node)
+        assert errors, "string tau must be rejected"
+
+    def test_auth3_tau_zero_rejected(self):
+        node = make_node(agreement={"tau": 0, "kappa_sample_plan": "rolling 200"})
+        errors = check_agreement_gate(node)
+        assert errors, "tau=0 must be rejected (ungated soft entry)"
+
+    # F5: AUTH-4 casing + path-form bypasses
+    def test_auth4_cased_redundant_rejected(self):
+        node = make_node(
+            corroborators=[
+                {"signal_type": "soft_text", "node_ref": "item-26-S01", "independence_class": "Redundant"}
+            ]
+        )
+        errors = check_no_redundant_corroborator(node)
+        assert errors, "case-variant 'Redundant' must be rejected"
+
+    def test_auth4_framework_ref_variants_rejected(self):
+        for ref in ("_rubric/evidence/acoustic", "../evidence/acoustic/indicators.yaml"):
+            node = make_node(
+                corroborators=[
+                    {"signal_type": "acoustic_measurement", "node_ref": ref, "independence_class": "independent"}
+                ]
+            )
+            errors = check_no_redundant_corroborator(node)
+            assert errors, f"framework ref variant {ref!r} must be rejected (D16)"
+
+    # F6: AUTH-9 type confusion + manifest rows shape
+    def test_auth9_uppercase_gap_type_rejected(self):
+        node = make_node(
+            machine_criterion={
+                "criterion_id": "C21",
+                "description": "针对性推荐",
+                "scoring_scale": "1-10",
+                "gap_type": "CALIBRATION_SURFACE_FORM",
+                "auto_final_allowed": True,
+                "escape_tier": "standard",
+            },
+            gap_type="CALIBRATION_SURFACE_FORM",
+        )
+        errors = check_calibration_coverage(node, manifest=make_manifest())
+        assert errors, "uppercase gap_type must not skip the AUTH-9 gate"
+
+    def test_auth9_manifest_rows_shape_covered(self):
+        # Real manifest shape (M6): {"rows": [...]} with source_items as coverage
+        node = make_node(
+            machine_criterion={
+                "criterion_id": "C21",
+                "description": "针对性推荐",
+                "scoring_scale": "1-10",
+                "gap_type": "calibration_surface_form",
+                "auto_final_allowed": True,
+                "escape_tier": "standard",
+            },
+            gap_type="calibration_surface_form",
+            severity_map="calibration://manifest/epoch-001/severity/21",
+        )
+        manifest = {"rows": [{"kind": "within_dimension", "source_items": ["21"], "dimension": "commercial_guidance"}]}
+        assert check_calibration_coverage(node, manifest=manifest) == []
+
+    # F7: S1 sha256 format
+    def test_s1_sha256_format_validated(self):
+        node = make_node(
+            companion_docs=[{"document": "marketing-scripts.md", "role": "standard_scripts", "sha256": "abc"}]
+        )
+        errors = check_companion_docs(node)
+        assert errors, "3-char sha256 'pin' must be rejected"
+
+    # F8: malformed input robustness
+    def test_validate_node_non_dict_returns_error(self):
+        for bad in (None, "x", 42):
+            errors = validate_node(bad)
+            assert errors, f"validate_node({bad!r}) must return an error, not crash"
+
+    def test_context_checks_tolerate_none(self):
+        node = make_node()
+        assert check_depends_on(node, None) == []
+        assert check_edited_consistency(node, None) == []
+
+    # F10: vacuous declarations
+    def test_auth2_vacuous_residue_rejected(self):
+        for vacuous in ("None", "N/A", "无"):
+            node = make_node(residue_declared=vacuous)
+            errors = check_residue_declared(node)
+            assert errors, f"vacuous residue_declared {vacuous!r} must be rejected"
+
+    def test_auth5_empty_dict_manifest_rejected(self):
+        node = make_node()
+        errors = check_manifest_present(manifest={}, nodes=[node])
+        assert errors, "empty-dict manifest must not satisfy AUTH-5"
+
+
+# ── B2 re-verification fix round (2026-08-12): crash-proofing + gate closures ──
+
+
+class TestB2FixRound:
+    """Findings B1/B2/W1/W3 closed with red tests. RED phase."""
+
+    # B1: no-crash contract on schema-valid malformed shapes
+    def test_b1_signals_list_crash(self):
+        assert validate_node({"signals": ["x"]}), "non-dict signals must error, not crash"
+
+    def test_b1_disposition_int_crash(self):
+        node = make_node(
+            data_dependency={"source": "s", "connected": False, "disposition": 42}
+        )
+        assert validate_node(node), "non-str disposition must error, not crash"
+
+    def test_b1_corroborator_ref_int_crash(self):
+        node = make_node(corroborators=[{"signal_type": "x", "node_ref": 5, "independence_class": "independent"}])
+        assert validate_node(node), "non-str node_ref must error, not crash"
+
+    def test_b1_depends_on_refs_int_crash(self):
+        node = make_node(applicability_gate={"refs": 5}, depends_on=["20"])
+        assert check_depends_on(node, []), "non-iterable refs must error, not crash"
+
+    # B2: whitespace-padded gap_type + machine_criterion consistency
+    def test_b2_padded_gap_type_rejected(self):
+        node = make_node(
+            machine_criterion={
+                "criterion_id": "C21",
+                "description": "x",
+                "scoring_scale": "1-10",
+                "gap_type": " calibration_surface_form ",
+                "auto_final_allowed": True,
+                "escape_tier": "standard",
+            },
+            gap_type=" calibration_surface_form ",
+        )
+        errors = check_calibration_coverage(node, manifest=None)
+        assert errors, "whitespace-padded gap_type must not skip the AUTH-9 gate"
+
+    def test_b2_machine_criterion_gap_type_checked(self):
+        # node.gap_type says values but machine_criterion says calibration_surface_form
+        node = make_node(
+            machine_criterion={
+                "criterion_id": "C21",
+                "description": "x",
+                "scoring_scale": "1-10",
+                "gap_type": "calibration_surface_form",
+                "auto_final_allowed": True,
+                "escape_tier": "standard",
+            },
+            gap_type="values",
+        )
+        errors = check_calibration_coverage(node, manifest=None)
+        assert errors, "machine_criterion gap_type must also gate AUTH-9"
+
+    # W1: orthographic mutations of adjectives
+    def test_w1_zero_width_space_rejected(self):
+        node = make_node(
+            signals={"fail": [{"id": "22-S01", "description": "坐席表现灵​活", "severity": "high"}], "excellence": []}
+        )
+        assert check_no_adjective_signals(node), "zero-width-space adjective must be rejected"
+
+    def test_w1_hyphenated_english_rejected(self):
+        for desc in ("pro-active service", "pro active service", "flexibility shown"):
+            node = make_node(
+                signals={"fail": [{"id": "22-S01", "description": desc, "severity": "high"}], "excellence": []}
+            )
+            assert check_no_adjective_signals(node), f"mutation {desc!r} must be rejected"
+
+    # W3: D16 ref matching with segment boundary
+    def test_w3_bare_evidence_ref_rejected(self):
+        node = make_node(
+            corroborators=[
+                {"signal_type": "acoustic_measurement", "node_ref": "evidence/acoustic", "independence_class": "independent"}
+            ]
+        )
+        assert check_no_redundant_corroborator(node), "bare evidence/acoustic ref must be rejected (D16)"
+
+    def test_w3_sibling_dir_not_rejected(self):
+        node = make_node(
+            corroborators=[
+                {"signal_type": "acoustic_measurement", "node_ref": "_rubric/evidence/acousticfoo/indicators.yaml", "independence_class": "independent"}
+            ]
+        )
+        assert check_no_redundant_corroborator(node) == [], "sibling dir acousticfoo must NOT be rejected"
+
+
+# ── B3 re-verification fix round (2026-08-12): case + invisible-char families ──
+
+
+class TestB3FixRound:
+    """Findings F11/F12/F13 closed with red tests. RED phase."""
+
+    # F11: AUTH-1 case mutations
+    def test_f11_case_mutations_rejected(self):
+        for desc in ("Flexible approach to escalations", "agent was VERY FLEXIBLE", "showed Flexibility throughout", "PRO-active service"):
+            node = make_node(
+                signals={"fail": [{"id": "22-S01", "description": desc, "severity": "high"}], "excellence": []}
+            )
+            assert check_no_adjective_signals(node), f"case mutation {desc!r} must be rejected"
+
+    # F12: AUTH-1 invisible chars beyond the closed set
+    def test_f12_invisible_char_mutations_rejected(self):
+        for desc in ("坐席表现灵﻿活", "坐席表现灵⁠活", "坐席表现灵­活"):
+            node = make_node(
+                signals={"fail": [{"id": "22-S01", "description": desc, "severity": "high"}], "excellence": []}
+            )
+            assert check_no_adjective_signals(node), "invisible-char mutation must be rejected"
+
+    # F13: D16 ref case + padding
+    def test_f13_d16_case_and_padding_rejected(self):
+        for ref in (
+            "_rubric/evidence/Acoustic/indicators.yaml",
+            "EVIDENCE/ACOUSTIC",
+            " evidence/acoustic ",
+            "evidence/Phrase-Keyword/lexicon.yaml",
+        ):
+            node = make_node(
+                corroborators=[
+                    {"signal_type": "acoustic_measurement", "node_ref": ref, "independence_class": "independent"}
+                ]
+            )
+            assert check_no_redundant_corroborator(node), f"D16 ref variant {ref!r} must be rejected"
 
 
 # ── validate_node: aggregate entry (the runner's contract) ──────────────────
