@@ -153,6 +153,11 @@ Land the pure functions in `src/argus/core/compiler/agreement.py`:
 
 `Acceptance Test:` `tests/test_agreement_seed.py::test_agreement_block_has_both_tails` — tau + kappa_sample_plan + escape_sample_plan + escape_ceiling all present. `tests/test_agreement_seed.py::test_missing_escape_plan_rejected` — kappa plan present but no escape plan → AUTH-6 rejects. `tests/test_agreement_seed.py::test_w_c_provisional_flagged` — W_C field has PROVISIONAL comment. `tests/test_agreement_seed.py::test_iteration_policy_forbids_model_edits` — iteration policy string contains "no rule edits from Argus output."
 
+`Allowed Reads: docs/retrospectives/soft-criteria-authoring-spec-v4.html, docs/retrospectives/soft-criteria-authoring-spec-v4-patch-1.md, docs/retrospectives/soft-criteria-authoring-spec-v4-patch-2.md, src/argus/types/**, src/argus/core/compiler/validator.py, src/argus/core/compiler/signals.py, src/argus/core/compiler/classify.py, docs/conventions/layering.md`
+`Allowed Writes: src/argus/core/compiler/agreement.py, tests/test_agreement_seed.py, docs/exec-plans/active/9003-implement-soft-criteria-compiler-notes/`
+`Requires: M3`
+`Risk Tier: B`
+
 ### M5 — Binary→continuous bridge (B-A..B-D, core)
 
 Land the pure bridge functions in `src/argus/core/compiler/bridge.py`:
@@ -237,7 +242,7 @@ The filled-§3.6b table in the companion spec becomes the deliverable: every row
 - [x] M1: Validator (AUTH-1..10 + S1/S2/S3/S4 + D8) — flipped 2026-08-12  (created 2026-07-08)
 - [x] M2: Trigger compiler (A1, A2, A2-ac, A2-ph) — flipped 2026-08-12  (created 2026-07-08)
 - [x] M3: Corroborator classifier + residue declarer (A3, A4) — flipped 2026-08-12  (created 2026-07-08)
-- [ ] M4: Agreement seeder + deduction setter (A5, A6, A7)  (created 2026-07-08)
+- [x] M4: Agreement seeder + deduction setter (A5, A6, A7) — flipped 2026-08-12  (created 2026-07-08)
 - [ ] M5: Binary→continuous bridge (B-A..B-D)  (created 2026-07-08)
 - [ ] M6a: Compiler agent skill (GAN loop)  (created 2026-08-12, round-3 decision 1)
 - [ ] M6: Full compiler pipeline (orchestration + io + cli) — DEFERRED 2026-08-12 (round-3 decision 1; see M6a)  (created 2026-07-08)
@@ -344,6 +349,12 @@ Verdict: CONFIRMED (round 4)
 
 **Rationale:** `Source: subagent B adversarial verification, rounds 1-4 (2026-08-12)` — acceptance tests 25/25 classify + 124 milestone + 195 structural; ruff clean; import purity holds. B's REJECTED verdicts closed with red tests + fix rounds: I6 independent families (lexical/ordered/lookup/duration/turn — weight 1.0 restored, F1), D16 type+ref exclusion with shared signal_type normalization (strip/casefold/camelCase split/separator collapse, F2 + B2/B3 rounds), classify_gap reordered so any gate-checkable coverage is never "coverage" with truthful rationales (F3). Round 4 CONFIRMED — survivors are all adjudicated residuals (exotic tokens beyond the separator set, marker-substring sweeps of undefined tokens, internal tabs). Also fixed: plan's acceptance-test name drift (test_residue_empty_rejected → test_residue_never_empty). Verified at 96102e7.
 
+### M4 adversarial verification (2026-08-12)
+
+Verdict: CONFIRMED (round 2)
+
+**Rationale:** `Source: subagent B adversarial verification, rounds 1-2 (2026-08-12)` — acceptance tests 12/12 agreement + 149 milestone + 195 structural; ruff clean; purity holds (stdlib only). B's REJECTED verdict closed with a red test + fix round: set_deduction_weight now accepts only FINITE reals (huge-int OverflowError crash, NaN/Inf pass-through → default 1.0; TypeError hardening per the validator's `_guarded` precedent). Round 2 CONFIRMED — F3 (int-subclass `__float__` raising) is unreachable-from-data hardening, absorbed. Seeded agreement blocks are AUTH-3/AUTH-6-compliant by construction for every input shape. Verified at 7fb2405.
+
 ## 6. Surprises & Discoveries
 
 * M0 adversarial verification found 3 domain-level design gaps (non-blocking): GenericEvaluatorSkill accepts 0 dimensions without error, RubricItem.text has no min_length constraint, CalibrationManifest.epoch_id has no format validation. All deferred — these are design choices for later milestones, not M0 mechanical failures.
@@ -353,6 +364,8 @@ Verdict: CONFIRMED (round 4)
 * 2026-08-12 (M2): decompose_signals' unmatched standards fall to a model_based signal rather than being dropped or rejected — the "never silently dropped" invariant (patch-2 Surprise 2 philosophy) is now codified in tests.
 * 2026-08-12 (M3): classification normalization converged over 3 rounds on a single shared normalizer (strip → casefold → camelCase split → separator collapse) — padding, separators, and camelCase were three levels of the same family.
 * 2026-08-12 (M3): the "unrecognized → correlated" conservative default is imprecise for marker-substring matches (turnaround/return → independent) — documented latent, logged for the debt log; the AUTH-4 validator remains the second line of defense for D16 refs.
+* 2026-08-12 (M4): deduction weights pass through YAML/JSON as numbers — the finite-real guard (isfinite + OverflowError/ValueError/TypeError → 1.0) is the module's no-crash boundary; finite extremes (1e308, subnormals) survive.
+* 2026-08-12 (M4): W_C is now a shared agreement-module constant ({"value": 0.4, "provisional": True, "note": ...}) — the patch-1 D6 reconciliation (not a per-item field) is codified in tests.
 * 2026-08-12 (M0 reopen): two PEV gates conflict while a milestone is unflipped with notes present — the checkbox-flip gate forbids `[badge]` headings in unflipped notes, the implementation-notes gate requires them whenever the file exists. Resolution: no notes file while unflipped; notes recreated with badges at flip. Worth a future harness reconciliation.
 * 2026-08-12 (M0 reopen): `epoch_id` enforces shape (`YYYY-MM-DD-<40-hex>`) but not ISO calendar validity (F2 residual) — "2026-13-99-…" constructs; accepted since epochs are compiler-derived.
 * 2026-08-12 (M0 reopen): the mock runner emits `companion_docs` entries without `sha256` (F4) — the SHA lives only in `compile-plan.json`. When M1's `check_companion_docs` requires per-entry SHA, either the runner must embed it or the checker must accept plan-sourced SHAs. Deferred to M6a execution.
