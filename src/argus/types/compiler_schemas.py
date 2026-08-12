@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 # ──────────────────────────────────────────────────────────────────────────────
 # §0.5 Compiler Input 1: SpecificRubric  (human-inspector binary checklist)
@@ -43,12 +43,24 @@ class RubricItem(BaseModel):
     """
 
     id: str
-    text: str
+    text: str = Field(min_length=1)
     values: RubricItemValues = Field(default_factory=RubricItemValues)
     na_condition: str | None = None
     failure_examples: list[str] = Field(default_factory=list)
     pass_standard: str = ""
     fail_standard: str = ""
+
+    @model_validator(mode="after")
+    def _reject_whitespace_only_text(self) -> RubricItem:
+        """Reject whitespace-only text (B-finding F3: YAML trailing whitespace
+        would otherwise yield empty criterion descriptions downstream).
+
+        mode="after" guarantees `text` is already a str validated by
+        min_length=1, so .strip() is safe without type checks.
+        """
+        if self.text.strip() == "":
+            raise ValueError("text must not be whitespace-only")
+        return self
 
 
 class SpecificRubric(BaseModel):
@@ -90,7 +102,7 @@ class GenericEvaluatorSkill(BaseModel):
     """
 
     source: Literal["ai_template"] = "ai_template"
-    dimensions: list[DimensionDef]
+    dimensions: list[DimensionDef] = Field(min_length=1)
     scale: dict[str, int] = Field(default_factory=lambda: {"min": 1, "max": 10})
     hard_threshold_mechanism: dict[str, Any] = Field(default_factory=dict)
     few_shot_examples: list[dict[str, Any]] = Field(default_factory=list)
@@ -137,7 +149,7 @@ class CalibrationManifest(BaseModel):
     false-pass costs more asymmetrically than false-fail.
     """
 
-    epoch_id: str
+    epoch_id: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}-[0-9a-f]{40}$")
     fragments: list[CalibrationFragment] = Field(default_factory=list)
     source_case_refs: list[str] = Field(default_factory=list)
     distribution: dict[str, int] = Field(default_factory=lambda: {"danger_zone_ratio": 2})
@@ -219,6 +231,11 @@ class AuthoredNode(BaseModel):
     ) = None
     escape_tier: Literal["standard", "aggressive"] | None = None
     iteration_policy: str | None = None
+
+    # --- Patch-2 fields (round-3 decision 2: S1/S3) ---
+
+    companion_docs: list[dict[str, Any]] | None = None
+    depends_on: list[str] | None = None
 
 
 # ──────────────────────────────────────────────────────────────────────────────

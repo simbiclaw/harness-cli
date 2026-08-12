@@ -153,7 +153,7 @@ class TestAllInputSchemasRoundtrip:
         CalibrationManifest = src_argus_types.CalibrationManifest
 
         manifest_data = {
-            "epoch_id": "cs-calibration v3",
+            "epoch_id": "2026-07-15-0000000000000000000000000000000000000000",
             "fragments": [
                 {
                     "fragment_id": "frag-001",
@@ -170,7 +170,7 @@ class TestAllInputSchemasRoundtrip:
         }
 
         manifest = CalibrationManifest.model_validate(manifest_data)
-        assert manifest.epoch_id == "cs-calibration v3"
+        assert manifest.epoch_id == "2026-07-15-0000000000000000000000000000000000000000"
         assert len(manifest.fragments) == 1
         assert manifest.fragments[0].human_score == 3
         assert manifest.distribution == {"danger_zone_ratio": 2}
@@ -327,6 +327,122 @@ class TestAuthoredNodeRoundtrip:
         assert node.corroborators is None
         assert node.agreement is None
         assert node.gap_rationale is None
+
+
+class TestM0ReopenPatch2Fields:
+    """M0 reopen (round-3 decisions 2 & 6): patch-2 fields + tightened constraints.
+
+    RED phase: these tests FAIL against the pre-reopen schema.
+    """
+
+    def test_patch2_fields_roundtrip(self):
+        """AuthoredNode with companion_docs / depends_on / checkable / audit_result
+        round-trips through JSON (patch-2 S1/S3/S4)."""
+        AuthoredNode = src_argus_types.AuthoredNode
+
+        node_data = {
+            "node_id": "item-21",
+            "category": "rules_criteria",
+            "intents_path": "_rubric/rules_criteria/commercial_guidance/item-21.yaml",
+            "intents_sha": "git:a1b2c3d4e5f6",
+            "layer": "judgment",
+            "required_evidence": {},
+            "fail_condition": {},
+            "deduction": 1.0,
+            "authored_by": "rubric-compiler",
+            "dimension": "commercial_guidance",
+            "companion_docs": [
+                {"document": "marketing-scripts.md", "role": "standard_scripts", "sha256": "a" * 64}
+            ],
+            "depends_on": ["item-20"],
+            "signals": {
+                "fail": [
+                    {
+                        "id": "item-21-S01",
+                        "description": "specific recommendation with rationale present",
+                        "severity": "high",
+                        "checkable": True,
+                        "audit_result": "pass",
+                    }
+                ],
+                "excellence": [],
+            },
+        }
+
+        node = AuthoredNode.model_validate(node_data)
+        assert node.companion_docs == node_data["companion_docs"]
+        assert node.depends_on == ["item-20"]
+        assert node.signals["fail"][0]["checkable"] is True
+        assert node.signals["fail"][0]["audit_result"] == "pass"
+
+        dumped = node.model_dump_json()
+        reloaded = AuthoredNode.model_validate_json(dumped)
+        assert reloaded.companion_docs == node_data["companion_docs"]
+        assert reloaded.depends_on == ["item-20"]
+        assert reloaded.signals["fail"][0]["audit_result"] == "pass"
+
+    def test_patch2_fields_default_none(self):
+        """companion_docs / depends_on default to None for plain nodes."""
+        AuthoredNode = src_argus_types.AuthoredNode
+        node = AuthoredNode.model_validate(
+            {
+                "node_id": "item-01",
+                "category": "rules_criteria",
+                "intents_path": "_rubric/rules_criteria/procedural_accuracy/item-01.yaml",
+                "intents_sha": "git:a1b2c3d4e5f6",
+                "layer": "judgment",
+                "required_evidence": {},
+                "fail_condition": {},
+                "deduction": 1.0,
+                "authored_by": "rubric-compiler",
+                "dimension": "procedural_accuracy",
+            }
+        )
+        assert node.companion_docs is None
+        assert node.depends_on is None
+
+
+class TestM0ReopenConstraints:
+    """Tightened input constraints (round-3 decision 6). RED phase."""
+
+    def test_zero_dimension_rejected(self):
+        """GenericEvaluatorSkill with 0 dimensions fails construction."""
+        GenericEvaluatorSkill = src_argus_types.GenericEvaluatorSkill
+        with pytest.raises(Exception):
+            GenericEvaluatorSkill.model_validate({"source": "ai_template", "dimensions": []})
+
+    def test_empty_item_text_rejected(self):
+        """RubricItem.text must be non-empty (min_length=1)."""
+        SpecificRubric = src_argus_types.SpecificRubric
+        with pytest.raises(Exception):
+            SpecificRubric.model_validate(
+                {"items": [{"id": "item-01", "text": "", "values": {"named_phrases": []}}]}
+            )
+
+    def test_whitespace_only_text_rejected(self):
+        """Whitespace-only text rejected (B-finding F3: YAML trailing whitespace
+        would otherwise yield empty criterion descriptions downstream)."""
+        SpecificRubric = src_argus_types.SpecificRubric
+        with pytest.raises(Exception):
+            SpecificRubric.model_validate(
+                {"items": [{"id": "item-01", "text": "   ", "values": {"named_phrases": []}}]}
+            )
+
+    def test_epoch_id_format_validated(self):
+        """CalibrationManifest.epoch_id must be YYYY-MM-DD-<40-hex external SHA."""
+        CalibrationManifest = src_argus_types.CalibrationManifest
+        with pytest.raises(Exception):
+            CalibrationManifest.model_validate(
+                {"epoch_id": "cs-calibration v3", "fragments": [], "source_case_refs": []}
+            )
+        valid = CalibrationManifest.model_validate(
+            {
+                "epoch_id": "2026-08-12-0123456789abcdef0123456789abcdef01234567",
+                "fragments": [],
+                "source_case_refs": [],
+            }
+        )
+        assert valid.epoch_id.startswith("2026-08-12-")
 
 
 class TestResidueManifestRoundtrip:
