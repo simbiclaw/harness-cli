@@ -9,10 +9,15 @@ harness suite passes.
 
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+# Set when this test spawns a nested pytest (see test_full_harness_passes).
+# Prevents infinite recursion: the nested run skips this test.
+_RECURSION_GUARD = "HARNESS_RECURSIVE_GUARD"
 
 
 def test_no_v1_residue() -> None:
@@ -75,6 +80,12 @@ def test_no_v1_residue() -> None:
 
 def test_full_harness_passes() -> None:
     """The pre-existing harness suite passes unchanged after the upgrade."""
+    # Guard: this test spawns a nested `pytest tests/` run; without the guard
+    # the nested run re-collects this test and spawns another, recursing
+    # forever on CI (observed: application-tests in_progress for 19+ min).
+    if os.environ.get(_RECURSION_GUARD):
+        return
+    guard_env = {**os.environ, _RECURSION_GUARD: "1"}
     subprocess.run(
         [
             "uv",
@@ -89,6 +100,7 @@ def test_full_harness_passes() -> None:
         cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,
+        env=guard_env,
     )
     # Exit code 0 = all pass; exit code 1 = some failures.
     # We allow exit code 1 for pre-existing failures (dep-vet, COLLISION-REPORT,
@@ -108,6 +120,7 @@ def test_full_harness_passes() -> None:
             cwd=str(REPO_ROOT),
             capture_output=True,
             text=True,
+            env=guard_env,
         )
         assert test_result.returncode == 0, (
             f"New test {test_file} failed after upgrade:\n"

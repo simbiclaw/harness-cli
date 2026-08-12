@@ -156,3 +156,31 @@ Full pipeline: `argus audio2tree cluster --phase 2` against real `.structural.js
 ## 9. Outcomes & Retrospective
 
 *Written at completion or cancellation.*
+
+## Outcomes & Retrospective
+
+**Status: SUPERSEDED (completely overturned)**
+
+**Original outcome:**
+
+M0–M2 shipped as planned.
+
+**Overturn reason (2026-08-12):**
+
+The plan's core assumption — that a skill prototype combining Claude-in-the-loop reasoning (extraction, naming, review) with deterministic Python scripts (embedding, k-means, cosine) could validate the design at small scale — was proven wrong. Specifically:
+
+- **S0/S1 never ran on real data.** No WAV file was ever transcribed (S0); Claude was never invoked to extract Requests (S1). Hardcoded strings substituted for Claude's output, and hand-transcribed `.txt` files substituted for ASR output.
+- **S3 routing was a no-op.** `batch_route()` never embedded or computed cosine similarity; every request was routed to the deviation channel, so the dual-channel matched/deviation design was never exercised.
+
+This invalidated the Phase A gate: M4 was checked off without its acceptance criteria ever being met, then reverted the same day (commit `92ae7b1`). The failure was structural, not a single bug — the entire approach needs a redesign, not incremental fixes.
+
+Full mistake inventory with root-cause analysis: `docs/retrospectives/9004-execution-mistakes.md`.
+
+**Replacement plan:** 9008-audio2tree-rebuild
+
+**Lessons learned:**
+
+- **Unit tests passing is not end-to-end validation.** 46 unit tests were treated as "the pipeline works." Every milestone gate must run the real data path (real WAV → ASR → Claude extraction → routing → manifests) before its checkbox flips.
+- **Sequential dependent milestones share a branch.** Worktree isolation between consecutive agents (M1→M2→M3→M4) destroyed inter-agent visibility and doubled the work.
+- **Skill scripts belong in `.claude/skills/<name>/scripts/`,** not the project root — per the Claude Code skills specification.
+- **A stub that keeps the pipeline structurally running is not an implementation.** `batch_route()` passing the structural test while returning deviation for everything is a silent failure, worse than a crash.
