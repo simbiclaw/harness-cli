@@ -216,7 +216,7 @@ The filled-§3.6b table in the companion spec becomes the deliverable: every row
 
 ## 4. Progress
 
-- [ ] M0: Compiler input schemas — REOPENED 2026-08-12 (round-3 decisions 2 & 6: patch-2 fields, constraint tightening)  (originally done 2026-07-28)
+- [x] M0: Compiler input schemas — REOPENED 2026-08-12, re-flipped 2026-08-12 (round-3 decisions 2 & 6: patch-2 fields, constraint tightening)  (originally done 2026-07-28)
 - [ ] M1: Validator (AUTH-1..10 + S1/S2/S3/S4 + D8)  (created 2026-07-08)
 - [ ] M2: Trigger compiler (A1, A2, A2-ac, A2-ph)  (created 2026-07-08)
 - [ ] M3: Corroborator classifier + residue declarer (A3, A4)  (created 2026-07-08)
@@ -303,9 +303,18 @@ Eight questions answered by the human in `docs/retrospectives/9003-ambiguities-i
 
 **Rationale:** `Source: human decision (2026-08-12)` — the agent skill lands as `.claude/skills/rubric-compiler/`, matching the repo's descriptive kebab-case skill-naming house style (verifier, dep-vetter, harness-go — no plan-numbered skill directories). The plan's earlier `9003-compiler` name is superseded; all plan references updated accordingly (execution architecture, File Scope, M6a, Allowed Writes).
 
+### M0 reopen adversarial verification (2026-08-12)
+
+Verdict: CONFIRMED
+
+**Rationale:** `Source: subagent B adversarial verification (2026-08-12)` — acceptance tests 15/15 pass (3 original roundtrips + patch-2 fields roundtrip + 4 constraint rejections incl. B-finding F3 whitespace-only text); structural suite 195/195 green; consumer mock loop end-to-end verified (nodes/gates/manifest reload into the new schema; conflict fixture halts). B's initial REJECTED verdict adjudicated by the orchestrator: **F1** (unflipped notes carried verdict badges, tripping the flip gate) — resolved by keeping no notes file until flip, recreated with badges at flip; **F3** (whitespace-only text accepted) — fixed via a strip validator (RED test → subagent A fix round); **F5** (plan wording implied S4 schema fields) — plan clarified: S4 flows through free-form `signals`, enforced by M1's `check_checkable_audited`; **F2** (epoch_id shape-only validation, no calendar validity) — accepted as residual (compiler-derived, unreachable in practice); **F4** (mock runner emits companion_docs without sha256) — deferred to M6a (see Surprises). Environment fixes during verification: stale prunable worktree `/tmp/impl-4c608a59` pruned; 9006 `state.json` reconciled to the completed plan.
+
 ## 6. Surprises & Discoveries
 
 * M0 adversarial verification found 3 domain-level design gaps (non-blocking): GenericEvaluatorSkill accepts 0 dimensions without error, RubricItem.text has no min_length constraint, CalibrationManifest.epoch_id has no format validation. All deferred — these are design choices for later milestones, not M0 mechanical failures.
+* 2026-08-12 (M0 reopen): two PEV gates conflict while a milestone is unflipped with notes present — the checkbox-flip gate forbids `[badge]` headings in unflipped notes, the implementation-notes gate requires them whenever the file exists. Resolution: no notes file while unflipped; notes recreated with badges at flip. Worth a future harness reconciliation.
+* 2026-08-12 (M0 reopen): `epoch_id` enforces shape (`YYYY-MM-DD-<40-hex>`) but not ISO calendar validity (F2 residual) — "2026-13-99-…" constructs; accepted since epochs are compiler-derived.
+* 2026-08-12 (M0 reopen): the mock runner emits `companion_docs` entries without `sha256` (F4) — the SHA lives only in `compile-plan.json`. When M1's `check_companion_docs` requires per-entry SHA, either the runner must embed it or the checker must accept plan-sourced SHAs. Deferred to M6a execution.
 * 2026-08-12 (pre-M1 inspection for round-3 interview): the INTENTS tree is a skeleton — no L2/L3 case nodes, zero `cookbook.*` / `errors.*` files, EPOCH.yaml is an all-zero placeholder. The calibration manifest's `source_case` refs therefore cannot be existence-validated, only grammar-validated (drove the Q8 rewrite). conventions.yaml's naming types (kb/cookbook/errors/case/index/ui_step) have no `calibration` type — placing the manifest in `_meta/` (like residue-manifest.yaml) avoids a tree-level convention change.
 
 ## 7. Awaiting Steering
