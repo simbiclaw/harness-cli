@@ -219,6 +219,7 @@ class AuthoredNode(BaseModel):
     facets: dict[str, list[dict[str, Any]]] | None = None
     corroborators: list[dict[str, Any]] | None = None
     gap_rationale: str | None = None
+    residue_declared: str | None = None
     agreement: dict[str, Any] | None = None
     proposed_score_hook: bool | None = None
     source_binary_items: list[str] | None = None

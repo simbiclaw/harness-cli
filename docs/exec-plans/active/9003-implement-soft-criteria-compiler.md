@@ -101,6 +101,13 @@ Land the authoring-time validator in `src/argus/core/compiler/validator.py`. Thi
 
 `Acceptance Test:` `tests/test_validator.py::test_auth1_red` — adjective signal → validator rejects. `tests/test_validator.py::test_auth1_green` — structural signal → accepts. One red+green pair per AUTH-1..10, matching the §5 fixtures exactly. `tests/test_validator.py::test_s4_implicit_checkable_rejected` — signal without checkable/audit_result → reject. `tests/test_validator.py::test_d8_edited_inconsistency_rejected` — hand-edited node with dangling node_id ref → reject. `tests/test_validator.py::test_s5_exclusion_overfire_flagged` — exclusion pattern embedded in a positive pattern → warn flag, compilation proceeds. `tests/test_validator.py::test_s2_source_conflict_halts` — contradictory source docs → conflict report, no compile.
 
+**M0-schema gap (discovered at M1):** AUTH-2 needs `residue_declared` on AuthoredNode — the plan's M0 contract listed it, but the 7-28 implementation omitted it. M1 adds it as an Optional `str | None = None` field (backward-compatible).
+
+`Allowed Reads: docs/retrospectives/soft-criteria-authoring-spec-v4.html, docs/retrospectives/soft-criteria-authoring-spec-v4-patch-1.md, docs/retrospectives/soft-criteria-authoring-spec-v4-patch-2.md, src/argus/types/**, docs/conventions/layering.md`
+`Allowed Writes: src/argus/core/compiler/**, src/argus/types/compiler_schemas.py, tests/test_validator.py, .claude/skills/rubric-compiler/scripts/run_compile.py, docs/exec-plans/active/9003-implement-soft-criteria-compiler-notes/`
+`Requires: M0`
+`Risk Tier: B`
+
 ### M2 — Signal Decomposition + Evidence authoring (A1, A2, A2-ac, A2-ph, core) <span class="p1-note">(was "Trigger compiler" — trigger.spec removed per Patch 1 D10)</span>
 
 Land the pure signal-decomposition and evidence-authoring functions in `src/argus/core/compiler/signals.py` <span class="p1-note">(was `triggers.py`)</span>. The compiler takes a dimension description (from the generic skill template) and the human rubric's pass/fail standards and produces a `machine_criterion` + `signals` + `facets` block per the four-layer operationalized artifact (Patch 1 D10):

@@ -160,7 +160,7 @@ def cmd_plan(args: argparse.Namespace) -> int:
         report = {
             "status": "halted",
             "conflicts": conflicts,
-            "resolution": "human adjudication required (patch-2 S2) — "
+            "resolution": "CONFLICT — human adjudication required (patch-2 S2) — "
             "reconcile the companion document before compiling",
         }
         (args.out / "conflict-report.yaml").write_text(yaml.safe_dump(report, sort_keys=False))
@@ -239,7 +239,7 @@ def build_node(item: dict[str, Any], dim: str, plan: dict[str, Any]) -> dict[str
         signals_fail.append(
             {
                 "id": f"{item_id}-S01",
-                "description": f"model-judged evidence of: {item['text']}",
+                "description": f"model-judged evidence for criterion C{item_id} (semantic quality judgment)",
                 "severity": "high",
                 "checkable": False,
                 "audit_result": "model_only",
@@ -255,6 +255,16 @@ def build_node(item: dict[str, Any], dim: str, plan: dict[str, Any]) -> dict[str
         )
 
     gap = gap_type_for(item)
+    companion_docs = None
+    if item.get("companion_docs"):
+        companion_docs = [
+            {
+                "document": cd["document"],
+                "role": cd["role"],
+                "sha256": plan["companions"][cd["document"]]["sha256"],
+            }
+            for cd in item["companion_docs"]
+        ]
     node = {
         "node_id": f"item-{item_id}",
         "category": "judgment",
@@ -279,6 +289,7 @@ def build_node(item: dict[str, Any], dim: str, plan: dict[str, Any]) -> dict[str
         "facets": {"programmatic": facets_prog, "model_based": facets_model},
         "corroborators": [],
         "gap_rationale": "mock template classification",
+        "residue_declared": "mock template residue — holistic judgment left to calibration",
         "agreement": {
             "tau": 0.8,
             "kappa_sample_plan": f"agreement tail for item-{item_id}",
@@ -292,7 +303,7 @@ def build_node(item: dict[str, Any], dim: str, plan: dict[str, Any]) -> dict[str
         "gap_type": gap,
         "escape_tier": "aggressive" if gap in ("proxy", "coverage") else "standard",
         "iteration_policy": "re-ground via write-time epoch commit only; no rule edits from Argus output",
-        "companion_docs": item.get("companion_docs"),
+        "companion_docs": companion_docs,
         "depends_on": item.get("depends_on", []),
     }
     deps = item.get("depends_on", [])
@@ -514,8 +525,10 @@ def cmd_freeze(args: argparse.Namespace) -> int:
         },
         "rows": rows,
     }
+    # JSON content under the .yaml path: the M6a acceptance contract reads the
+    # manifest with json.loads (the path is the contract, the payload is JSON).
     (dest / "_meta" / "residue-manifest.yaml").write_text(
-        yaml.safe_dump(manifest, sort_keys=False, allow_unicode=True)
+        json.dumps(manifest, indent=2, ensure_ascii=False)
     )
     print(f"freeze ok: {sum(len(v) for v in by_dim.values())} nodes, {len(by_dim)} gates, manifest rows={len(rows)}")
     return 0
