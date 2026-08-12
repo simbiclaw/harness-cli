@@ -7,7 +7,7 @@ description: Overturn an ExecPlan completely and replace it with a new plan, pre
 
 Use this when a plan must be **completely overturned** — its core assumption or execution baseline proved wrong, and patching milestones won't fix it. This is different from *cancelling* (abandoning with no successor) and different from *amending* (editing the same plan in place). Overturn = the old plan dies and a new plan inherits its domain.
 
-The discipline: **history is immutable, the future is explicit.** Every step below either preserves what already happened or states the replacement in a way a fresh session can read without chat memory. This discipline exists because of what actually went wrong in the 9004 overturn (2026-08-12): a plan was marked done without its acceptance gate ever running, the mistake survived four sessions, and repairing the record took multiple corrections. Each step prevents one specific failure.
+The discipline: **history is immutable, the future is explicit.** Every step below either preserves what already happened or states the replacement in a way a fresh session can read without chat memory. This discipline exists because real overturns have failed this way: a plan was marked done without its acceptance gate ever running, the mistake survived across sessions, and repairing the record took multiple corrections. Each step prevents one specific failure.
 
 ## Step 1 — Archive the original plan (preserve history)
 
@@ -125,12 +125,12 @@ Plan: NNNN+1
 Decision: overturn-NNNN
 ```
 
-## Anti-patterns (from the 9004 overturn, 2026-08-12)
+## Anti-patterns
 
-These mistakes happened in the first overturn attempt and cost multiple rounds. If you recognize any of them, stop and correct before proceeding:
+These mistakes have each cost real overturns multiple rounds. If you recognize any of them, stop and correct before proceeding:
 
 - **Editing the wrong checkout.** The file tools (Read/Write/Edit) and the shell drifted to different directories; edits landed in a stale checkout and had to be re-copied. Before editing, verify `pwd` and the git repo path agree: `git -C <repo> status` must show the same files you just edited. If a directory was renamed mid-session, use absolute paths everywhere and confirm with `git -C`.
-- **Marking a milestone done without running the acceptance gate.** The original sin of 9004 — 46 unit tests passing was reported as "end-to-end pass" when S0/S1 never ran. The overturn document must state the symptoms explicitly so the replacement plan can't repeat them.
+- **Marking a milestone done without running the acceptance gate.** Unit tests passing gets reported as "end-to-end pass" when the real input path never ran. The overturn document must state the symptoms explicitly so the replacement plan can't repeat them.
 - **Claiming the replacement without a lineage statement.** A new plan that doesn't open with "完全取代并推翻 NNNN" is undiscoverable — a fresh session sees two plans for the same domain and picks the wrong one.
 - **Overwriting history when "appending".** `Edit` on the archived plan must target only the Outcomes section; the old checkboxes and Decision Log entries are evidence, not cleanup targets.
 - **Not fetching the retrospective.** The mistake inventory often lives on an unmerged execution branch. `git checkout origin/<branch> -- docs/retrospectives/NNNN-execution-mistakes.md` brings it into main so the archived plan can link it.
