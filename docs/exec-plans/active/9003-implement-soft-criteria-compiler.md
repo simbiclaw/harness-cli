@@ -212,6 +212,11 @@ Land the calibration manifest ingestion — NOT as a compiler input, but as an i
 
 `Acceptance Test:` `tests/test_manifest_channel.py::test_manifest_injection_reanchors_severity` — nodes' severity_map refs update to new epoch, signals unchanged. `tests/test_manifest_channel.py::test_auth9_reevaluated_on_injection` — a surface-form node that was `auto_final: false` gets `auto_final: true` after manifest injection covers its failure surface. `tests/test_manifest_channel.py::test_manifest_injection_no_recompile` — injection does not change signals, corroborators, or agreement blocks. `tests/test_manifest_channel.py::test_manifest_epoch_independent_of_rule_epoch` — manifest epochs advance independently; rule epochs unchanged by manifest injection.
 
+`Allowed Reads: docs/retrospectives/soft-criteria-authoring-spec-v4.html, docs/retrospectives/soft-criteria-authoring-spec-v4-patch-1.md, docs/retrospectives/soft-criteria-authoring-spec-v4-patch-2.md, src/argus/types/**, src/argus/core/compiler/**, .claude/skills/rubric-compiler/scripts/run_compile.py, docs/conventions/layering.md`
+`Allowed Writes: src/argus/io/calibration_io.py, src/argus/core/compiler/calibration.py, .claude/skills/rubric-compiler/scripts/run_compile.py, tests/test_manifest_channel.py, docs/exec-plans/active/9003-implement-soft-criteria-compiler-notes/`
+`Requires: M6a`
+`Risk Tier: B`
+
 ### M8 — Worked compilation (§3.6b follow-on, gated)
 
 **GATED — do not start until the Specific QA Rubric (27 binary items) and `align.md` land.** When they arrive, this milestone runs the full per-item compile pattern (§3.6b pseudocode) over all 27 real items:
@@ -251,7 +256,7 @@ The filled-§3.6b table in the companion spec becomes the deliverable: every row
 - [x] M5: Binary→continuous bridge (B-A..B-D) — flipped 2026-08-12  (created 2026-07-08)
 - [x] M6a: Compiler agent skill (GAN loop) — flipped 2026-08-12  (created 2026-08-12, round-3 decision 1)
 - [ ] M6: Full compiler pipeline (orchestration + io + cli) — DEFERRED 2026-08-12 (round-3 decision 1; see M6a)  (created 2026-07-08)
-- [ ] M7: Calibration manifest channel (independent)  (created 2026-07-08)
+- [x] M7: Calibration manifest channel (independent) — flipped 2026-08-12  (created 2026-07-08)
 - [ ] M8: Worked compilation §3.6b (gated on real inputs)  (created 2026-07-08)
 
 ## 5. Decision Log
@@ -372,6 +377,12 @@ Verdict: CONFIRMED (round 3)
 
 **Rationale:** `Source: subagent B adversarial verification, rounds 1-3 (2026-08-12)` — acceptance tests 14/14 pipeline + 177 milestone + 195 structural; ruff clean. Round-3 decision 1 executed: emitted nodes byte-match the M1-M5 pure-core derivation (all 6 items, 96 contract fields); the Evaluator wires validate_node + all six context checks (M1 F9 closure); determinism byte-identical across fresh runs; manifest/gates pydantic-valid. B's REJECTED verdicts closed with red tests + fix rounds: unconditional M5 gate (both evaluator modes), widened exception boundary (ValueError/AttributeError — no tracebacks for any input class), REPO_ROOT off-by-one (parents[3] was .claude/), --fix recomputes audit/checkable (B4 invariant), unknown fix ids error, gap-row dedupe, evaluate-on-empty exits 2, SKILL.md command hygiene. Round 3 CONFIRMED — the surviving W1 (pre-corrupted out dir on the standalone path) is residual-class (self-heals on loop; preserves unknown rows). Verified at 995df6d.
 
+### M7 adversarial verification (2026-08-12)
+
+Verdict: CONFIRMED (round 2)
+
+**Rationale:** `Source: subagent B adversarial verification, rounds 1-2 (2026-08-12)` — acceptance tests 11/11 manifest + 191 milestone + 195 structural; ruff clean. B's REJECTED verdict closed with a red test + fix round: AUTH-9 re-evaluated in BOTH directions (an epoch regression to a non-covering manifest now REVOKES auto-final — the F1 stale-grant block), file-name epoch alignment made unconditional (only `calibration-manifest.<epoch_id>.yaml` loads — F2), `affected_criterion` bare-id convention enforced (F3). Round 2 CONFIRMED — 98/98 adversarial checks, zero findings. The loader is structural-only per round-3 Q8 (source_case grammar, never existence-checked — the libraries remain empty). Verified at 23275b6.
+
 ## 6. Surprises & Discoveries
 
 * M0 adversarial verification found 3 domain-level design gaps (non-blocking): GenericEvaluatorSkill accepts 0 dimensions without error, RubricItem.text has no min_length constraint, CalibrationManifest.epoch_id has no format validation. All deferred — these are design choices for later milestones, not M0 mechanical failures.
@@ -388,6 +399,8 @@ Verdict: CONFIRMED (round 3)
 * 2026-08-12 (M6a): the runner's --evaluator mock flag is vestigial — both modes run the same real core path; kept for backward compat with the acceptance tests.
 * 2026-08-12 (M6a): the GAN loop's ≤3 fix rounds are by-construction unreachable from core output (the chain never emits validator-failing content); they become live when the agentic Evaluator (model-judged steps per SKILL.md) runs. The discipline is wired ahead of the trigger.
 * 2026-08-12 (M6a): REPO_ROOT off-by-one (parents[3] resolved to .claude/) silently broke the default fixture path and sys.path fallback — masked by the editable install; closed at parents[4].
+* 2026-08-12 (M7): AUTH-9 is now fully bidirectional — the M7 injection channel can both grant and revoke auto-final; the M1 check_calibration_coverage remains the validator-side gate, the inject channel the authoring-side re-evaluation.
+* 2026-08-12 (M7): a test-constant typo (39-hex, then 38-hex epoch) briefly motivated a loader workaround (model_construct bypassing the M0 pattern) — the strict M0 regex caught it before shipping; the constant was corrected to a verified 40-hex run and the bypass reverted.
 * 2026-08-12 (M0 reopen): two PEV gates conflict while a milestone is unflipped with notes present — the checkbox-flip gate forbids `[badge]` headings in unflipped notes, the implementation-notes gate requires them whenever the file exists. Resolution: no notes file while unflipped; notes recreated with badges at flip. Worth a future harness reconciliation.
 * 2026-08-12 (M0 reopen): `epoch_id` enforces shape (`YYYY-MM-DD-<40-hex>`) but not ISO calendar validity (F2 residual) — "2026-13-99-…" constructs; accepted since epochs are compiler-derived.
 * 2026-08-12 (M0 reopen): the mock runner emits `companion_docs` entries without `sha256` (F4) — the SHA lives only in `compile-plan.json`. When M1's `check_companion_docs` requires per-entry SHA, either the runner must embed it or the checker must accept plan-sourced SHAs. Deferred to M6a execution.
