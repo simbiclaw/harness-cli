@@ -2,15 +2,12 @@
 """Headless runner for the rubric-compiler skill (9003 M6a).
 
 Deterministic orchestration of the 9003 compile loop (Planner → Generator →
-Evaluator → freeze) over the compiler's inputs. Two modes:
-
-- Real mode (default): requires the deterministic core (`argus.core.compiler`,
-  M1–M5). M6a `Requires: M5` — without it the runner exits with a remediation
-  message.
-- `--evaluator mock`: template-based deterministic path (fixture-driven node
-  construction, rule-based verdicts) so the loop is exercisable before M1–M5
-  land and the acceptance tests stay byte-reproducible. When the core lands,
-  tests switch to the real validator.
+Evaluator → freeze) over the compiler's inputs. Round-3 decision 1: the
+M1–M5 deterministic core (`argus.core.compiler`) is the loop's backbone —
+every emitted node IS the core's derivation, stored verbatim. The
+`--evaluator mock` flag stays accepted for backward compatibility with the
+acceptance tests, but both modes run the same deterministic real-core path
+(no template path anymore).
 
 Never writes through the INTENTS symlink unless `freeze --dest INTENTS` is
 explicit; never commits an epoch unless `--epoch-commit` is given.
@@ -28,7 +25,7 @@ from typing import Any
 
 import yaml
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = Path(__file__).resolve().parents[4]  # scripts/ → rubric-compiler/ → skills/ → .claude/ → repo
 FIXTURES = REPO_ROOT / ".claude" / "skills" / "rubric-compiler" / "fixtures"
 
 # --- sys.path bootstrap (mirrors tests/conftest.py) -------------------------
@@ -39,7 +36,38 @@ except ImportError:  # pragma: no cover
 
 # --- core availability gate (M6a Requires: M5) ------------------------------
 try:
-    from argus.core.compiler import validator as _validator  # noqa: F401
+    from argus.core.compiler.agreement import (  # M4
+        seed_agreement_gate,
+        set_deduction_weight,
+        set_iteration_policy,
+    )
+    from argus.core.compiler.bridge import (  # M5
+        bind_item_to_dimension,
+        check_dimension_coverage,
+        compile_applicability_gate,
+        extract_values,
+        synthesize_hard_fail,
+    )
+    from argus.core.compiler.classify import (  # M3
+        assign_escape_tier,
+        classify_corroborators,
+        classify_gap,
+        declare_residue,
+    )
+    from argus.core.compiler.signals import (  # M2
+        assign_facets,
+        audit_gate_checkable,
+        decompose_signals,
+    )
+    from argus.core.compiler.validator import (  # M1
+        check_calibration_coverage,
+        check_depends_on,
+        check_edited_consistency,
+        check_exclusion_set_adversarial,
+        check_manifest_present,
+        check_no_forced_mapping,
+        validate_node,
+    )
 
     CORE_AVAILABLE = True
 except ImportError:
@@ -47,11 +75,8 @@ except ImportError:
 
 REMEDIATION = (
     "M6a Requires: M5 — argus.core.compiler is not landed yet. "
-    "Land M1–M5 first, or run with --evaluator mock for the deterministic "
-    "template path."
+    "Land M1–M5 first; the runner has no template fallback."
 )
-
-ADJECTIVE_RE = re.compile(r"灵活|积极|混乱|清晰|死板|主动|耐心|认真")
 
 CONFLICT_LINE_RE = re.compile(r"^(T\d+)\s*:\s*(.+?)\s*(?:#.*)?$")
 
@@ -115,8 +140,15 @@ def validate_sources(items: list[dict[str, Any]], companions_dir: Path) -> list[
 
 
 def topological_order(items: list[dict[str, Any]]) -> list[str]:
-    """Kahn's algorithm over depends_on (S3). Cycle → raise."""
+    """Kahn's algorithm over depends_on (S3). A depends_on ref to an item
+    that does not exist is reported as an unknown prerequisite (W4), never
+    mislabeled as a cycle; a true cycle → raise."""
     deps = {it["id"]: list(it.get("depends_on", [])) for it in items}
+    known = set(deps)
+    for item_id, item_deps in deps.items():
+        for prerequisite in item_deps:
+            if prerequisite not in known:
+                raise ValueError(f"unknown prerequisite {prerequisite} of item {item_id}")
     order: list[str] = []
     ready = [i for i, d in deps.items() if not d]
     remaining = {i: set(d) for i, d in deps.items()}
@@ -135,6 +167,8 @@ def topological_order(items: list[dict[str, Any]]) -> list[str]:
 
 
 def cmd_plan(args: argparse.Namespace) -> int:
+    # F4(c): the plan command must work on a fresh out dir.
+    args.out.mkdir(parents=True, exist_ok=True)
     inputs = load_inputs(args.inputs)
     items = inputs["items"]
     mapping = parse_align(inputs["align"])
@@ -188,6 +222,7 @@ def cmd_plan(args: argparse.Namespace) -> int:
         "batches": {"simple": simple, "complex": [i for i in order if i not in simple]},
         "companions": companions,
         "align": mapping,
+        "items": items,
     }
     (args.out / "compile-plan.json").write_text(json.dumps(plan, indent=2, ensure_ascii=False))
     print(f"plan ok: {len(order)} items, batches simple={simple}")
@@ -195,77 +230,54 @@ def cmd_plan(args: argparse.Namespace) -> int:
 
 
 # ──────────────────────────────────────────────────────────────────────────
-# Generator (mock template path; real core chain wired when M1–M5 land)
+# Generator (real core chain: M1–M5 outputs stored verbatim in the node)
 # ──────────────────────────────────────────────────────────────────────────
 
 
-def gap_type_for(item: dict[str, Any]) -> str:
-    if item["values"]["named_phrases"]:
-        return "values"
-    if item["id"] == "21":
-        return "calibration_surface_form"
-    return "perceiver"
-
-
 def build_node(item: dict[str, Any], dim: str, plan: dict[str, Any]) -> dict[str, Any]:
-    """Template-based AuthoredNode construction (mock). Named phrases → lexical
-    FAIL signals (checkable); items without phrases → model_based signal
-    (checkable: false). Deterministic — no model call."""
+    """AuthoredNode construction over the M1–M5 pure core (round-3 decision
+    1): every judgment-layer field IS the corresponding core function's
+    output, stored verbatim. Deterministic — no model call, no clock, no RNG
+    (I1 quarantine)."""
     item_id = item["id"]
-    phrases = item["values"]["named_phrases"]
-    signals_fail = []
-    facets_prog: list[dict[str, Any]] = []
-    facets_model: list[dict[str, Any]] = []
-    if phrases:
-        signals_fail.append(
-            {
-                "id": f"{item_id}-S01",
-                "description": f"transcript contains one of the named phrases: {phrases}",
-                "severity": "high",
-                "checkable": True,
-                "audit_result": "pass",
-            }
-        )
-        facets_prog.append(
-            {
-                "facet_name": f"{item_id}_phrase_match",
-                "enables_signals": [f"{item_id}-S01"],
-                "indicator": "phrase presence",
-                "calculation": "lexical match over transcript tokens",
-                "output_schema": {"type": "boolean"},
-            }
-        )
-    else:
-        signals_fail.append(
-            {
-                "id": f"{item_id}-S01",
-                "description": f"model-judged evidence for criterion C{item_id} (semantic quality judgment)",
-                "severity": "high",
-                "checkable": False,
-                "audit_result": "model_only",
-            }
-        )
-        facets_model.append(
-            {
-                "facet_name": f"{item_id}_semantics",
-                "enables_signals": [f"{item_id}-S01"],
-                "prompt": f"extract evidence for: {item['pass_standard']}",
-                "output_schema": {"type": "string"},
-            }
-        )
-
-    gap = gap_type_for(item)
+    signals = decompose_signals(item)  # M2 — rejected entries stay informational
+    gap = classify_gap(item, dim, signals)  # M3
+    gap_type = gap["gap_type"]
+    facets = assign_facets(signals, gap_type)  # M2
+    residue = declare_residue(signals, dim)  # M3
+    agreement = seed_agreement_gate({"id": f"C{item_id}"})  # M4
+    deduction = set_deduction_weight(item, dim)  # M4
+    # manifest_epoch None for fixture runs: no manifest exists yet, so
+    # auto-final is withheld on surface-form criteria (AUTH-9) and the
+    # severity_map ref stays null.
+    binding = bind_item_to_dimension(item, plan["align"], None)  # M5
+    gate = compile_applicability_gate(item)  # M5
+    deps = item.get("depends_on", [])
+    if deps:
+        gate = {"refs": [f"{d}-S01" for d in deps], **(gate or {})}  # S3 order
+    candidates = [
+        signal
+        for lane in ("fail", "excellence")
+        for signal in (signals.get(lane) or [])
+        if isinstance(signal, dict)
+    ]
+    corroborators = [
+        c
+        for c in classify_corroborators({"id": f"C{item_id}"}, candidates)  # M3
+        if isinstance(c.get("node_ref"), str)
+    ]
+    escape_tier = assign_escape_tier(gap_type)  # M3
     companion_docs = None
     if item.get("companion_docs"):
         companion_docs = [
             {
                 "document": cd["document"],
                 "role": cd["role"],
-                "sha256": plan["companions"][cd["document"]]["sha256"],
+                "sha256": plan["companions"][cd["document"]]["sha256"],  # S1 pin
             }
             for cd in item["companion_docs"]
         ]
-    node = {
+    return {
         "node_id": f"item-{item_id}",
         "category": "judgment",
         "intents_path": f"/_rubric/rules_criteria/{dim}/item-{item_id}.yaml",
@@ -273,49 +285,45 @@ def build_node(item: dict[str, Any], dim: str, plan: dict[str, Any]) -> dict[str
         "layer": "judgment",
         "required_evidence": {},
         "fail_condition": {},
-        "deduction": 1.0,
-        "authored_by": "rubric-compiler (mock)",
+        "deduction": deduction,
+        "authored_by": "rubric-compiler (9003 core)",
         "dimension": dim,
-        "human_version": {"item_number": int(item_id), "text": item["text"]},
+        "human_version": {
+            "item_number": int(item_id),
+            "text": item["text"],
+            "na_condition": item.get("na_condition"),
+        },
         "machine_criterion": {
             "criterion_id": f"C{item_id}",
             "description": item["pass_standard"],
             "scoring_scale": "1-10",
-            "gap_type": gap,
-            "auto_final_allowed": gap != "calibration_surface_form",
-            "escape_tier": "standard",
+            "gap_type": gap_type,
+            "auto_final_allowed": binding["auto_final_allowed"],  # AUTH-9
+            "escape_tier": escape_tier,
         },
-        "signals": {"fail": signals_fail, "excellence": []},
-        "facets": {"programmatic": facets_prog, "model_based": facets_model},
-        "corroborators": [],
-        "gap_rationale": "mock template classification",
-        "residue_declared": "mock template residue — holistic judgment left to calibration",
-        "agreement": {
-            "tau": 0.8,
-            "kappa_sample_plan": f"agreement tail for item-{item_id}",
-            "escape_sample_plan": f"escape tail for item-{item_id}",
-            "escape_ceiling": 0.05,
-            "current_kappa": None,
-        },
-        "applicability_gate": None,
-        "severity_map": f"calibration://manifest/epoch-000/severity/{item_id}",
+        "signals": {"fail": signals["fail"], "excellence": signals["excellence"]},
+        "facets": facets,
+        "corroborators": corroborators,
+        "gap_rationale": gap["rationale"],
+        "residue_declared": residue,
+        "agreement": agreement,
+        "applicability_gate": gate,
+        "severity_map": binding["severity_map"],
         "data_dependency": None,
-        "gap_type": gap,
-        "escape_tier": "aggressive" if gap in ("proxy", "coverage") else "standard",
-        "iteration_policy": "re-ground via write-time epoch commit only; no rule edits from Argus output",
+        "gap_type": gap_type,
+        "escape_tier": escape_tier,
+        "iteration_policy": set_iteration_policy({"id": f"C{item_id}"}),  # M4
         "companion_docs": companion_docs,
-        "depends_on": item.get("depends_on", []),
+        "depends_on": deps,
+        "values_extracted": extract_values(item),  # M5 — informational
     }
-    deps = item.get("depends_on", [])
-    if deps:
-        node["applicability_gate"] = {
-            "spec": f"gate references prerequisite signals of item(s) {deps}",
-            "refs": [f"{d}-S01" for d in deps],
-        }
-    return node
 
 
 def cmd_generate(args: argparse.Namespace) -> int:
+    # F2: generate runs the pure core — gate it on M5 like the loop.
+    if not CORE_AVAILABLE:
+        print(REMEDIATION)
+        return 2
     plan = json.loads((args.out / "compile-plan.json").read_text())
     inputs = load_inputs(args.inputs)
     mapping = plan["align"]
@@ -327,64 +335,136 @@ def cmd_generate(args: argparse.Namespace) -> int:
     nodes_dir = args.out / "nodes"
     nodes_dir.mkdir(parents=True, exist_ok=True)
     if dim is None:
-        # Coverage gap (Item 24 pattern): no node; row lands in the manifest.
-        gap = {
-            "kind": "dimension_coverage_gap",
-            "source_items": [args.item],
-            "measures": "business-knowledge QA",
-            "compiled_to": [],
-            "data_dependency": {"connected": False},
-            "disposition": "defer_until_source_connected",
-            "proposes": "new sub-dimension for knowledge accuracy",
-        }
-        (args.out / "coverage-gaps.jsonl").open("a").write(json.dumps(gap, ensure_ascii=False) + "\n")
+        # Coverage gap (Item 24 pattern): no node; the M5 coverage verdict's
+        # row — WITH its data_dependency — lands in the run's coverage rows.
+        # F6: a row for an item already present replaces the old one (dedupe
+        # by source_items) — standalone generate never accumulates duplicates.
+        coverage = check_dimension_coverage(item, mapping, sorted(inputs["dims"]))
+        gap = dict(coverage["manifest_row"] or {})
+        if coverage["data_dependency"] is not None:
+            gap["data_dependency"] = coverage["data_dependency"]
+        gaps_file = args.out / "coverage-gaps.jsonl"
+        kept: list[str] = []
+        if gaps_file.exists():
+            for line in gaps_file.read_text().splitlines():
+                if not line.strip():
+                    continue
+                existing = json.loads(line)
+                if args.item in (existing.get("source_items") or []):
+                    continue  # replaced by the new row below
+                kept.append(line)
+        kept.append(json.dumps(gap, ensure_ascii=False))
+        gaps_file.write_text("\n".join(kept) + "\n")
         print(f"item {args.item}: coverage gap — no node emitted")
         return 0
     node = build_node(item, dim, plan)
     if getattr(args, "fix", None):
         fix = json.loads(args.fix)
-        for s in node["signals"]["fail"]:
-            if s["id"] == fix.get("signal_id"):
-                s[fix["field"]] = fix["suggested_fix"]
+        # Targeted fix (W2): after the edit, the signal's checkability is
+        # re-audited — audit_result and checkable are recomputed from the
+        # edited description (single source of truth, M2 B4/F4).
+        matched = False
+        for lane in ("fail", "excellence"):
+            for s in node["signals"][lane]:
+                if s["id"] == fix.get("signal_id"):
+                    s[fix["field"]] = fix["suggested_fix"]
+                    s["audit_result"] = audit_gate_checkable(s)
+                    s["checkable"] = s["audit_result"] != "model_only"
+                    matched = True
+        # F5: a fix naming a signal the item does not carry is an error,
+        # never a silent no-op.
+        if not matched:
+            print(f"error: unknown signal id {fix.get('signal_id')} for item {args.item}")
+            return 2
     (nodes_dir / f"item-{args.item}.json").write_text(json.dumps(node, indent=2, ensure_ascii=False))
     return 0
 
 
 # ──────────────────────────────────────────────────────────────────────────
-# Evaluator (mock: structural checks via M0 schemas; real validator when core)
+# Evaluator (real validator + context checks — the M1 F9 closure)
 # ──────────────────────────────────────────────────────────────────────────
 
 
-def mock_evaluate(nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    from argus.types.compiler_schemas import AuthoredNode
+def assemble_manifest(args: argparse.Namespace) -> dict[str, Any]:
+    """The provisional residue manifest: schema envelope plus the run's
+    coverage rows (including each gap row's data_dependency)."""
+    plan = json.loads((args.out / "compile-plan.json").read_text())
+    rows: list[dict[str, Any]] = []
+    gaps_file = args.out / "coverage-gaps.jsonl"
+    if gaps_file.exists():
+        rows += [json.loads(line) for line in gaps_file.read_text().splitlines() if line.strip()]
+    return {
+        "schema_version": "1.0.0",
+        "generated_at": "fixture-run",
+        "compiler_epoch": "0000000000000000000000000000000000000000",
+        "sources": {
+            "specific_rubric": "specific-rubric.yaml",
+            "generic_skill": "generic-skill.yaml",
+            "align": "align.md",
+            "companions": list(plan.get("companions", {}).keys()),
+        },
+        "rows": rows,
+    }
 
-    findings: list[dict[str, Any]] = []
+
+def sibling_context(nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The run's nodes as sibling context for the D8/S3 checks. Node identity
+    follows the depends_on reference convention: depends_on carries bare item
+    ids while node_id is the item-prefixed filename form, so the context
+    projects node_id onto the item id — a depends_on ref must still name a
+    real sibling, and every signal ref still resolves to a real signal."""
+    out: list[dict[str, Any]] = []
     for node in nodes:
-        try:
-            AuthoredNode(**node)
-        except Exception as e:  # pragma: no cover — defensive
-            findings.append({"node": node["node_id"], "issue": f"schema: {e}", "severity": "block"})
-        for s in node.get("signals", {}).get("fail", []):
-            if s.get("checkable") and ADJECTIVE_RE.search(s.get("description", "")):
-                findings.append(
-                    {"node": node["node_id"], "issue": f"AUTH-1 adjective in {s['id']}", "severity": "block"}
-                )
-        for d in node.get("depends_on", []):
-            if not any(n["node_id"] == f"item-{d}" for n in nodes):
-                findings.append(
-                    {"node": node["node_id"], "issue": f"S3 depends_on {d} unresolved", "severity": "block"}
-                )
+        sibling = dict(node)
+        node_id = sibling.get("node_id")
+        if isinstance(node_id, str) and node_id.startswith("item-"):
+            sibling["node_id"] = node_id.removeprefix("item-")
+        out.append(sibling)
+    return out
+
+
+def evaluate_run(
+    nodes: list[dict[str, Any]], manifest: dict[str, Any], align_map: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """The real quality gate (F9 closure): M1 validate_node on every node plus
+    the context checks (AUTH-5/9/10, S3, D8) and S5 adversarial exclusion-set
+    flags (warn-level, non-blocking)."""
+    findings: list[dict[str, Any]] = []
+    siblings = sibling_context(nodes)
+    for node in nodes:
+        node_id = node["node_id"]
+        for error in validate_node(node):
+            findings.append({"node": node_id, "issue": error, "severity": "block"})
+        for error in check_calibration_coverage(node, manifest):
+            findings.append({"node": node_id, "issue": error, "severity": "block"})
+        for error in check_no_forced_mapping(node, align_map):
+            findings.append({"node": node_id, "issue": error, "severity": "block"})
+        for error in check_depends_on(node, siblings):
+            findings.append({"node": node_id, "issue": error, "severity": "block"})
+        for error in check_edited_consistency(node, siblings):
+            findings.append({"node": node_id, "issue": error, "severity": "block"})
+        for lane in ("fail", "excellence"):
+            for signal in (node.get("signals") or {}).get(lane) or []:
+                for warning in check_exclusion_set_adversarial(signal):
+                    findings.append({"node": node_id, "issue": warning, "severity": "warn"})
+    for error in check_manifest_present(manifest, nodes):
+        findings.append({"node": "run", "issue": error, "severity": "block"})
     return findings
 
 
 def cmd_evaluate(args: argparse.Namespace) -> int:
+    # F2: evaluate runs the M1 validator — gate it on M5 like the loop.
+    if not CORE_AVAILABLE:
+        print(REMEDIATION)
+        return 2
     nodes = [json.loads(p.read_text()) for p in sorted((args.out / "nodes").glob("item-*.json"))]
-    if CORE_AVAILABLE and not args.evaluator == "mock":
-        from argus.core.compiler.validator import validate_node  # type: ignore[import-not-found]
-
-        findings = [{"node": n["node_id"], "issue": str(e), "severity": "block"} for n in nodes for e in validate_node(n)]
-    else:
-        findings = mock_evaluate(nodes)
+    if not nodes:
+        print("no nodes to evaluate")
+        return 2
+    plan = json.loads((args.out / "compile-plan.json").read_text())
+    # Both `--evaluator mock` and real mode run the same deterministic
+    # real-core path (round-3 decision 1); the flag is backward compat.
+    findings = evaluate_run(nodes, assemble_manifest(args), plan.get("align", {}))
     (args.out / "evaluation.json").write_text(json.dumps(findings, indent=2, ensure_ascii=False))
     if findings:
         for f in findings:
@@ -395,15 +475,23 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
 
 
 # ──────────────────────────────────────────────────────────────────────────
-# Loop (plan → generate → evaluate → ≤3 fix rounds → freeze)
+# Loop (plan → generate → provisional manifest → evaluate → ≤3 fix rounds →
+# freeze)
 # ──────────────────────────────────────────────────────────────────────────
 
 
 def cmd_loop(args: argparse.Namespace) -> int:
-    if not args.evaluator == "mock" and not CORE_AVAILABLE:
+    # B1: the M6a Requires: M5 gate applies to BOTH evaluator modes — the
+    # mock path IS the real path (round-3 decision 1), so no mode runs
+    # without the core.
+    if not CORE_AVAILABLE:
         print(REMEDIATION)
         return 2
     args.out.mkdir(parents=True, exist_ok=True)
+    # W3: the run's coverage rows are rebuilt each run — truncate any
+    # previous run's rows so re-running into the same out dir never
+    # duplicates gap rows.
+    (args.out / "coverage-gaps.jsonl").write_text("")
     decisions: list[dict[str, Any]] = []
 
     rc = cmd_plan(args)
@@ -420,9 +508,16 @@ def cmd_loop(args: argparse.Namespace) -> int:
             {
                 "step": "generate",
                 "item": item_id,
-                "rationale": "mock template: named phrases → lexical signals; no phrases → model_based",
+                "rationale": "core chain: decompose_signals → classify_gap → assign_facets "
+                "→ declare_residue → seed_agreement_gate → bridge (M1-M5)",
             }
         )
+
+    # The provisional manifest is assembled after generate, before evaluate
+    # (AUTH-5 — no compile run without a residue manifest).
+    manifest = assemble_manifest(args)
+    if manifest.get("rows"):
+        print(f"provisional manifest: {len(manifest['rows'])} residue row(s)")
 
     for round_no in range(1, 4):
         rc = cmd_evaluate(args)
@@ -432,7 +527,8 @@ def cmd_loop(args: argparse.Namespace) -> int:
         blocks = [f for f in findings if f["severity"] == "block"]
         if not blocks:
             break
-        # Mock fix: rewrite the offending description deterministically.
+        # Targeted fixes via the Generator role (deterministic core — fixes
+        # only apply when validator findings appear).
         for f in blocks:
             m = re.search(r"([A-Z0-9]+-S\d+)", f["issue"])
             if m:
@@ -480,6 +576,7 @@ def cmd_freeze(args: argparse.Namespace) -> int:
     (dest / "_meta").mkdir(parents=True, exist_ok=True)
 
     plan = json.loads((args.out / "compile-plan.json").read_text())
+    raw_items = plan.get("items", [])
     by_dim: dict[str, list[dict[str, Any]]] = {}
     for f in sorted(nodes_dir.glob("item-*.json")):
         node = json.loads(f.read_text())
@@ -492,45 +589,29 @@ def cmd_freeze(args: argparse.Namespace) -> int:
             continue
         out.write_text("edited_by_human: false\n" + yaml.safe_dump(node, sort_keys=False, allow_unicode=True))
 
+    # Per-dimension hard-fail gates synthesized by M5 (never copied; a
+    # dimension with fewer than two bound items gets no synthesized gate).
     for dim, nodes in by_dim.items():
+        dim_items = [it for it in raw_items if plan.get("align", {}).get(it["id"]) == dim]
+        rule = synthesize_hard_fail(dim_items, dim)
+        if rule is None:
+            continue
         (dest / "_rubric" / "gates" / f"{dim}.yaml").write_text(
             "edited_by_human: false\n"
             + yaml.safe_dump(
-                {
-                    "dimension": dim,
-                    "hard_fail_rule": {
-                        "trigger": {"items": [n["node_id"] for n in nodes]},
-                        "action": "route_to_human",
-                        "synthesized": True,
-                    },
-                },
+                {"dimension": dim, "hard_fail_rule": rule},
                 sort_keys=False,
                 allow_unicode=True,
             )
         )
 
-    rows: list[dict[str, Any]] = []
-    gaps_file = args.out / "coverage-gaps.jsonl"
-    if gaps_file.exists():
-        rows += [json.loads(line) for line in gaps_file.read_text().splitlines() if line.strip()]
-    manifest = {
-        "schema_version": "1.0.0",
-        "generated_at": "fixture-run",
-        "compiler_epoch": "0000000000000000000000000000000000000000",
-        "sources": {
-            "specific_rubric": "specific-rubric.yaml",
-            "generic_skill": "generic-skill.yaml",
-            "align": "align.md",
-            "companions": list(plan["companions"].keys()),
-        },
-        "rows": rows,
-    }
+    manifest = assemble_manifest(args)
     # JSON content under the .yaml path: the M6a acceptance contract reads the
     # manifest with json.loads (the path is the contract, the payload is JSON).
     (dest / "_meta" / "residue-manifest.yaml").write_text(
         json.dumps(manifest, indent=2, ensure_ascii=False)
     )
-    print(f"freeze ok: {sum(len(v) for v in by_dim.values())} nodes, {len(by_dim)} gates, manifest rows={len(rows)}")
+    print(f"freeze ok: {sum(len(v) for v in by_dim.values())} nodes, {len(by_dim)} gates, manifest rows={len(manifest['rows'])}")
     return 0
 
 
@@ -552,6 +633,7 @@ def main() -> int:
     p.add_argument("--fix", default=None)
 
     p = sub.add_parser("evaluate")
+    p.add_argument("--inputs", type=Path, default=FIXTURES)
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--evaluator", default="real")
 
@@ -574,7 +656,15 @@ def main() -> int:
         "loop": cmd_loop,
         "freeze": cmd_freeze,
     }
-    return handlers[args.command](args)
+    # B2/F1: exception boundary — missing/malformed inputs, unwritable out
+    # dirs, malformed --fix JSON, and garbage plan/node/gap-row payloads all
+    # exit with a clean one-line error, never a traceback. (Conflict, cycle,
+    # and missing-companion paths already return 2 cleanly.)
+    try:
+        return handlers[args.command](args)
+    except (OSError, yaml.YAMLError, ValueError, AttributeError) as e:
+        print(f"error: {e}")
+        return 2
 
 
 if __name__ == "__main__":

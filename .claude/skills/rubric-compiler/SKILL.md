@@ -48,10 +48,12 @@ runs before touching real inputs.
 
 ## Preconditions
 
-- `[ASSERT] src/argus/core/compiler/` exists (M1–M5 landed; M6a `Requires:
-  M5`). If missing, stop and report: "M6a Requires: M5 — land M1–M5 first."
+- `[ASSERT]` M1–M5 deterministic core is landed (`src/argus/core/compiler/` —
+  validator, signals, classify, agreement, bridge). The runner executes the
+  real core chain (M6a `Requires: M5`); if the core is missing, stop and
+  report: "M6a Requires: M5 — land M1–M5 first."
 - `[ASSERT]` The three inputs exist and parse (run
-  `scripts/run_compile.py plan` to check).
+  `scripts/run_compile.py plan --inputs <dir> --out <dir>` to check).
 - `[ASSERT]` No conflicting milestone is currently in flight.
 - For real-tree runs: `INTENTS` symlink resolves to the external tree.
 
@@ -74,8 +76,10 @@ runs before touching real inputs.
 
 ### Generator (one pass per item or batch)
 
-Run `scripts/run_compile.py generate --plan <plan> --item <id>`. The runner
-wires the deterministic chain: decompose → B-F audit → assign facets →
+Run `scripts/run_compile.py generate --inputs <dir> --out <out> --item <id>`
+(generate reads the plan written by `plan` from `--out`; there is no `--plan`
+flag). The runner wires the deterministic chain: decompose → B-F audit →
+assign facets →
 classify corroborators → declare residue → classify gap → assign escape tier
 → seed agreement → set deduction → bind item → compile applicability gate →
 check dimension coverage → extract values; per-dimension hard-fail rules are
@@ -84,19 +88,20 @@ synthesized (never copied) for the freeze step.
 Model judgment is confined to authoring-time gaps ONLY (signal-split
 adjudication, exclusion-set polish). Every such intervention is recorded as a
 decision-log entry. When the Evaluator returns fixes, use targeted-fix mode
-(`--fix '{"signal_id", "field", "issue", "suggested_fix"}'`) — never a full
-recompile.
+(`--fix '{"signal_id": "22-S01", "field": "description", "issue": "AUTH-1 …",
+"suggested_fix": "transcript contains one of the named phrases: 您别着急"}'`)
+— never a full recompile.
 
 ### Evaluator (single quality gate)
 
-Run `scripts/run_compile.py evaluate` — the M1 validator (AUTH-1..10 plus
-S1/S3/S4 checks) and S5 adversarial exclusion-set cases (warn-level, flagged
-for human review, non-blocking). Verdicts: CONFIRMED / FIXES_NEEDED / 
-AWAITING_STEERING. Max 3 feedback rounds per item; after round 3 without
-CONFIRMED, escalate to AWAITING_STEERING. Review simple items batched;
-isolate complex items (20, 21). One global consistency pass after all items
-CONFIRMED: the manifest must cover every lossy item (AUTH-5 — no compile run
-without a residue manifest).
+Run `scripts/run_compile.py evaluate --out <out>` — the M1 validator
+(AUTH-1..10 plus S1/S3/S4 checks) and S5 adversarial exclusion-set cases
+(warn-level, flagged for human review, non-blocking). Verdicts: CONFIRMED /
+AWAITING_STEERING. Blocking findings trigger up to 3 targeted-fix rounds
+(`generate --fix`) before the loop escalates to AWAITING_STEERING. Review
+simple items batched; isolate complex items (20, 21). One global consistency
+pass after all items CONFIRMED: the manifest must cover every lossy item
+(AUTH-5 — no compile run without a residue manifest).
 
 ## Decision log
 
