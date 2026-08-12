@@ -121,6 +121,11 @@ Land the pure signal-decomposition and evidence-authoring functions in `src/argu
 
 `Acceptance Test:` `tests/test_signals.py::test_lexical_signal_decomposed` — a phrase-based criterion → signal with programmatic lexical facet. `tests/test_signals.py::test_ordered_relation_signal_decomposed` — "acknowledge before resolve" → FAIL signal with ordered-relation evidence shape, gate-checkable. `tests/test_signals.py::test_adjective_signal_rejected` — "agent should sound empathetic" → rejected, no concrete referent. `tests/test_signals.py::test_signal_split_needed` — "context-appropriate recommendation" → auto-split into programmatic (temporal proximity) + model_based (context adaptation quality, checkable: false) per B-F audit. `tests/test_signals.py::test_acoustic_framework_has_12_indicators` — A2-ac output has exactly 12 EvidenceEntry items. `tests/test_signals.py::test_phrase_lexicon_output` — A2-ph output has customer-emotion/, agent-attitude/, agent-competence/, interaction-patterns/ sections.
 
+`Allowed Reads: docs/retrospectives/soft-criteria-authoring-spec-v4.html, docs/retrospectives/soft-criteria-authoring-spec-v4-patch-1.md, docs/retrospectives/soft-criteria-authoring-spec-v4-patch-2.md, src/argus/types/**, src/argus/core/compiler/validator.py, docs/conventions/layering.md`
+`Allowed Writes: src/argus/core/compiler/signals.py, tests/test_signals.py, docs/exec-plans/active/9003-implement-soft-criteria-compiler-notes/`
+`Requires: M1`
+`Risk Tier: B`
+
 ### M3 — Corroborator classifier + residue declarer (A3, A4, core)
 
 Land the pure classification functions in `src/argus/core/compiler/classify.py`:
