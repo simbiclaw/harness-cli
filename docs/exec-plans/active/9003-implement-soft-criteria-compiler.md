@@ -135,7 +135,12 @@ Land the pure classification functions in `src/argus/core/compiler/classify.py`:
 - `classify_gap(item, dimension, signals) → GapClassification` — rev.4: classify the gap as values, perceiver, proxy, calibration_surface_form, or coverage, informed by signal coverage. Determines `escape_tier` (standard vs aggressive) and whether AUTH-9 auto-final ban applies.
 - `assign_escape_tier(gap_type) → str` — proxy and coverage gaps → `"aggressive"`; values, perceiver, calibration_surface_form → `"standard"`.
 
-`Acceptance Test:` `tests/test_classify.py::test_acoustic_measurement_is_independent` — acoustic measurement signal → `independence_class: "independent"`. `tests/test_classify.py::test_error_case_match_is_correlated` — exemplar match → `independence_class: "correlated"`. `tests/test_classify.py::test_soft_plus_soft_is_redundant` — another model-judged text criterion → `independence_class: "redundant"`, rejected. `tests/test_classify.py::test_residue_empty_rejected` — empty residue → fails AUTH-2. `tests/test_classify.py::test_proxy_gap_gets_aggressive_escape` — proxy gap → `escape_tier: "aggressive"`.
+`Acceptance Test:` `tests/test_classify.py::test_acoustic_measurement_is_independent` — acoustic measurement signal → `independence_class: "independent"`. `tests/test_classify.py::test_error_case_match_is_correlated` — exemplar match → `independence_class: "correlated"`. `tests/test_classify.py::test_soft_plus_soft_is_redundant` — another model-judged text criterion → `independence_class: "redundant"`, rejected. `tests/test_classify.py::test_residue_never_empty` — declare_residue never returns empty (empty → AUTH-2 rejects). `tests/test_classify.py::test_proxy_gap_gets_aggressive_escape` — proxy gap → `escape_tier: "aggressive"`.
+
+`Allowed Reads: docs/retrospectives/soft-criteria-authoring-spec-v4.html, docs/retrospectives/soft-criteria-authoring-spec-v4-patch-1.md, docs/retrospectives/soft-criteria-authoring-spec-v4-patch-2.md, src/argus/types/**, src/argus/core/compiler/validator.py, src/argus/core/compiler/signals.py, docs/conventions/layering.md`
+`Allowed Writes: src/argus/core/compiler/classify.py, tests/test_classify.py, docs/exec-plans/active/9003-implement-soft-criteria-compiler-notes/`
+`Requires: M2`
+`Risk Tier: B`
 
 ### M4 — Agreement seeder + deduction setter (A5, A6, core)
 
@@ -231,7 +236,7 @@ The filled-§3.6b table in the companion spec becomes the deliverable: every row
 - [x] M0: Compiler input schemas — REOPENED 2026-08-12, re-flipped 2026-08-12 (round-3 decisions 2 & 6: patch-2 fields, constraint tightening)  (originally done 2026-07-28)
 - [x] M1: Validator (AUTH-1..10 + S1/S2/S3/S4 + D8) — flipped 2026-08-12  (created 2026-07-08)
 - [x] M2: Trigger compiler (A1, A2, A2-ac, A2-ph) — flipped 2026-08-12  (created 2026-07-08)
-- [ ] M3: Corroborator classifier + residue declarer (A3, A4)  (created 2026-07-08)
+- [x] M3: Corroborator classifier + residue declarer (A3, A4) — flipped 2026-08-12  (created 2026-07-08)
 - [ ] M4: Agreement seeder + deduction setter (A5, A6, A7)  (created 2026-07-08)
 - [ ] M5: Binary→continuous bridge (B-A..B-D)  (created 2026-07-08)
 - [ ] M6a: Compiler agent skill (GAN loop)  (created 2026-08-12, round-3 decision 1)
@@ -333,6 +338,12 @@ Verdict: CONFIRMED (round 7)
 
 **Rationale:** `Source: subagent B adversarial verification, rounds 1-7 (2026-08-12)` — acceptance tests 41/41 signals + 83 milestone + 195 structural; ruff clean; import purity holds (stdlib + validator helpers + compiler_schemas only, I1 intact). B's REJECTED verdicts closed with red tests + fix rounds across 7 rounds: no-crash guards on all six functions (B1), RubricItem instance support (B2), no-silent-drop model_based fallback for unmatched standards (B3), decompose↔audit single source of truth (B4), adjective+referent → model_based not flat-rejected (B5), doubled-connective second-element glue (BLOCK-1), empty-part guards (WARN-1/F1/F2), word-aware marker/cut/leading-strip with protected-word set {售后,后来,后台,随后,最后,然后} (rounds 5-6). Round 7 CONFIRMED — the surviving `最后`-as-marker asymmetry is an adjudicated residual (family asymmetry, never splits a protected word; M6 Evaluator + human review cover the tail). Verified at a727665.
 
+### M3 adversarial verification (2026-08-12)
+
+Verdict: CONFIRMED (round 4)
+
+**Rationale:** `Source: subagent B adversarial verification, rounds 1-4 (2026-08-12)` — acceptance tests 25/25 classify + 124 milestone + 195 structural; ruff clean; import purity holds. B's REJECTED verdicts closed with red tests + fix rounds: I6 independent families (lexical/ordered/lookup/duration/turn — weight 1.0 restored, F1), D16 type+ref exclusion with shared signal_type normalization (strip/casefold/camelCase split/separator collapse, F2 + B2/B3 rounds), classify_gap reordered so any gate-checkable coverage is never "coverage" with truthful rationales (F3). Round 4 CONFIRMED — survivors are all adjudicated residuals (exotic tokens beyond the separator set, marker-substring sweeps of undefined tokens, internal tabs). Also fixed: plan's acceptance-test name drift (test_residue_empty_rejected → test_residue_never_empty). Verified at 96102e7.
+
 ## 6. Surprises & Discoveries
 
 * M0 adversarial verification found 3 domain-level design gaps (non-blocking): GenericEvaluatorSkill accepts 0 dimensions without error, RubricItem.text has no min_length constraint, CalibrationManifest.epoch_id has no format validation. All deferred — these are design choices for later milestones, not M0 mechanical failures.
@@ -340,6 +351,8 @@ Verdict: CONFIRMED (round 7)
 * 2026-08-12 (M1): the sandboxed Bash overlay masked real-filesystem state during implementation (stale overlay hid a deleted plan file and reverted state.json); all verification now runs with the sandbox disabled. Worth a harness note: sandboxed Bash in this repo can hide real FS truth.
 * 2026-08-12 (M2): the ordered-relation heuristic converged over 7 adversarial rounds — each round found the next level of the connective family (marker → cut → leading-strip → word-internal anchoring). The protected-word set {售后,后来,后台,随后,最后,然后} + single-source-of-truth auditing are the durable outcomes; the residual tail is adjudicated, not chased.
 * 2026-08-12 (M2): decompose_signals' unmatched standards fall to a model_based signal rather than being dropped or rejected — the "never silently dropped" invariant (patch-2 Surprise 2 philosophy) is now codified in tests.
+* 2026-08-12 (M3): classification normalization converged over 3 rounds on a single shared normalizer (strip → casefold → camelCase split → separator collapse) — padding, separators, and camelCase were three levels of the same family.
+* 2026-08-12 (M3): the "unrecognized → correlated" conservative default is imprecise for marker-substring matches (turnaround/return → independent) — documented latent, logged for the debt log; the AUTH-4 validator remains the second line of defense for D16 refs.
 * 2026-08-12 (M0 reopen): two PEV gates conflict while a milestone is unflipped with notes present — the checkbox-flip gate forbids `[badge]` headings in unflipped notes, the implementation-notes gate requires them whenever the file exists. Resolution: no notes file while unflipped; notes recreated with badges at flip. Worth a future harness reconciliation.
 * 2026-08-12 (M0 reopen): `epoch_id` enforces shape (`YYYY-MM-DD-<40-hex>`) but not ISO calendar validity (F2 residual) — "2026-13-99-…" constructs; accepted since epochs are compiler-derived.
 * 2026-08-12 (M0 reopen): the mock runner emits `companion_docs` entries without `sha256` (F4) — the SHA lives only in `compile-plan.json`. When M1's `check_companion_docs` requires per-entry SHA, either the runner must embed it or the checker must accept plan-sourced SHAs. Deferred to M6a execution.
