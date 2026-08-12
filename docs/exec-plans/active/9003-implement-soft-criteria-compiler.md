@@ -249,7 +249,7 @@ The filled-§3.6b table in the companion spec becomes the deliverable: every row
 - [x] M3: Corroborator classifier + residue declarer (A3, A4) — flipped 2026-08-12  (created 2026-07-08)
 - [x] M4: Agreement seeder + deduction setter (A5, A6, A7) — flipped 2026-08-12  (created 2026-07-08)
 - [x] M5: Binary→continuous bridge (B-A..B-D) — flipped 2026-08-12  (created 2026-07-08)
-- [ ] M6a: Compiler agent skill (GAN loop)  (created 2026-08-12, round-3 decision 1)
+- [x] M6a: Compiler agent skill (GAN loop) — flipped 2026-08-12  (created 2026-08-12, round-3 decision 1)
 - [ ] M6: Full compiler pipeline (orchestration + io + cli) — DEFERRED 2026-08-12 (round-3 decision 1; see M6a)  (created 2026-07-08)
 - [ ] M7: Calibration manifest channel (independent)  (created 2026-07-08)
 - [ ] M8: Worked compilation §3.6b (gated on real inputs)  (created 2026-07-08)
@@ -366,6 +366,12 @@ Verdict: CONFIRMED (round 2)
 
 **Rationale:** `Source: subagent B adversarial verification, rounds 1-2 (2026-08-12)` — acceptance tests 18/18 bridge + 161 milestone + 195 structural; ruff clean; purity holds (stdlib + agreement only). Round 1: zero block findings; W-findings (empty-epoch dangling ref with auto_final, keyless threshold fabrication at confidence 1.0, duplicate trigger ids) closed with red tests + fix round. Round 2 CONFIRMED — zero surviving findings; residuals adjudicated caller-side (epoch existence = I7/M7's domain, URI escaping = authoring-typo class). **M5 completes the deterministic core (M1-M5)** — the skill runner must now rewire onto it (round-3 decision 1); drift already noted (hardcoded epoch-000, coverage row without data_dependency). Verified at 3550b50.
 
+### M6a adversarial verification (2026-08-12)
+
+Verdict: CONFIRMED (round 3)
+
+**Rationale:** `Source: subagent B adversarial verification, rounds 1-3 (2026-08-12)` — acceptance tests 14/14 pipeline + 177 milestone + 195 structural; ruff clean. Round-3 decision 1 executed: emitted nodes byte-match the M1-M5 pure-core derivation (all 6 items, 96 contract fields); the Evaluator wires validate_node + all six context checks (M1 F9 closure); determinism byte-identical across fresh runs; manifest/gates pydantic-valid. B's REJECTED verdicts closed with red tests + fix rounds: unconditional M5 gate (both evaluator modes), widened exception boundary (ValueError/AttributeError — no tracebacks for any input class), REPO_ROOT off-by-one (parents[3] was .claude/), --fix recomputes audit/checkable (B4 invariant), unknown fix ids error, gap-row dedupe, evaluate-on-empty exits 2, SKILL.md command hygiene. Round 3 CONFIRMED — the surviving W1 (pre-corrupted out dir on the standalone path) is residual-class (self-heals on loop; preserves unknown rows). Verified at 995df6d.
+
 ## 6. Surprises & Discoveries
 
 * M0 adversarial verification found 3 domain-level design gaps (non-blocking): GenericEvaluatorSkill accepts 0 dimensions without error, RubricItem.text has no min_length constraint, CalibrationManifest.epoch_id has no format validation. All deferred — these are design choices for later milestones, not M0 mechanical failures.
@@ -379,6 +385,9 @@ Verdict: CONFIRMED (round 2)
 * 2026-08-12 (M4): W_C is now a shared agreement-module constant ({"value": 0.4, "provisional": True, "note": ...}) — the patch-1 D6 reconciliation (not a per-item field) is codified in tests.
 * 2026-08-12 (M5): the deterministic core is COMPLETE (M1-M5: validator, signals, classify, agreement, bridge — all pure, all CONFIRMED). The M6a runner's inline bind/severity/gap-row logic has already drifted from the core (hardcoded epoch-000; coverage row missing data_dependency) — rewiring the runner onto M1-M5 is the first task of M6a.
 * 2026-08-12 (M5): core purity holds for the whole compiler stack — every module imports stdlib + same-package only; no model client, clock, RNG, or I/O anywhere in argus/core/compiler (I1/Q1 clean).
+* 2026-08-12 (M6a): the runner's --evaluator mock flag is vestigial — both modes run the same real core path; kept for backward compat with the acceptance tests.
+* 2026-08-12 (M6a): the GAN loop's ≤3 fix rounds are by-construction unreachable from core output (the chain never emits validator-failing content); they become live when the agentic Evaluator (model-judged steps per SKILL.md) runs. The discipline is wired ahead of the trigger.
+* 2026-08-12 (M6a): REPO_ROOT off-by-one (parents[3] resolved to .claude/) silently broke the default fixture path and sys.path fallback — masked by the editable install; closed at parents[4].
 * 2026-08-12 (M0 reopen): two PEV gates conflict while a milestone is unflipped with notes present — the checkbox-flip gate forbids `[badge]` headings in unflipped notes, the implementation-notes gate requires them whenever the file exists. Resolution: no notes file while unflipped; notes recreated with badges at flip. Worth a future harness reconciliation.
 * 2026-08-12 (M0 reopen): `epoch_id` enforces shape (`YYYY-MM-DD-<40-hex>`) but not ISO calendar validity (F2 residual) — "2026-13-99-…" constructs; accepted since epochs are compiler-derived.
 * 2026-08-12 (M0 reopen): the mock runner emits `companion_docs` entries without `sha256` (F4) — the SHA lives only in `compile-plan.json`. When M1's `check_companion_docs` requires per-entry SHA, either the runner must embed it or the checker must accept plan-sourced SHAs. Deferred to M6a execution.
