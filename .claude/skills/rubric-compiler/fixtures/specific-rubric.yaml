@@ -1,0 +1,55 @@
+# Fixture Specific QA Rubric for the rubric-compiler skill (9003 M6a).
+# Items: 01/02 batchable lexical, Item 20/21 dependency pair (S3),
+# Item 22/26 dependency pair (S3), Item 24 coverage gap (dimension_coverage_gap).
+# Modeled on docs/retrospectives/item-20-example-v2.yaml / item-21-example-v2.yaml.
+rubric_name: "hotline-fixture"
+items:
+  - id: "01"
+    text: "起接语：坐席接通电话后应使用标准问候语"
+    values: { named_phrases: ["您好", "欢迎致电", "请问有什么可以帮您"] }
+    na_condition: null
+    pass_standard: "接通后主动问候并询问需求"
+    fail_standard: "接通后无问候或直接进入业务"
+  - id: "02"
+    text: "称呼得体：使用礼貌称谓称呼客户"
+    values: { named_phrases: ["先生", "女士", "您"] }
+    na_condition: null
+    pass_standard: "全程使用礼貌称谓"
+    fail_standard: "出现不礼貌称呼或直呼其名"
+  - id: "20"
+    text: "营销机会把握：能准确快速抓住营销机会并加以引导"
+    values: { named_phrases: ["移动证书", "子证书", "授权领证", "电子营业执照", "新领"] }
+    na_condition: "客户明确拒绝推荐且无任何可营销场景"
+    pass_standard: "客户表达可营销场景时主动推荐相关产品（如 KEY 无法使用推荐移动证书）"
+    fail_standard: "对明显营销机会置之不理；未主动推荐"
+    companion_docs:
+      - { document: "marketing-scripts.md", role: "standard_scripts" }
+    depends_on: []
+  - id: "21"
+    text: "积极灵活营销：在营销机会下给出针对性推荐"
+    values: { named_phrases: [] }
+    na_condition: "Item 20 为 NA（无营销机会）或坐席未识别机会"
+    pass_standard: "针对客户场景给出具体推荐并说明理由"
+    fail_standard: "泛泛推荐或无推荐"
+    companion_docs:
+      - { document: "marketing-scripts.md", role: "standard_scripts" }
+    depends_on: ["20"]
+  - id: "22"
+    text: "情绪安抚：客户情绪激动时先安抚再处理"
+    values: { named_phrases: ["您别着急", "我理解", "马上为您处理"] }
+    na_condition: null
+    pass_standard: "情绪激动场景先表达理解再进入处理"
+    fail_standard: "无视客户情绪直接进入流程"
+  - id: "26"
+    text: "同理心表达：对客户处境表达理解"
+    values: { named_phrases: [] }
+    na_condition: null
+    pass_standard: "对客户描述的不便或困难给予理解回应"
+    fail_standard: "机械化回应，无任何理解表达"
+    depends_on: ["22"]
+  - id: "24"
+    text: "业务知识：能准确回答产品与业务知识问题"
+    values: { named_phrases: [] }
+    na_condition: null
+    pass_standard: "知识类问题回答准确"
+    fail_standard: "回答错误或误导"

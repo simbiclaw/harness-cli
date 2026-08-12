@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>访谈 &mdash; 软标准编译器（第三轮）</title>
+<style>
+  :root {
+    --ivory:  #FAF9F5;
+    --paper:  #FFFFFF;
+    --slate:  #141413;
+    --clay:   #D97757;
+    --clay-d: #B85C3E;
+    --oat:    #E3DACC;
+    --olive:  #788C5D;
+    --g100:   #F0EEE6;
+    --g200:   #E6E3DA;
+    --g300:   #D1CFC5;
+    --g500:   #87867F;
+    --g700:   #3D3D3A;
+    --serif: ui-serif, "Noto Serif CJK SC", "Source Han Serif SC", Georgia, "Times New Roman", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Noto Sans CJK SC", Roboto, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ivory);
+    color: var(--slate);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px 100px; }
+
+  /* ── header ─────────────────────────── */
+  header { padding: 56px 0 8px; position: relative; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--g500);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .eyebrow::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); flex: none; }
+  .backlink {
+    position: absolute; top: 60px; right: 0;
+    font-family: var(--mono); font-size: 12px;
+    color: var(--g500); text-decoration: none;
+    letter-spacing: 0.04em;
+  }
+  .backlink:hover { color: var(--clay); }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(34px, 5vw, 50px);
+    line-height: 1.08;
+    letter-spacing: -0.018em;
+    margin: 0 0 10px;
+  }
+  .lede { font-size: 16.5px; color: var(--g700); max-width: 640px; margin: 0 0 30px; }
+
+  /* ── prompt box ─────────────────────── */
+  .promptbox {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    padding: 22px 24px 20px;
+    position: relative;
+  }
+  .promptbox .label {
+    font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--clay); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .promptbox .label::before { content: ""; width: 24px; height: 1.5px; background: var(--clay); flex: none; }
+  .promptbox blockquote {
+    margin: 0; padding: 0;
+    font-family: var(--serif); font-style: italic;
+    font-size: 17.5px; line-height: 1.5; color: var(--slate);
+    max-width: 46em;
+  }
+  .copybtn {
+    position: absolute; top: 18px; right: 18px;
+    font-family: var(--mono); font-size: 11.5px;
+    letter-spacing: 0.04em;
+    background: var(--g100); color: var(--g700);
+    border: 1.5px solid var(--g300); border-radius: 7px;
+    padding: 5px 11px; cursor: pointer;
+  }
+  .copybtn:hover { border-color: var(--clay); color: var(--clay-d); }
+  .copybtn.done { background: var(--olive); border-color: var(--olive); color: #fff; }
+
+  /* ── divider ────────────────────────── */
+  .divider {
+    display: flex; align-items: center; gap: 16px;
+    margin: 44px 0 30px;
+    font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--g500); white-space: nowrap;
+  }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--g300); }
+
+  /* ══ THE ARTIFACT ═════════════════════ */
+  .artifact {
+    background: var(--paper);
+    border: 1.5px solid var(--g300);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .art-head {
+    padding: 16px 22px;
+    border-bottom: 1.5px solid var(--g200);
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    background: var(--g100);
+  }
+  .art-head .t { font-family: var(--serif); font-weight: 500; font-size: 17px; letter-spacing: -0.01em; }
+  .art-head .s { font-family: var(--mono); font-size: 11.5px; color: var(--g500); }
+
+  .art-body { display: grid; grid-template-columns: 216px 1fr; min-height: 480px; }
+  @media (max-width: 720px) { .art-body { grid-template-columns: 1fr; min-height: 0; } }
+
+  /* rail */
+  .rail {
+    border-right: 1.5px solid var(--g200);
+    padding: 20px 16px;
+    background: var(--ivory);
+  }
+  @media (max-width: 720px) {
+    .rail { border-right: none; border-bottom: 1.5px solid var(--g200); padding: 14px 16px; }
+  }
+  .rail .rail-label {
+    font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--g500); margin-bottom: 12px;
+  }
+  .rail-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 8px; margin: 0 -8px;
+    border-radius: 8px;
+    font-size: 12.5px; color: var(--g500);
+    cursor: default;
+    border: none; background: none; width: calc(100% + 16px);
+    text-align: left; font-family: var(--sans);
+  }
+  .rail-item.done { color: var(--g700); cursor: pointer; }
+  .rail-item.done:hover { background: var(--g100); }
+  .rail-item.current { color: var(--slate); font-weight: 600; background: var(--g100); }
+  .rail-dot {
+    width: 11px; height: 11px; border-radius: 50%; flex: none;
+    border: 2px solid var(--dotc, var(--g300));
+    background: transparent;
+  }
+  .rail-item.done .rail-dot { background: var(--dotc); }
+  .rail-item.current .rail-dot { box-shadow: 0 0 0 3px var(--g200); }
+  .rail-item .rail-q { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rail-item .tick { margin-left: auto; font-size: 11px; color: var(--olive); flex: none; }
+  .rail-meta {
+    margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--g200);
+    font-family: var(--mono); font-size: 11px; color: var(--g500); line-height: 1.8;
+  }
+  .rail-meta b { color: var(--g700); font-weight: 600; }
+  @media (max-width: 720px) {
+    .rail .rail-q, .rail .tick, .rail-meta, .rail .rail-label { display: none; }
+    .rail { display: flex; align-items: center; gap: 10px; }
+    .rail-item { width: auto; padding: 4px; margin: 0; }
+  }
+
+  /* stage */
+  .stage { padding: 28px 30px 30px; position: relative; }
+  @media (max-width: 720px) { .stage { padding: 22px 18px 24px; } }
+  .qcard { animation: qin .28s ease both; }
+  .qcard.leaving { animation: qout .18s ease both; }
+  @keyframes qin  { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @keyframes qout { from { opacity: 1; } to { opacity: 0; transform: translateY(-8px); } }
+
+  .badge {
+    display: inline-block;
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 5px;
+    color: #fff; background: var(--g500);
+    margin-bottom: 4px;
+  }
+  .qnum { font-family: var(--mono); font-size: 11.5px; color: var(--g500); margin-left: 10px; }
+  .qtext {
+    font-family: var(--serif); font-weight: 500;
+    font-size: clamp(20px, 3vw, 25px); line-height: 1.25;
+    letter-spacing: -0.012em;
+    margin: 10px 0 6px; max-width: 34em;
+  }
+  .why {
+    font-size: 13.5px; color: var(--g500); margin: 0 0 22px;
+    display: flex; gap: 8px; align-items: baseline;
+  }
+  .why::before { content: "↳"; color: var(--clay); flex: none; }
+
+  .opts { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 620px) { .opts { grid-template-columns: 1fr; } }
+  .opt {
+    text-align: left;
+    background: var(--ivory);
+    border: 1.5px solid var(--g300);
+    border-radius: 11px;
+    padding: 14px 16px;
+    cursor: pointer;
+    font-family: var(--sans);
+    color: var(--slate);
+    transition: border-color .12s, background .12s, transform .12s;
+  }
+  .opt:hover { border-color: var(--clay); background: var(--paper); transform: translateY(-1px); }
+  .opt.picked { border-color: var(--clay); background: var(--paper); box-shadow: 0 0 0 3px rgba(217,119,87,.15); }
+  .opt .ot { font-weight: 600; font-size: 14.5px; display: block; margin-bottom: 3px; }
+  .opt .od { font-size: 12.5px; color: var(--g500); line-height: 1.45; display: block; }
+
+  .otherrow { display: flex; gap: 8px; margin-top: 12px; }
+  .otherrow input {
+    flex: 1; min-width: 0;
+    font-family: var(--sans); font-size: 14px;
+    padding: 10px 13px;
+    border: 1.5px solid var(--g300); border-radius: 9px;
+    background: var(--ivory); color: var(--slate);
+  }
+  .otherrow input::placeholder { color: var(--g500); }
+  .otherrow input:focus { outline: none; border-color: var(--clay); background: var(--paper); }
+  .otherrow button {
+    font-family: var(--mono); font-size: 12px;
+    padding: 0 16px; border-radius: 9px; cursor: pointer;
+    border: 1.5px solid var(--g300); background: var(--g100); color: var(--g700);
+  }
+  .otherrow button:hover { border-color: var(--clay); color: var(--clay-d); }
+
+  .navrow { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; }
+  .backbtn {
+    font-family: var(--mono); font-size: 12px;
+    background: none; border: none; cursor: pointer;
+    color: var(--g500); padding: 6px 0;
+  }
+  .backbtn:hover { color: var(--clay-d); }
+  .backbtn[disabled] { visibility: hidden; }
+  .navhint { font-family: var(--mono); font-size: 11px; color: var(--g500); }
+
+  /* summary */
+  .sum-h { font-family: var(--serif); font-weight: 500; font-size: 24px; letter-spacing: -0.012em; margin: 4px 0 4px; }
+  .sum-sub { font-size: 14px; color: var(--g500); margin: 0 0 20px; }
+  .dtable { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .dtable-scroll { overflow-x: auto; }
+  .dtable th {
+    font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--g500); font-weight: 500;
+    text-align: left; padding: 8px 12px 8px 0;
+    border-bottom: 1.5px solid var(--g300);
+    white-space: nowrap;
+  }
+  .dtable td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--g200); vertical-align: top; }
+  .dtable tr:last-child td { border-bottom: none; }
+  .dtable .pill {
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: #fff; padding: 2px 7px; border-radius: 4px; white-space: nowrap;
+  }
+  .dtable .topic { color: var(--g500); white-space: nowrap; }
+  .dtable .dec { font-weight: 600; }
+  .dtable .redo {
+    font-family: var(--mono); font-size: 11px; color: var(--g500);
+    background: none; border: none; cursor: pointer; padding: 0;
+  }
+  .dtable .redo:hover { color: var(--clay-d); }
+
+  .genblock { margin-top: 26px; }
+  .genblock .gb-label {
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--clay); margin-bottom: 8px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .genblock .gb-label::before { content: ""; width: 18px; height: 1.5px; background: var(--clay); flex: none; }
+  .genwrap { position: relative; }
+  .genwrap pre {
+    margin: 0;
+    background: var(--slate);
+    color: var(--g200);
+    border-radius: 11px;
+    padding: 18px 20px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .genwrap .copybtn { top: 12px; right: 12px; background: var(--g700); border-color: var(--g700); color: var(--g300); }
+  .genwrap .copybtn:hover { color: var(--paper); border-color: var(--g500); }
+  .genwrap .copybtn.done { background: var(--olive); border-color: var(--olive); color: #fff; }
+  .restart {
+    margin-top: 18px;
+    font-family: var(--mono); font-size: 12px;
+    background: none; border: none; cursor: pointer;
+    color: var(--g500); padding: 0;
+  }
+  .restart:hover { color: var(--clay-d); }
+
+  footer {
+    margin-top: 56px; padding-top: 22px;
+    border-top: 1px solid var(--g300);
+    font-size: 13px; color: var(--g500);
+  }
+  footer a { color: var(--clay); text-decoration-color: var(--oat); text-underline-offset: 3px; }
+  footer a:hover { text-decoration-color: var(--clay); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">识别未知 &middot; M0 交付后跟进</div>
+    <a class="backlink" href="9003-ambiguities-interview-round2.html">&#8592; 第二轮访谈</a>
+    <h1>第三轮访谈</h1>
+    <p class="lede">第二轮之后发生了大量变化：Patch 2 落地（S1&ndash;S6，含 GAN 式多智能体编译循环）、9003 计划演进（D10 移除 trigger.spec、D16、rev.4 缺口类型）、M0 于 7-28 交付（Pydantic schemas，对抗验证 CONFIRMED，3 个缺口搁置）、INTENTS/ 于 7-27 重构为外部树 symlink。本轮聚焦执行 M1&ndash;M7 之前仍然模糊的问题 &mdash; 优先处理那些你的回答会改变编译器架构的决策。</p>
+
+    <div class="promptbox">
+      <div class="label">提示词</div>
+      <button class="copybtn" id="copyPrompt">复制提示词</button>
+      <blockquote id="promptText">通读 soft-criteria-authoring-spec-v4.html、patch-1、patch-2 与当前 9003 ExecPlan。就执行 M1&ndash;M7 之前仍然模糊的任何问题，一次一个问题地访谈我。优先处理那些我的回答会改变架构的问题。</blockquote>
+    </div>
+  </header>
+
+  <div class="divider">Claude 的输出</div>
+
+  <div class="artifact">
+    <div class="art-head">
+      <span class="t">软标准编写 &mdash; spec 访谈（第三轮）</span>
+      <span class="s">argus/9003 &middot; 8 个待解决问题 &middot; 按架构影响排序</span>
+    </div>
+    <div class="art-body">
+      <nav class="rail" id="rail" aria-label="访谈进度"></nav>
+      <div class="stage" id="stage"></div>
+    </div>
+  </div>
+
+  <footer>9003 编译器设计过程的一部分。第二轮之后：<a href="soft-criteria-authoring-spec-v4-patch-2.md">Patch 2</a>（S1&ndash;S6）、M0 schema 交付（7-28）、INTENTS 外部 symlink 重构（7-27）。本轮在 M1&ndash;M7 执行之前针对剩余空白进行访谈。</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var RADII = {
+    arch:  { label: "架构", color: "var(--clay)" },
+    data:  { label: "数据模型", color: "var(--clay-d)" },
+    wf:    { label: "工作流", color: "var(--olive)" },
+    pol:   { label: "润色", color: "var(--g500)" }
+  };
+
+  var QUESTIONS = [
+    {
+      id: "agentic-vs-cli",
+      radius: "arch",
+      short: "智能体循环 vs 确定性 CLI",
+      topic: "编译执行架构",
+      q: "Patch 2 定义了 GAN 式多智能体编译循环（Planner / Generator / Evaluator，最多 3 轮反馈），而 9003 计划 M6 把编译器构建为确定性 CLI（`argus compile`，明确“编译期间不调用模型”）。这两者如何共存？",
+      why: "Patch 2（7-17）的执行架构章节把编译过程描述为智能体循环：Planner 是伴侣文档的唯一 I/O 边界，Generator 生成信号，Evaluator 是唯一质量门，反馈按 O(改动信号) 定向修复。但计划的 Big Picture 声称编译器“变换结构化输入、确定性、不使用 LLM 编写信号”。这是直接冲突：如果编译由智能体执行，信号质量依赖模型判断；如果编译是纯函数，Generator / Evaluator 的职责落到谁身上？答案决定 M2 信号分解与 M6 编排的实现方式，以及 I1（模型隔离）是否适用于编译器。",
+      opts: [
+        { t: "智能体循环是编写时的一次性辅助；CLI 保持确定性", d: "27 项编译由 Claude Code 会话按 patch-2 循环执行一次，产出的信号 / 排除集 / 依赖关系固化为 fixtures 与代码；`argus compile` 只做确定性变换。模型在编写路径上，不在编译路径上——I1 不适用，计划的纯度声明成立。" },
+        { t: "`argus compile` 本身可调用模型（GAN 循环成为 CLI 的一部分）", d: "每次编译都跑 Planner / Generator / Evaluator 反馈环。违反计划的“无模型调用”纯度声明，需要重写 M2 / M6 与 I1 边界，编译器不再可重放（I5 受影响）。" },
+        { t: "混合分层：确定性结构变换 + 模型按需裁决缺口", d: "A1&ndash;A7 / B-A..B-D 的结构变换是纯函数；模型只在需要判断的缺口介入（排除集润色、信号拆分裁决、Q1/Q2 门检），每次介入以 decision 记录沉淀回仓库。可重放性按“无模型调用时”定义。" }
+      ]
+    },
+    {
+      id: "patch2-schema-retrofit",
+      radius: "arch",
+      short: "Patch 2 schema 字段是否回溯",
+      topic: "AuthoredNode 的 Patch 2 字段",
+      q: "M0 已交付的 AuthoredNode 不包含 Patch 2 定义的新字段：`companion_docs`（S1）、`depends_on`（S3）、`signal.checkable` / `signal.audit_result`（S4）。这些字段要补进 9003 的 schema，还是仅作为编写时元数据？",
+      why: "M0（7-28 翻转）的 Allowed Reads 已包含 patch-2，但其交付的 AuthoredNode 字段清单（计划 §3 M0）没有 companion_docs / depends_on / checkable——这是 M0 之后发现的缺口。补进：types/ 需重开、validator 增加对应检查、9002 运行时读取新字段（依赖关系与可检性在运行时可见）。不补：companion 依赖与编译顺序问题只有作者可见，运行时节点“看起来自包含”却掩盖了 S4 的模型依赖。",
+      opts: [
+        { t: "回溯补进 M0 schema（重开 M0）", d: "AuthoredNode 增加 companion_docs、depends_on、signal.checkable / audit_result；validator 增加 S1/S3/S4 对应检查。9002 运行时可见每个信号的依赖与可检性。" },
+        { t: "仅作为编写时元数据", d: "字段留在编译输入与 authoring notes，不进 AuthoredNode。schema 不再变动；运行时只消费编译后的信号，作者通过 notes 与文档了解依赖。" },
+        { t: "部分补进：checkable / audit_result 进 schema，companion_docs / depends_on 仅编写时", d: "可检性影响运行时判定（checkable: false → 隔离到 S2），必须进 schema；依赖与伴侣文档是作者面事务，运行时不需要。" }
+      ]
+    },
+    {
+      id: "intents-symlink-epoch",
+      radius: "arch",
+      short: "INTENTS symlink 与 epoch 归属",
+      topic: "Epoch 提交归属",
+      q: "7-27 重构后 INTENTS/ 是指向外部树（独立 git）的 symlink。编译器 M6 写入 `_rubric/` 并铸新 epoch——epoch 提交发生在哪个仓库：harness-cli 还是外部树？",
+      why: "PR #9（7-27）把跟踪的 INTENTS/ 目录替换为外部树 symlink（当前指向 /Users/prometheus/workspace/INTENTS，自有 git 历史）。ADR-0003 要求编译器写入 = 人类确认的提交、铸新 epoch。若 CompilerIO 跟随 symlink 写入外部树，commit 归属外部仓库，harness-cli 只记录 SHA 引用；若要求 _rubric/ 在 harness-cli 内，与 symlink 重构冲突。这决定 M6 的写入路径、EPOCH.yaml 放哪，以及 9002 的锚定机制（I4 钉住的 SHA 从哪个仓库来）。",
+      opts: [
+        { t: "跟随 symlink：写入外部树，epoch 提交在外部仓库", d: "CompilerIO 跟随 symlink 写 /Users/prometheus/workspace/INTENTS/_rubric/，epoch 提交在外部仓库；harness-cli 通过 SHA / EPOCH.yaml 引用。9002 锚定同一外部 SHA（与 I4 一致），单仓库真相。" },
+        { t: "编译器写入 harness-cli 内副本，同步器推外部树", d: "双仓库写入 + 同步机制，复杂度高；同步窗口内两侧不一致，epoch 引用需额外约定。" },
+        { t: "编译器只产出节点文件，不做任何 git 操作", d: "提交完全由人类流程执行（编译 → 审查 → 人类 commit）。最简，epoch 纪律由流程而非代码保证；风险：漏提交导致节点与 epoch 记录脱节。" }
+      ]
+    },
+    {
+      id: "recompile-policy",
+      radius: "data",
+      short: "重编译的覆盖策略",
+      topic: "重新编译策略",
+      q: "对已有节点的维度再次运行 `argus compile`：就地覆盖、按 epoch 并存，还是先删后写？",
+      why: "计划说每次写入 = 人类确认的提交、铸新 epoch，但同一 item 的重新编译如何处理旧节点未规定。就地覆盖会改写历史引用——9002 锚定旧 SHA 的 evaluation 与旧节点内容对不上；按 epoch 并存需要目录 / 命名规则；先删后写有窗口期。这决定 CompilerIO 的写路径与 git 纪律。",
+      opts: [
+        { t: "就地覆盖 + 新 epoch 提交", d: "节点路径稳定（item-22.yaml），epoch 记录在 _meta/。旧 evaluation 锚定旧 SHA，重放时读对应 SHA 的树——覆盖不破坏历史，因为历史由 SHA 钉住。" },
+        { t: "按 epoch 并存：_rubric/<epoch>/item-22.yaml", d: "旧 epoch 完整保留，可任意回滚；引用总是显式带 epoch。代价：目录层级加深，读取器需按 epoch 解析路径。" },
+        { t: "编译到暂存区，人类 review 后原子提交", d: "输出先写 .staging/，确认后一次性移动到 _rubric/。无部分写入窗口，但多一步，CLI 需要 review/confirm 交互。" }
+      ]
+    },
+    {
+      id: "evidence-runtime-role",
+      radius: "data",
+      short: "evidence/ 的运行时角色",
+      topic: "Evidence 目录角色",
+      q: "A2-ac / A2-ph 写入 `_rubric/evidence/acoustic/` 与 `_rubric/evidence/phrase-keyword/` 的文件是 9002 的运行时依赖，还是仅人类可读的作者文档？",
+      why: "D10 之后节点自包含（阈值内联进信号），但 A2-ac / A2-ph 仍产出 evidence 文件。D16 明确声学框架 / 短语词典是 rubric 不是 corroborator。如果 9002 的 rubric 读取器要加载它们（作为指标框架与词法匹配源），它们在运行时路径上；如果只是 QA 参考，它们不应在 _rubric/ 中污染评估器工作集。这决定 CompilerIO 的写入位置与 9002 读取器范围。",
+      opts: [
+        { t: "运行时依赖：留在 _rubric/evidence/，9002 rubric 读取器加载", d: "声学指标框架与短语词典是 rubric 的一部分（D16），评估器加载它们用于指标解释与词法匹配。与“三个分类读取器”（rubric 类）一致。" },
+        { t: "仅文档：移到运行时加载路径之外", d: "节点完全自包含；evidence/ 移到 docs/ 或 INTENTS 非运行时区，仅作 QA 参考。评估器工作集最小，但指标框架的权威副本离开运行时。" },
+        { t: "分裂：阈值内联进节点（运行时），evidence/ 存指标元数据（运行时，不同角色）", d: "节点内联阈值（如 speaking_rate > 120）；evidence/ 存单位、描述、测量方法，供错误消息与漂移检测。两者都是运行时产物，职责不同。" }
+      ]
+    },
+    {
+      id: "m0-gaps",
+      radius: "data",
+      short: "M0 三个搁置缺口",
+      topic: "M0 schema 缺口定夺",
+      q: "M0 对抗验证搁置了三个设计缺口：GenericEvaluatorSkill 接受 0 维度、RubricItem.text 无最小长度约束、CalibrationManifest.epoch_id 无格式校验。现在定夺？",
+      why: "这三个缺口在 M0 翻转时“非阻塞”推迟。执行 M1&ndash;M7 前需要答案：0 维度的技能模板是合法输入吗（空模板意味着无维度可编译）？空 item 文本允许吗（B-D 值提取会读空串）？epoch_id 采用什么格式（与 Q3 的 epoch 机制耦合，I4 锚定依赖它）？答案决定 schema 约束与 validator 的输入保证。",
+      opts: [
+        { t: "全部收紧：维度 ≥1、text 非空、epoch_id 限定格式", d: "GenericEvaluatorSkill 强制 ≥1 维度；RubricItem.text 最小 1 字符；epoch_id 限定为 ISO 日期 + 可选 SHA 前缀。schema 层就拒绝无意义输入。" },
+        { t: "收紧前两个；epoch_id 交给 Q3 的 epoch 机制统一设计", d: "0 维度与空文本立即拒绝；epoch_id 格式等 INTENTS 外部树的 epoch 约定落地后（Q3）一并定。" },
+        { t: "保持宽松 schema，把保证放到 validator / 运行时", d: "schema 不拒绝；M1 validator 对空维度 / 空文本报错。更灵活但错误发现得更晚。" }
+      ]
+    },
+    {
+      id: "edited-human-fate",
+      radius: "wf",
+      short: "edited_by_human 的命运",
+      topic: "人工编辑机制",
+      q: "Patch 1 D8 定义了 `edited_by_human: true` 跳过重编译。当前计划没有提及该机制。保留、废弃，还是重构为 patch-2 S2 的“源文档矛盾时 halt 等人裁决”？",
+      why: "计划重写为 A1&ndash;A7 / B-A..B-D 版后不再含 edited_by_human；patch-2 S2 引入了编译前源校验、源文档矛盾时 halt 等人裁决。两者是同一问题的两种机制：人工编辑编译产物（D8）vs 人工裁决源文档（S2）。决定 validator 是否需要跨文件一致性检查、编译器是否跟踪人工覆盖记录。",
+      opts: [
+        { t: "保留 edited_by_human + validator 一致性检查", d: "编译跳过标记文件；validator 对已编辑文件做交叉引用完整性检查（悬空 node_id、权重算术一致性）。人工编辑可见、可审计。" },
+        { t: "替换为 S2 halt-on-conflict：编辑发生在源文档", d: "人工裁决发生在源层，编译器输出始终可再生成（无跳过路径）。简化 schema，但人工修正只能改源，编辑粒度变粗。" },
+        { t: "两者都要：源层裁决（S2）+ 输出层编辑逃生门（D8）", d: "S2 处理源矛盾；D8 允许在输出层作局部编辑逃生（如排除集微调），各自记录在案。最灵活，机制最多。" }
+      ]
+    },
+    {
+      id: "manifest-format",
+      radius: "wf",
+      short: "标定清单的格式与位置",
+      topic: "Calibration Manifest 格式",
+      q: "M7 的 `argus manifest inject` 需要读入一个 manifest epoch——具体格式、文件位置与片段 schema 是什么？",
+      why: "实证检查（2026-08-12）：INTENTS 树里没有 cookbook.* / errors.* 文件——错误案例库与最佳实践库目前为空（业务域下只有 .gitkeep）。能约束格式的只有：conventions.yaml 的命名语法（cookbook.<slug>.yaml / errors.<slug>.yaml）、item-21 示例的 severity_map URI 引用（calibration://manifest/epoch-000/severity/c21）、以及 _meta/residue-manifest.yaml 的清单样式先例（schema_version / generated_at / sources）。因此 source_case 只能做结构校验（语法匹配），不能做存在性校验——首批清单先于库内容到达。conventions.yaml 命名类型表无 calibration 类型，_meta/ 路径（如 residue-manifest.yaml）可避免树级约定改动。",
+      opts: [
+        { t: "_meta/calibration-manifest.<epoch>.yaml，结构校验、容忍空库（推荐）", d: "与 residue-manifest.yaml 同款样式（schema_version/generated_at/sources）；source_case 只验语法（cookbook.<slug>.yaml / errors.<slug>.yaml）不验存在；severity_map URI ref 与文件 epoch 对齐；无需改动 conventions.yaml。" },
+        { t: "每维度独立文件 + 顶部索引（_calibration/ 或 _meta/）", d: "便于部分注入与 diff，但需要 conventions.yaml 新增结构/类型；库为空时拆分意义有限；部分覆盖语义需额外定义。" },
+        { t: "CLI 维护的单一 JSON 文件", d: "与 _meta/ 的 YAML 先例不一致，且清单是人工标注产物，标注者无法直接写；审计依赖 CLI 日志。" }
+      ]
+    }
+  ];
+
+  var answers = new Array(QUESTIONS.length).fill(null);
+  var current = 0;
+  var rail = document.getElementById("rail");
+  var stage = document.getElementById("stage");
+
+  function answeredCount() {
+    return answers.filter(function (a) { return a !== null; }).length;
+  }
+
+  function esc(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function renderRail() {
+    var html = '<div class="rail-label">访谈进度</div>';
+    QUESTIONS.forEach(function (q, i) {
+      var r = RADII[q.radius];
+      var cls = "rail-item" + (i === current ? " current" : "") + (answers[i] ? " done" : "");
+      html += '<button type="button" class="' + cls + '" data-i="' + i + '" style="--dotc:' + r.color + '"' +
+        (answers[i] ? '' : ' tabindex="-1"') + '>' +
+        '<span class="rail-dot"></span><span class="rail-q">' + esc(q.short) + '</span>' +
+        (answers[i] ? '<span class="tick">&#10003;</span>' : '') + '</button>';
+    });
+    html += '<div class="rail-meta">已回答 <b>' + answeredCount() + '</b> / ' + QUESTIONS.length + ' 题<br>' +
+      '<span style="color:var(--clay)">&#9679;</span> 架构 &nbsp;' +
+      '<span style="color:var(--clay-d)">&#9679;</span> 数据模型<br>' +
+      '<span style="color:var(--olive)">&#9679;</span> 工作流 &nbsp;' +
+      '<span style="color:var(--g500)">&#9679;</span> 润色</div>';
+    rail.innerHTML = html;
+    rail.querySelectorAll(".rail-item.done").forEach(function (el) {
+      el.addEventListener("click", function () { go(parseInt(el.dataset.i, 10)); });
+    });
+  }
+
+  function renderQuestion() {
+    var q = QUESTIONS[current];
+    var r = RADII[q.radius];
+    var picked = answers[current];
+    var html = '<div class="qcard">' +
+      '<span class="badge" style="background:' + r.color + '">' + esc(r.label) + '</span>' +
+      '<span class="qnum">第 ' + (current + 1) + ' 题 / 共 ' + QUESTIONS.length + ' 题</span>' +
+      '<h2 class="qtext">' + esc(q.q) + '</h2>' +
+      '<p class="why">' + esc(q.why) + '</p>' +
+      '<div class="opts">';
+    q.opts.forEach(function (o, oi) {
+      var isPicked = picked && !picked.custom && picked.text === o.t;
+      html += '<button type="button" class="opt' + (isPicked ? ' picked' : '') + '" data-oi="' + oi + '">' +
+        '<span class="ot">' + esc(o.t) + '</span><span class="od">' + esc(o.d) + '</span></button>';
+    });
+    html += '</div>' +
+      '<div class="otherrow">' +
+      '<input type="text" id="otherInput" placeholder="其他 &mdash; 输入你自己的答案&hellip;" value="' +
+        (picked && picked.custom ? esc(picked.text) : '') + '">' +
+      '<button type="button" id="otherGo">确认 &#8629;</button></div>' +
+      '<div class="navrow">' +
+      '<button type="button" class="backbtn" id="backBtn"' + (current === 0 ? ' disabled' : '') + '>&#8592; 上一题</button>' +
+      '<span class="navhint">选择一张卡片以继续</span>' +
+      '</div></div>';
+    stage.innerHTML = html;
+
+    stage.querySelectorAll(".opt").forEach(function (el) {
+      el.addEventListener("click", function () {
+        var o = q.opts[parseInt(el.dataset.oi, 10)];
+        answers[current] = { text: o.t, custom: false };
+        el.classList.add("picked");
+        renderRail();
+        setTimeout(function () { go(current + 1); }, 240);
+      });
+    });
+    var input = stage.querySelector("#otherInput");
+    function submitOther() {
+      var v = input.value.trim();
+      if (!v) { input.focus(); return; }
+      answers[current] = { text: v, custom: true };
+      renderRail();
+      go(current + 1);
+    }
+    stage.querySelector("#otherGo").addEventListener("click", submitOther);
+    input.addEventListener("keydown", function (e) { if (e.key === "Enter") submitOther(); });
+    stage.querySelector("#backBtn").addEventListener("click", function () { go(current - 1); });
+  }
+
+  function buildFollowupPrompt() {
+    var lines = [
+      "以下是第三轮访谈中确定的决策 &mdash; 请用这些约束更新",
+      "9003-implement-soft-criteria-compiler ExecPlan：",
+      ""
+    ];
+    QUESTIONS.forEach(function (q, i) {
+      var a = answers[i];
+      lines.push((i + 1) + ". " + q.topic + "：" + (a ? a.text : "（未回答 &mdash; 请自行判断）") +
+        (a && a.custom ? " [我自己的措辞 &mdash; 如有不清楚请询问]" : ""));
+    });
+    lines.push("");
+    lines.push("这些决策在 Patch 1（D1&ndash;D8）、Patch 2（S1&ndash;S6）与 M0 交付的基础上进一步细化了 spec。");
+    lines.push("将每一项作为新的 Decision Log 条目更新到计划中。");
+    lines.push("如果任何决策与已有的 D1&ndash;D16 / S1&ndash;S6 冲突，在更新计划之前先标记出来。");
+    return lines.join("\n");
+  }
+
+  function renderSummary() {
+    var rows = "";
+    QUESTIONS.forEach(function (q, i) {
+      var r = RADII[q.radius];
+      var a = answers[i];
+      rows += "<tr>" +
+        '<td><span class="pill" style="background:' + r.color + '">' + esc(r.label) + '</span></td>' +
+        '<td class="topic">' + esc(q.topic) + '</td>' +
+        '<td class="dec">' + (a ? esc(a.text) + (a.custom ? ' <span style="font-weight:400;color:var(--g500)">（你的措辞）</span>' : '') : '<span style="color:var(--g500)">&mdash;</span>') + '</td>' +
+        '<td><button type="button" class="redo" data-i="' + i + '">编辑</button></td>' +
+        "</tr>";
+    });
+    stage.innerHTML = '<div class="qcard">' +
+      '<span class="badge" style="background:var(--olive)">访谈完成</span>' +
+      '<h2 class="sum-h">八个空白，零个假设。</h2>' +
+      '<p class="sum-sub">以下每个答案都回应了 spec + 两个 patch + M0 交付仍未规定的内容。没有这些决策，M1&ndash;M7 将在实现时被迫猜测每一个问题。</p>' +
+      '<div class="dtable-scroll"><table class="dtable"><thead><tr>' +
+      '<th>影响范围</th><th>问题</th><th>决策</th><th></th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<div class="genblock">' +
+      '<div class="gb-label">生成的后续提示词</div>' +
+      '<div class="genwrap"><button type="button" class="copybtn" id="copyGen">复制</button>' +
+      '<pre id="genPre">' + esc(buildFollowupPrompt()) + '</pre></div>' +
+      '</div>' +
+      '<button type="button" class="restart" id="restartBtn">&#8634; 重新开始</button>' +
+      '</div>';
+
+    stage.querySelectorAll(".redo").forEach(function (el) {
+      el.addEventListener("click", function () { go(parseInt(el.dataset.i, 10)); });
+    });
+    wireCopy(stage.querySelector("#copyGen"), function () { return buildFollowupPrompt(); });
+    stage.querySelector("#restartBtn").addEventListener("click", function () {
+      answers = new Array(QUESTIONS.length).fill(null);
+      go(0);
+    });
+  }
+
+  function go(idx) {
+    var card = stage.querySelector(".qcard");
+    var doRender = function () {
+      current = idx;
+      renderRail();
+      if (current >= QUESTIONS.length) renderSummary();
+      else renderQuestion();
+    };
+    if (card) {
+      card.classList.add("leaving");
+      setTimeout(doRender, 160);
+    } else {
+      doRender();
+    }
+  }
+
+  function wireCopy(btn, getText) {
+    btn.addEventListener("click", function () {
+      var text = getText();
+      var done = function () {
+        var orig = btn.textContent;
+        btn.textContent = "已复制 &#10003;";
+        btn.classList.add("done");
+        setTimeout(function () { btn.textContent = orig; btn.classList.remove("done"); }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+      } else {
+        fallbackCopy(text); done();
+      }
+    });
+  }
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  wireCopy(document.getElementById("copyPrompt"), function () {
+    return document.getElementById("promptText").textContent;
+  });
+
+  renderRail();
+  renderQuestion();
+})();
+</script>
+
+</body>
+</html>
