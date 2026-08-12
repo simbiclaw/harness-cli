@@ -73,6 +73,14 @@ try:
 except ImportError:
     CORE_AVAILABLE = False
 
+# --- manifest channel import (M7: independent — ungated, io layer only) -----
+try:
+    from argus.io.calibration_io import apply_manifest_epoch, load_manifest
+
+    MANIFEST_IO_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    MANIFEST_IO_AVAILABLE = False
+
 REMEDIATION = (
     "M6a Requires: M5 — argus.core.compiler is not landed yet. "
     "Land M1–M5 first; the runner has no template fallback."
@@ -616,6 +624,31 @@ def cmd_freeze(args: argparse.Namespace) -> int:
 
 
 # ──────────────────────────────────────────────────────────────────────────
+# Manifest inject (M7: independent calibration channel — never a compile run)
+# ──────────────────────────────────────────────────────────────────────────
+
+
+def cmd_manifest_inject(args: argparse.Namespace) -> int:
+    # M7 (round-3 Q8): the manifest is injected ALONE — the compiler inputs
+    # are untouched, and no M1–M5 core gate applies (loading/injecting needs
+    # only the io layer). The loop's nodes are re-anchored, never recompiled.
+    if not MANIFEST_IO_AVAILABLE:
+        print("error: argus.io.calibration_io is not importable")
+        return 2
+    manifest = load_manifest(args.manifest_file)  # ValueError/YAMLError → main() boundary
+    paths = sorted((args.out / "nodes").glob("item-*.json"))
+    if not paths:
+        print("no nodes to inject")
+        return 2
+    nodes = [json.loads(p.read_text()) for p in paths]
+    updated = apply_manifest_epoch(nodes, manifest)
+    for path, node in zip(paths, updated, strict=True):
+        path.write_text(json.dumps(node, indent=2, ensure_ascii=False))
+    print(f"manifest inject ok: {len(updated)} nodes re-anchored to {manifest.epoch_id}")
+    return 0
+
+
+# ──────────────────────────────────────────────────────────────────────────
 
 
 def main() -> int:
@@ -648,6 +681,12 @@ def main() -> int:
     p.add_argument("--dest", default="staging", choices=["staging", "INTENTS"])
     p.add_argument("--epoch-commit", action="store_true")
 
+    p = sub.add_parser("manifest")
+    msub = p.add_subparsers(dest="manifest_command", required=True)
+    pinject = msub.add_parser("inject")
+    pinject.add_argument("manifest_file", type=Path)
+    pinject.add_argument("--out", type=Path, required=True)
+
     args = parser.parse_args()
     handlers = {
         "plan": cmd_plan,
@@ -655,6 +694,7 @@ def main() -> int:
         "evaluate": cmd_evaluate,
         "loop": cmd_loop,
         "freeze": cmd_freeze,
+        "manifest": cmd_manifest_inject,
     }
     # B2/F1: exception boundary — missing/malformed inputs, unwritable out
     # dirs, malformed --fix JSON, and garbage plan/node/gap-row payloads all
