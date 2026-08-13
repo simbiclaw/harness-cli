@@ -85,9 +85,34 @@ classify corroborators → declare residue → classify gap → assign escape ti
 check dimension coverage → extract values; per-dimension hard-fail rules are
 synthesized (never copied) for the freeze step.
 
-Model judgment is confined to authoring-time gaps ONLY (signal-split
-adjudication, exclusion-set polish). Every such intervention is recorded as a
-decision-log entry. When the Evaluator returns fixes, use targeted-fix mode
+**B-E refinement (model-judged, D12 — the Generator's authoring step).** The
+deterministic chain emits template-level signals; for every standard clause
+that landed in the "unmatched standard" / "model-judged" fallbacks, the
+Generator performs B-E: decompose the clause into observable signals, ONE per
+clause, each carrying:
+- `id` — item-XX-SNN sequence (F1..Fn / E1..En convention acceptable)
+- `description` — an OBSERVABLE pattern (no evaluative adjectives — AUTH-1):
+  name what a proposer could find in a transcript and what a gate could
+  verify. Example: "处理或解释死板" → "agent 指导全程使用通用模板话术，未回引客户
+  描述的具体细节（产品名/版本号/错误码）"
+- `severity` — major / minor
+- `decomposed_from` — the exact pass/fail_standard clause it traces to
+- `gate_checkable_test` — {proposer_can_find_span, gate_can_verify} (Q1/Q2)
+- `checkable` / `audit_result` — pass / split / model_only per the B-F audit
+
+Signals that stay conclusion-only are `checkable: False` (quarantined to S2).
+Refined signals REPLACE the deterministic fallbacks (never duplicate them);
+the deterministic lexical/ordered signals stay. Every intervention is
+recorded: `{"step": "b-e-refine", "item": <id>, "rationale": ...}` in
+compile-decisions.jsonl. The refined node must pass
+`scripts/run_compile.py evaluate` before freezing. The target shape follows
+`docs/retrospectives/item-18-example-v2.yaml` (4 FAIL + 3 EXCELLENCE
+clause-traced signals with gate_checkable_test).
+
+Model judgment is confined to authoring-time gaps ONLY (B-E refinement
+above, signal-split adjudication, exclusion-set polish). Every such
+intervention is recorded as a decision-log entry. When the Evaluator returns
+fixes, use targeted-fix mode
 (`--fix '{"signal_id": "22-S01", "field": "description", "issue": "AUTH-1 …",
 "suggested_fix": "transcript contains one of the named phrases: 您别着急"}'`)
 — never a full recompile.
