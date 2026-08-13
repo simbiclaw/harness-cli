@@ -1,0 +1,20 @@
+# Generic Evaluator Skill template — 4 dimensions per docs/PRD/eval/align.md.
+skill_name: "evaluator-criteria-customer-service-generic"
+source: "ai_template"
+dimensions:
+  - name: "Procedural Accuracy"
+    description: "流程遵守与操作规范（脚本合规、信息处理）"
+    failure_signatures: ["缺少标准起接语/结束语", "候线超时", "信息处理不当"]
+  - name: "Empathy & Tone"
+    description: "态度与沟通质量（礼貌、语气、倾听）"
+    failure_signatures: ["无礼貌用语", "语气冷漠机械", "无故打断"]
+  - name: "Problem Resolution"
+    description: "问题解决质量（理解需求、节奏把控、思路清晰、方案准确）"
+    failure_signatures: ["思路混乱无方向", "处理死板不灵活", "方案不准确"]
+  - name: "Proactive Value"
+    description: "主动增值（营销机会把握、主动引导）"
+    failure_signatures: ["忽视营销机会", "无针对性推荐"]
+scale: { min: 1, max: 10 }
+hard_threshold_mechanism:
+  description: "维度得分 ≤7 视为 IMMEDIATE-FAIL，触发 hard-fail 路由（Problem Resolution）"
+  rules: [ { dimension: "Problem Resolution", threshold: 7, action: "route_to_human" } ]
