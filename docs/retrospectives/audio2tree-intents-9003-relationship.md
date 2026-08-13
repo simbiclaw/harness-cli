@@ -214,7 +214,7 @@ Step 1: audio2tree Producer bootstraps INTENTS/
   └─ git commit → Epoch A
 
 Step 2: Human authors create compiler inputs
-  └─ Specific QA Rubric (25 binary items)
+  └─ Specific QA Rubric (25 scored items)
   └─ Generic Evaluator Skill (4 dimensions, 1-10 scale)
   └─ align.md (item → dimension mapping)
 

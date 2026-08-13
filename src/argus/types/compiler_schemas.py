@@ -20,7 +20,7 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, Field, model_validator
 
 # ──────────────────────────────────────────────────────────────────────────────
-# §0.5 Compiler Input 1: SpecificRubric  (human-inspector binary checklist)
+# §0.5 Compiler Input 1: SpecificRubric  (human-inspector 1/0/NA scored items)
 # ──────────────────────────────────────────────────────────────────────────────
 
 
@@ -36,7 +36,7 @@ class RubricItemValues(BaseModel):
 
 
 class RubricItem(BaseModel):
-    """One binary item in the Specific QA Rubric (§0.5).
+    """One scored item (1/0/NA judgment) in the Specific QA Rubric (§0.5).
 
     Per Patch 1 D11: items share the same schema; keys that don't apply
     simply don't appear. The evaluator infers mode from which keys exist.
@@ -64,9 +64,9 @@ class RubricItem(BaseModel):
 
 
 class SpecificRubric(BaseModel):
-    """Human-inspector binary checklist — 27 items (§0.5).
+    """Human-inspector scored rubric — 27 items with 1/0/NA judgment (§0.5).
 
-    The primary compiler input. Each item is a binary (pass/fail) rule
+    The primary compiler input. Each item carries a 1/0/NA judgment
     with concrete values and company-specific failure examples.
     """
 

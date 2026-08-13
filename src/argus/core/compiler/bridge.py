@@ -1,6 +1,6 @@
 """M5 — binary→continuous bridge (B-A..B-D) for the 9003 compiler.
 
-The bridge translates each binary rubric item into the continuous judgment
+The bridge translates each scored rubric item (1/0/NA judgment) into the continuous dimension
 world: it binds the item to its align.md dimension with its deduction and a
 calibration-manifest severity reference (B-A), compiles the NA condition
 into an applicability gate (B-B), synthesizes per-dimension hard-fail
@@ -105,7 +105,7 @@ def compile_applicability_gate(item: dict) -> dict | None:
 
 def synthesize_hard_fail(items: list[dict], dimension: str) -> dict | None:
     """B-C: synthesize a many-to-one hard-fail routing rule for a dimension
-    from the collective failure of its binary items — a routing rule, not a
+    from the collective failure of its scored items — a routing rule, not a
     deduction, and synthesized, never copied from the template's single
     threshold (the rule carries no "threshold" key). Requires at least two
     bound items; fewer (or malformed input) yields None (B1), never a crash.
@@ -130,7 +130,7 @@ def synthesize_hard_fail(items: list[dict], dimension: str) -> dict | None:
         "trigger": {"items": [f"item-{item_id}" for item_id in bound]},
         "action": "route_to_human",
         "synthesized": True,
-        "basis": "collective failure of all binary items in the dimension",
+        "basis": "collective failure of all scored items in the dimension",
     }
 
 
