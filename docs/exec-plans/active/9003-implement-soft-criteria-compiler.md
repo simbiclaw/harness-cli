@@ -285,7 +285,7 @@ Verdict: CONFIRMED
 
 ### Decision: The Generic Evaluator Skill is an AI template, not a human artifact
 
-**Rationale:** `Source: soft-criteria-authoring-spec-v4.html §0.5, rev.4 framing correction` — earlier revisions treated the generic skill as "the human version." It is not. It is an AI-executed template that supplies judgment STRUCTURE (four dimensions, 1–10 scale, failure signatures, hard-threshold mechanism), not ground truth. The human artifact is the Specific QA Rubric (27 binary items with values). The compiler must not treat the generic skill's 1–10 grades or few-shot examples as authoritative — they are scaffolding that gets replaced by the §6 agreement instrument and the calibration manifest. This distinction is encoded in the input schema: the `GenericEvaluatorSkill` model carries a `source: "ai_template"` discriminator field.
+**Rationale:** `Source: soft-criteria-authoring-spec-v4.html §0.5, rev.4 framing correction` — earlier revisions treated the generic skill as "the human version." It is not. It is an AI-executed template that supplies judgment STRUCTURE (four dimensions, 1–10 scale, failure signatures, hard-threshold mechanism), not ground truth. The human artifact is the Specific QA Rubric (27 1/0/NA scored items with qualitative standards and values). The compiler must not treat the generic skill's 1–10 grades or few-shot examples as authoritative — they are scaffolding that gets replaced by the §6 agreement instrument and the calibration manifest. This distinction is encoded in the input schema: the `GenericEvaluatorSkill` model carries a `source: "ai_template"` discriminator field.
 
 ### Decision: M8 (§3.6b) is gated on real inputs — never invent item values
 
