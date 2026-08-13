@@ -1,6 +1,6 @@
 ---
 name: rubric-compiler
-description: Compile a human-authored Specific QA Rubric (binary checklist),
+description: Compile a human-authored Specific QA Rubric (1/0/NA scored items with qualitative pass/fail standards),
   a Generic Evaluator Skill template, and an align.md item→dimension map into
   enriched _rubric/ nodes through the GAN-style Planner/Generator/Evaluator
   compile loop over the deterministic 9003 core. Use when the human asks to
@@ -38,7 +38,7 @@ Three compiler inputs plus companion documents:
 
 | Input | File | Supplies |
 |---|---|---|
-| Specific QA Rubric | `specific-rubric.yaml` | binary `0/1/NA` items with values, NA conditions, pass/fail standards |
+| Specific QA Rubric | `specific-rubric.yaml` | `1/0/NA` scored items with values, NA conditions, pass/fail standards |
 | Generic Evaluator Skill | `generic-skill.yaml` | 4 dimensions, 1–10 scale, failure signatures (`source: ai_template`) |
 | align.md | `align.md` | item → dimension mapping (`—` = no dimension covers) |
 | Companion docs | `companions/*.md` | machine-header keyword sets (S1: SHA-256 pinned per item's `companion_docs`) |

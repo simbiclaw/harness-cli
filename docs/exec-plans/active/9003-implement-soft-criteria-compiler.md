@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-The runtime pipeline (9002) needs enriched `_rubric/` nodes to ground judgment-layer findings — without them, every soft criterion returns `deferred`. The current `INTENTS/_rubric/` holds v1-format compliance rules; the judgment-layer shelf is empty. This plan lands the **offline authoring compiler and validator** specified in `docs/PRD/soft-criteria-authoring-spec-v4.html`: it takes a human-authored Specific QA Rubric (binary checklist), an AI-executed Generic Evaluator Skill (judgment template), and an `align.md` item→dimension map, fuses them through the A1–A7 and B-A..B-D procedures, and emits enriched `_rubric/` nodes plus a ResidueManifest. The compiler is not a runtime stage — it runs once per criterion, offline, and stocks the referent the runtime reads. The validator enforces the ten AUTH prohibitions (§4) at authoring time. The Calibration Manifest is deliberately NOT a compiler input — it arrives on its own channel, injectable alone, re-anchoring severity_map refs with no recompile required.
+The runtime pipeline (9002) needs enriched `_rubric/` nodes to ground judgment-layer findings — without them, every soft criterion returns `deferred`. The current `INTENTS/_rubric/` holds v1-format compliance rules; the judgment-layer shelf is empty. This plan lands the **offline authoring compiler and validator** specified in `docs/PRD/soft-criteria-authoring-spec-v4.html`: it takes a human-authored Specific QA Rubric (1/0/NA scored items with qualitative pass/fail standards), an AI-executed Generic Evaluator Skill (judgment template), and an `align.md` item→dimension map, fuses them through the A1–A7 and B-A..B-D procedures, and emits enriched `_rubric/` nodes plus a ResidueManifest. The compiler is not a runtime stage — it runs once per criterion, offline, and stocks the referent the runtime reads. The validator enforces the ten AUTH prohibitions (§4) at authoring time. The Calibration Manifest is deliberately NOT a compiler input — it arrives on its own channel, injectable alone, re-anchoring severity_map refs with no recompile required.
 
 ## 2. Big Picture
 
@@ -16,7 +16,7 @@ The compiler touches `types/` (node schema, manifest schema, input schemas), `io
 
 | Input | Executed by | Supplies |
 |---|---|---|
-| Specific QA Rubric | human inspector | 27 binary `0/1/NA` items with concrete values and company failure examples |
+| Specific QA Rubric | human inspector | 27 `1/0/NA` scored items, each with qualitative pass/fail standards and company failure examples |
 | Generic Evaluator Skill | AI agent (template) | 4 dimensions, 1–10 scale, failure signatures, hard-threshold mechanism |
 | `align.md` | authoring | item → dimension mapping |
 
@@ -30,7 +30,7 @@ The compiler touches `types/` (node schema, manifest schema, input schemas), `io
 
 **The authoring procedure** (§2) runs once per soft criterion: A1 (decompose to orthogonal dimensions), A2 (decompose signature into gate-checkable FAIL/EXCELLENCE signals — per Patch 1 D10, the old `trigger.spec` with `form ∈ {lexical, ordered_relation, threshold, lookup}` is removed; each signal must pass the Q1/Q2 gate-checkable test and is backed by programmatic or model_based facets), A3 (classify corroborators by independence — redundant class forbidden), A4 (declare the residue — required field), A5 (seed the agreement gate with both tails: κ sample plan + escape sample plan + escape ceiling), A6 (set deduction weight and W_C provisional constant), A7 (register drift detection and iteration policy — re-ground via write-time epoch commit only). Plus A2-ac (author the 12 acoustic indicators into `_rubric/evidence/acoustic/`) and A2-ph (author the phrase lexicon into `_rubric/evidence/phrase-keyword/`).
 
-**The binary→continuous bridge** (§2.6) runs per binary item: B-A (bind item to dimension as weighted evidence via `align.md`, with a `severity_map` reference into the calibration manifest), B-B (compile every NA condition into an `applicability_gate`), B-C (synthesize hard-fail routing rules from item subsets — many-to-one, not copied thresholds), B-D (extract concrete values from checklist text — named phrases → lexical signals, numbers → threshold signals, at confidence 1.0, per Patch 1 D10).
+**The binary→continuous bridge** (§2.6) runs per scored item: B-A (bind item to dimension as weighted evidence via `align.md`, with a `severity_map` reference into the calibration manifest), B-B (compile every NA condition into an `applicability_gate`), B-C (synthesize hard-fail routing rules from item subsets — many-to-one, not copied thresholds), B-D (extract concrete values from checklist text — named phrases → lexical signals, numbers → threshold signals, at confidence 1.0, per Patch 1 D10).
 
 **Gap types** the compiler must handle (§0.5 rev.4 items 1–7): values (binary→continuous bridge), perceiver (NA→applicability gate), proxy (hard-threshold synthesis), calibration_surface_form (AUTH-9 auto-final ban until manifest covers the failure surface), coverage (escape_tier assignment — proxy/coverage → aggressive sampling; values/perceiver/calibration_surface_form → standard), dimension_coverage_gap (Item 24 — defer-until-source-connected, propose new sub-dimension).
 
@@ -219,7 +219,7 @@ Land the calibration manifest ingestion — NOT as a compiler input, but as an i
 
 ### M8 — Worked compilation (§3.6b follow-on, gated)
 
-**GATED — do not start until the Specific QA Rubric (27 binary items) and `align.md` land.** When they arrive, this milestone runs the full per-item compile pattern (§3.6b pseudocode) over all 27 real items:
+**UN-GATED 2026-08-13 — the real inputs have arrived** at `docs/PRD/eval/rubric_com_hotline.md` (Specific QA Rubric) and `docs/PRD/eval/align.md` (item→dimension map). **Item-count contract (recorded): the rubric has 27 real items; items 6 and 7 (marked `*`) require data from other platforms/systems (ticketing / escalation records) and are deferred — so 27 = 25 operational items + 2 deferred.** This milestone runs the full per-item compile pattern (§3.6b pseudocode) over the 25 operational items; items 6/7 emit `dimension_coverage_gap` rows with `defer_until_source_connected` and compile as `lookup` signals once system access is available (per align.md):
 
 ```
 for each item in specific_rubric (27):
@@ -242,7 +242,7 @@ emit: _rubric/ nodes + ResidueManifest (both required)
 
 The filled-§3.6b table in the companion spec becomes the deliverable: every row real, no invented item values. Wired into the CLI as `argus compile` with the real inputs.
 
-`Acceptance Test:` `tests/test_worked_compilation.py::test_all_27_items_compiled` — every item in the Specific QA Rubric produces either a compiled node or a manifest row. `tests/test_worked_compilation.py::test_no_invented_values` — every extracted value traces to a real item text. `tests/test_worked_compilation.py::test_hard_fail_rules_per_dimension` — each dimension with an IMMEDIATE-FAIL threshold has a synthesized hard_fail_rule. `tests/test_worked_compilation.py::test_manifest_covers_all_lossy_items` — every item that didn't fully compile has a manifest row naming what was left behind.
+`Acceptance Test:` `tests/test_worked_compilation.py::test_all_items_compiled` — every item in the Specific QA Rubric (27) produces either a compiled node or a manifest row: the 25 operational items compile; items 6/7 (external-system data) produce `dimension_coverage_gap` rows. `tests/test_worked_compilation.py::test_no_invented_values` — every extracted value traces to a real item text. `tests/test_worked_compilation.py::test_hard_fail_rules_per_dimension` — each dimension with an IMMEDIATE-FAIL threshold has a synthesized hard_fail_rule. `tests/test_worked_compilation.py::test_manifest_covers_all_lossy_items` — every item that didn't fully compile has a manifest row naming what was left behind.
 
 `Notes:` This milestone is deliberately gated on external inputs. The compiler infrastructure (M0–M7) is fully operational before this runs — only the per-item iteration body is new. Do not invent item values to unblock this milestone; the spec explicitly forbids it.
 
@@ -383,6 +383,10 @@ Verdict: CONFIRMED (round 2)
 
 **Rationale:** `Source: subagent B adversarial verification, rounds 1-2 (2026-08-12)` — acceptance tests 11/11 manifest + 191 milestone + 195 structural; ruff clean. B's REJECTED verdict closed with a red test + fix round: AUTH-9 re-evaluated in BOTH directions (an epoch regression to a non-covering manifest now REVOKES auto-final — the F1 stale-grant block), file-name epoch alignment made unconditional (only `calibration-manifest.<epoch_id>.yaml` loads — F2), `affected_criterion` bare-id convention enforced (F3). Round 2 CONFIRMED — 98/98 adversarial checks, zero findings. The loader is structural-only per round-3 Q8 (source_case grammar, never existence-checked — the libraries remain empty). Verified at 23275b6.
 
+### Decision: 27 real rubric items = 25 operational + 2 deferred (items 6/7)
+
+**Rationale:** `Source: human clarification (2026-08-13), aligning docs/PRD/eval/rubric_com_hotline.md with docs/PRD/eval/align.md` — the Specific QA Rubric has 27 real items. Items 6 (服务记录规范) and 7 (问题升级流程), marked `*` in the rubric, require data from other platforms/systems (ticketing records, escalation records) that the call recording alone does not provide. They are therefore deferred, not excluded from the rubric: align.md documents them as "fully compilable once system access is available" (`lookup` signals at confidence 1.0). **This is why align.md maps 25 items while the rubric has 27.** M8 compiles the 25 operational items; items 6/7 emit `dimension_coverage_gap` rows (`defer_until_source_connected`) and are compiled as `lookup` signals when system access lands. Recorded here to prevent future 25-vs-27 divergence; the plan's M8 wording and acceptance tests follow this contract.
+
 ## 6. Surprises & Discoveries
 
 * M0 adversarial verification found 3 domain-level design gaps (non-blocking): GenericEvaluatorSkill accepts 0 dimensions without error, RubricItem.text has no min_length constraint, CalibrationManifest.epoch_id has no format validation. All deferred — these are design choices for later milestones, not M0 mechanical failures.
@@ -408,7 +412,7 @@ Verdict: CONFIRMED (round 2)
 
 ## 7. Awaiting Steering
 
-> **Awaiting Steering: resolved — Q1.** PENDING INPUTS: Specific QA Rubric (27 binary items) + `align.md`. These are the compiler's primary inputs (§0.5). The compiler infrastructure (M0–M7) can be built and tested with fixture data. M8 (§3.6b per-item compile) is gated on receiving the real inputs. Default: proceed with M0–M7; M8 waits. If the inputs are delayed past M7 completion, M0–M7 ship as a working compiler that is input-ready.
+> **Awaiting Steering: resolved — Q1 (inputs arrived 2026-08-13).** The real Specific QA Rubric (`docs/PRD/eval/rubric_com_hotline.md`) and real `align.md` (`docs/PRD/eval/align.md`) have landed in the repo. M8 is UN-GATED and proceeds over the 25 operational items (items 6/7, marked `*`, need external platform/system data — deferred; the 27 = 25 + 2 contract is recorded in the M8 section and Decision Log). The compiler infrastructure (M0–M7) is complete and input-ready; M8's worked compilation is the remaining work.
 
 > **Awaiting Steering: resolved — Q2.** Calibration Manifest first injection. The manifest channel infrastructure (M7) supports standalone injection with no compile run. The first manifest injection requires human-annotated fragments from the Error Case Library and Best Practice Cookbook. Default: M7 ships the mechanism; the first injection is triggered by the pipeline's drift detector (§6) when κ falls or escape rate rises — not at plan completion.
 
@@ -418,4 +422,9 @@ Verdict: CONFIRMED (round 2)
 
 ## 8. Outcomes & Retrospective
 
-*Written at completion or cancellation.*
+*Written at completion (2026-08-12).*
+
+- **执行报告**: [9003-implement-soft-criteria-compiler-report.html](../reports/9003-implement-soft-criteria-compiler-report.html)
+- 全部 8 个可执行里程碑(M0-M5 纯核心、M6a agent skill、M7 manifest 通道)经对抗验证 CONFIRMED 翻转;M6 CLI 按 round-3 决策 1 延后,M8 按 Awaiting Steering Q1 门控真实输入。
+- 行为测试 202 通过 + 结构测试 195 通过 + ruff/import-linter 干净;26 次子代理对抗轮,33+ 发现全部以 RED 测试封闭。
+- 主要债务:W_C 0.4 PROVISIONAL 待实测、M6 CLI 重建、M8 真实输入;详见报告 Technical Debt。

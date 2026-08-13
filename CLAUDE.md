@@ -69,6 +69,7 @@ Do not "try harder to remember." Move the rule into code.
 - `.claude/skills/doc-gardener/` — recurring scan for stale docs and broken cross-refs (runs weekly).
 - `.claude/skills/harness-go/` — bootstrap the knowledge spine from PRDs.
 - `.claude/skills/harness-go-sync/` — incremental spine regeneration after PRD changes.
+- `.claude/skills/rubric-compiler/` — compile soft-criteria rubrics (1/0/NA scored items) into `_rubric/` nodes via the GAN-style Planner/Generator/Evaluator loop (9003).
 
 ## Subagents available
 
