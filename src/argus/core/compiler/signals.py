@@ -277,10 +277,13 @@ def decompose_signals(item: RubricItem | dict) -> dict:
          recommendation auto-splits into two FAIL siblings: a programmatic
          "temporal proximity" signal (checkable) and a model_based "context
          adaptation" signal (not checkable).
-      4. Excellence — the pass standard produces an excellence signal:
-         ordered/lexical when a pattern is present, a model_based FAIL
-         signal when it carries adjectives with a concrete referent (B5),
-         else a model_based excellence signal.
+      4. Excellence — the pass standard produces an excellence signal: an
+         ordered-relation signal when it carries an ordered marker; a
+         model_based quality signal for adjective standards with a concrete
+         referent (B5) or unobservable pass standards; a model_based
+         "model-judged excellence evidence" signal otherwise. The lane NEVER
+         reuses the fail lane's named phrases (M8 — failure markers like
+         思路混乱 must not appear as excellence evidence).
 
     No silent drops (B3): an unmatched fail standard becomes a model_based
     signal, never vanish. Pure-adjective standards (no concrete referent)
@@ -399,7 +402,12 @@ def decompose_signals(item: RubricItem | dict) -> dict:
 
         # 4. Excellence lane from the pass standard. A split pass standard was
         #    consumed by step 3. Adjectives with a concrete referent are
-        #    model-judged, not flat-rejected (B5).
+        #    model-judged, not flat-rejected (B5). The lane NEVER reuses the
+        #    fail lane's named phrases (M8 pilot-gap closure — the semantic
+        #    inversion where failure markers like 思路混乱 appear as
+        #    excellence): an ordered pass standard yields the ordered
+        #    excellence signal; an unmarked pass standard yields model_based
+        #    excellence evidence.
         if _is_split_standard(pass_standard):
             pass
         elif _match_ordered(pass_standard) is not None:
@@ -415,16 +423,9 @@ def decompose_signals(item: RubricItem | dict) -> dict:
                     },
                 )
             )
-        elif named_phrases:
-            excellence.append(
-                make_signal(
-                    "transcript contains one of the named phrases: " + "、".join(named_phrases),
-                    True,
-                )
-            )
         elif _is_pure_adjective(pass_standard, named_phrases, numeric_thresholds):
             reject(pass_standard)
-        elif _has_adjective(pass_standard):
+        elif not named_phrases and _has_adjective(pass_standard):
             # Same F4 rule as the unmatched fallback: no raw standard text
             # embedded in a model_based description.
             fail.append(
@@ -433,10 +434,32 @@ def decompose_signals(item: RubricItem | dict) -> dict:
                     False,
                 )
             )
-        else:
+        elif not named_phrases:
+            # No named phrases: the pass standard's evidence is unresolvable
+            # judgment — model_based quality evidence, never a fabricated
+            # observable.
             excellence.append(
                 make_signal(
                     "quality of the agent's handling as judged against the pass standard",
+                    False,
+                )
+            )
+        elif _pass_cites_fail_standard(pass_standard, fail_standard, named_phrases):
+            # M8: the pass standard's only named-phrase content also names
+            # failure examples (item 18's 客服系统 appears in the fail
+            # standard's worked example) — the pass and fail vocabularies are
+            # entangled, so the excellence evidence is model-judged against
+            # the pass standard, never a phrase reuse.
+            excellence.append(
+                make_signal(
+                    "quality of the agent's handling as judged against the pass standard",
+                    False,
+                )
+            )
+        else:
+            excellence.append(
+                make_signal(
+                    f"model-judged excellence evidence for criterion C{item_id}",
                     False,
                 )
             )
@@ -609,6 +632,21 @@ def _is_split_standard(standard: str) -> bool:
     if not any(pattern in lowered for pattern in _SPLIT_PATTERNS):
         return False
     return any(term in lowered for term in _RECOMMENDATION_TERMS)
+
+
+def _pass_cites_fail_standard(
+    pass_standard: str, fail_standard: str, named_phrases: list[str]
+) -> bool:
+    """M8: True when the pass standard's only named-phrase content overlaps
+    the fail standard's own text — the pass and fail vocabularies are
+    entangled (item 18's 客服系统 appears in the fail standard's worked
+    example), so the excellence evidence is model-judged against the pass
+    standard, never a phrase reuse."""
+    if not pass_standard or not fail_standard or not named_phrases:
+        return False
+    return any(
+        phrase in pass_standard and phrase in fail_standard for phrase in named_phrases
+    )
 
 
 def _emit_split_siblings(fail: list[dict], next_signal_id) -> None:

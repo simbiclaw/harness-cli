@@ -434,14 +434,51 @@ def cmd_generate(args: argparse.Namespace) -> int:
 # ──────────────────────────────────────────────────────────────────────────
 
 
+def _is_lossy(node: dict[str, Any]) -> bool:
+    """A compile is LOSY when the item's emitted signals carry a model_based
+    (checkable False) signal that is not one of the compiler's declared
+    fallback templates. The fallbacks — "model-judged evidence ... (unmatched
+    standard)", "... (adjective standard)", and the generic "model-judged
+    excellence evidence" — are structural completeness markers; a model_based
+    signal beyond them (like the pass-standard quality evidence) is genuine
+    compile residue the manifest must name."""
+    for lane in ("fail", "excellence"):
+        for signal in (node.get("signals") or {}).get(lane) or []:
+            if not signal.get("checkable"):
+                description = str(signal.get("description") or "")
+                if description.startswith("model-judged"):
+                    continue
+                return True
+    return False
+
+
 def assemble_manifest(args: argparse.Namespace) -> dict[str, Any]:
     """The provisional residue manifest: schema envelope plus the run's
-    coverage rows (including each gap row's data_dependency)."""
+    coverage rows (including each gap row's data_dependency) and — M8 pilot
+    gap closure — a within_dimension residue row for every lossy item,
+    naming exactly the residue its node declared, routed to human review."""
     plan = json.loads((args.out / "compile-plan.json").read_text())
     rows: list[dict[str, Any]] = []
     gaps_file = args.out / "coverage-gaps.jsonl"
     if gaps_file.exists():
         rows += [json.loads(line) for line in gaps_file.read_text().splitlines() if line.strip()]
+    nodes_dir = args.out / "nodes"
+    if nodes_dir.is_dir():
+        for path in sorted(nodes_dir.glob("item-*.json")):
+            node = json.loads(path.read_text())
+            if not _is_lossy(node):
+                continue
+            node_id = str(node.get("node_id") or path.stem)
+            rows.append(
+                {
+                    "kind": "within_dimension",
+                    "dimension": node.get("dimension"),
+                    "source_items": [node_id.removeprefix("item-")],
+                    "compiled_to": [node_id],
+                    "left_behind": node.get("residue_declared"),
+                    "disposition": "human_review",
+                }
+            )
     return {
         "schema_version": "1.0.0",
         "generated_at": "fixture-run",
