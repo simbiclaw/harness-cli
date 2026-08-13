@@ -298,6 +298,32 @@ class TestB2FixRound:
         rows = [json.loads(line) for line in (out / "coverage-gaps.jsonl").read_text().splitlines() if line.strip()]
         assert len(rows) == 1, "standalone generate on item 24 must not duplicate gap rows"
 
+    # Epoch activation (round-3 decision 3): nodes pin the external tree's
+    # real HEAD SHA (I4), never the zero placeholder.
+    def test_runner_stamps_real_intents_sha(self, tmp_path: Path) -> None:
+        tree = REPO_ROOT / "INTENTS"
+        if not (tree.is_symlink() and tree.exists()):
+            pytest.skip("external INTENTS tree not present")
+        resolved = tree.resolve()
+        # I4: the pin is the epoch DECLARED by the tree's EPOCH.yaml — the
+        # single source of truth — not the raw git HEAD (which may be a
+        # metadata stamp commit on top of the content baseline).
+        import yaml
+
+        epoch_declared = yaml.safe_load((resolved / "EPOCH.yaml").read_text())["epoch"]
+        assert epoch_declared and "0000000000000000000000000000000000000000" not in epoch_declared
+
+        result, out = _run_loop(tmp_path)
+        assert result.returncode == 0, result.stdout + result.stderr
+        for raw in _emitted_nodes(out):
+            assert raw["intents_sha"] == epoch_declared, (
+                f"{raw['node_id']} must pin the EPOCH.yaml-declared epoch, got {raw['intents_sha']}"
+            )
+        manifest = json.loads((out / "tree" / "_meta" / "residue-manifest.yaml").read_text())
+        assert manifest["compiler_epoch"] == epoch_declared, "compiler_epoch must be the declared epoch"
+
+
+class TestBFixRound2:
     # F7: evaluate on an out dir with no nodes must not report CONFIRMED
     def test_f7_evaluate_empty_run_exits_2(self, tmp_path: Path) -> None:
         r = _run_runner_args(

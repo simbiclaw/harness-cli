@@ -19,6 +19,7 @@ import argparse
 import hashlib
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -87,6 +88,46 @@ REMEDIATION = (
 )
 
 CONFLICT_LINE_RE = re.compile(r"^(T\d+)\s*:\s*(.+?)\s*(?:#.*)?$")
+
+
+def _external_head_sha() -> str:
+    """The external INTENTS tree's pinned epoch — the value a run stamps.
+
+    Resolves the repo's INTENTS symlink. EPOCH.yaml is the single source of
+    truth for the pin (I4 — its own comment: "Consumers pin this SHA in
+    argus.intents_sha"): return its `epoch` field when it is a non-empty,
+    non-all-zero 40-hex string — the content baseline, not the metadata
+    stamp commit. Otherwise fall back to the tree's git HEAD; on any
+    failure — missing or dangling symlink, bad yaml, git error, timeout —
+    return "staging", a clear non-zero marker: the zero placeholder must
+    never appear in output again (9003 round-3 d3).
+    """
+    tree = REPO_ROOT / "INTENTS"
+    try:
+        resolved = tree.resolve(strict=True)
+        epoch_file = resolved / "EPOCH.yaml"
+        if epoch_file.is_file():
+            declared = yaml.safe_load(epoch_file.read_text())
+            if isinstance(declared, dict):
+                epoch = declared.get("epoch")
+                if (
+                    isinstance(epoch, str)
+                    and re.fullmatch(r"[0-9a-fA-F]{40}", epoch)
+                    and epoch != "0" * 40
+                ):
+                    return epoch
+        result = subprocess.run(
+            ["git", "-C", str(resolved), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        sha = result.stdout.strip()
+        if result.returncode == 0 and sha:
+            return sha
+    except (OSError, ValueError, yaml.YAMLError, subprocess.SubprocessError):
+        pass
+    return "staging"
 
 
 def sha256_of(path: Path) -> str:
@@ -289,7 +330,7 @@ def build_node(item: dict[str, Any], dim: str, plan: dict[str, Any]) -> dict[str
         "node_id": f"item-{item_id}",
         "category": "judgment",
         "intents_path": f"/_rubric/rules_criteria/{dim}/item-{item_id}.yaml",
-        "intents_sha": "0000000000000000000000000000000000000000",
+        "intents_sha": _external_head_sha(),
         "layer": "judgment",
         "required_evidence": {},
         "fail_condition": {},
@@ -404,7 +445,7 @@ def assemble_manifest(args: argparse.Namespace) -> dict[str, Any]:
     return {
         "schema_version": "1.0.0",
         "generated_at": "fixture-run",
-        "compiler_epoch": "0000000000000000000000000000000000000000",
+        "compiler_epoch": _external_head_sha(),
         "sources": {
             "specific_rubric": "specific-rubric.yaml",
             "generic_skill": "generic-skill.yaml",
