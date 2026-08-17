@@ -22,15 +22,20 @@ from __future__ import annotations
 
 import fnmatch
 import json
+import os
 import re
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-ACTIVE_PLANS_DIR = REPO_ROOT / "docs" / "exec-plans" / "active"
+# Overridable for hermetic tests; defaults to the repo's active plans dir.
+ACTIVE_PLANS_DIR = Path(
+    os.environ.get("PEV_ACTIVE_PLANS_DIR", REPO_ROOT / "docs" / "exec-plans" / "active")
+)
 
 MILESTONE_RE = re.compile(r"^### M(\d+)[\s—–-]", re.MULTILINE)
-ALLOWED_WRITES_RE = re.compile(r"^Allowed Writes:\s*(.+)$", re.MULTILINE)
+# Constraint lines are backtick-wrapped in ExecPlans (`Allowed Writes: ...`).
+ALLOWED_WRITES_RE = re.compile(r"^`?Allowed Writes:\s*(.+?)\s*`?$", re.MULTILINE)
 CHECKBOX_RE = re.compile(r"^- \[([ x])\] M(\d+)", re.MULTILINE)
 
 
@@ -108,7 +113,10 @@ def main() -> int:
         return 0
 
     plan_text = plans[0].read_text()
-    plan_rel = plans[0].relative_to(REPO_ROOT)
+    try:  # hermetic test dirs live outside the repo — fall back to the full path
+        plan_rel = plans[0].relative_to(REPO_ROOT)
+    except ValueError:
+        plan_rel = plans[0]
     current_m = _find_current_milestone(plan_text)
 
     if current_m is None:

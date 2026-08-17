@@ -1,0 +1,205 @@
+{
+  "node_id": "item-18",
+  "category": "judgment",
+  "intents_path": "/_rubric/rules_criteria/Problem Resolution/item-18.yaml",
+  "intents_sha": "011c94b91c8cda1aa19009a2054ccbb0ac69f7b5",
+  "layer": "judgment",
+  "required_evidence": {},
+  "fail_condition": {},
+  "deduction": 1.0,
+  "authored_by": "rubric-compiler (9003 core)",
+  "dimension": "Problem Resolution",
+  "human_version": {
+    "item_number": 18,
+    "text": "思路清晰，能根据客户理解程度，灵活的给予合理的处理办法，解释说明和操作指导",
+    "na_condition": null
+  },
+  "machine_criterion": {
+    "criterion_id": "C18",
+    "description": "针对不同的用户理解能力、操作能力、所属环境适时调整自己的说话方式、指导方法，给予合理的处理办法、解释说明和操作指导；善于使用资源（例如客服系统、业务手册等）",
+    "scoring_scale": "1-10",
+    "gap_type": "values",
+    "auto_final_allowed": false,
+    "escape_tier": "standard"
+  },
+  "signals": {
+    "fail": [
+      {
+        "id": "18-S01",
+        "description": "transcript contains one of the named phrases: 客服系统、业务手册、思路混乱、引导延期",
+        "checkable": true,
+        "severity": "high",
+        "audit_result": "pass"
+      },
+      {
+        "id": "18-F1",
+        "severity": "major",
+        "description": "解释跳过关键步骤——坐席从问题陈述直接跳到解决方案，中间未出现诊断步骤（确认问题性质、说明原因）",
+        "decomposed_from": "fail_standard: 思路混乱、发散或完全无方向",
+        "gate_checkable_test": {
+          "proposer_can_find_span": "定位坐席的解释话轮序列，标记推理步骤类型",
+          "gate_can_verify": "检查 explanation_span 中 (诊断|原因|方案) 至少两个环节是否存在，缺失任一 → F1 激活"
+        },
+        "checkable": true,
+        "audit_result": "pass",
+        "evidence_shape": {
+          "shape": "ordered_relation",
+          "first": "诊断/原因",
+          "second": "方案"
+        }
+      },
+      {
+        "id": "18-F2",
+        "severity": "major",
+        "description": "未回引客户具体情况——坐席指导全程使用通用话术，客户在先话轮描述的具体细节（产品名/版本号/错误码/操作方式）未出现在后续指导中",
+        "decomposed_from": "fail_standard: 没有考虑到用户的立场以及理解能力、操作能力、所属环境，按照自己的思路进行指导",
+        "gate_checkable_test": {
+          "proposer_can_find_span": "定位客户描述了具体细节的话轮",
+          "gate_can_verify": "字符串匹配：客户的 {产品名|版本号|错误码|操作方式} 是否出现在坐席后续解释中，未出现 → F2 激活"
+        },
+        "checkable": true,
+        "audit_result": "pass"
+      },
+      {
+        "id": "18-F3",
+        "severity": "major",
+        "description": "指导未随客户反馈调整——客户表达困惑或修正后，坐席话轮特征（长度/术语密度/方式）无变化，继续原方案",
+        "decomposed_from": "fail_standard: 处理或解释死板（不能结合客户实际、主观；不能根据客户的具体情况和疑虑进行灵活解释）",
+        "gate_checkable_test": {
+          "proposer_can_find_span": "标记客户困惑/修正时间戳（customer_confusion_cues），对比前后坐席话轮",
+          "gate_can_verify": "对比前后话轮的 (word_count, technical_term_count) 变化，均无变化 → F3 激活"
+        },
+        "checkable": false,
+        "audit_result": "model_only"
+      },
+      {
+        "id": "18-F4",
+        "severity": "minor",
+        "description": "未纠正客户错误认知——客户陈述与业务事实不符（如证书有存储功能），坐席未予纠正或照单全收继续指导",
+        "decomposed_from": "fail_standard: 考虑问题不周，对关联业务判断不足；补充例证：未确认清楚企业问题，查客服系统发现过期就直接引导延期",
+        "gate_checkable_test": {
+          "proposer_can_find_span": "定位客户话轮中与领域知识库冲突的陈述",
+          "gate_can_verify": "检查后续坐席话轮是否含纠正性语言或缺失纠正 → F4 激活"
+        },
+        "checkable": true,
+        "audit_result": "pass"
+      }
+    ],
+    "excellence": [
+      {
+        "id": "18-E1",
+        "severity": "minor",
+        "description": "客户困惑后坐席改变了指导策略——从快速概述切换为逐步拆解，或从技术术语切换为日常用语",
+        "decomposed_from": "pass_standard: 针对不同的用户理解能力、操作能力、所属环境适时调整自己的说话方式、指导方法",
+        "gate_checkable_test": {
+          "proposer_can_find_span": "定位客户困惑时间戳（customer_confusion_cues），标记困惑前后坐席话轮对",
+          "gate_can_verify": "对比前后话轮 (word_count, technical_term_count, analogy_presence)，任一变化 → E1 候选"
+        },
+        "checkable": false,
+        "audit_result": "model_only"
+      },
+      {
+        "id": "18-E2",
+        "severity": "minor",
+        "description": "坐席查询系统后在对话中明确告知客户自己在查询（我帮您在XX系统中查一下），而非默默操作",
+        "decomposed_from": "pass_standard: 善于使用资源（例如客服系统、业务手册等）",
+        "gate_checkable_test": {
+          "proposer_can_find_span": "无需 proposer——词法匹配 (proactive_resource 模式)",
+          "gate_can_verify": "int(proactive_resource_hits) > 0 → E2 候选"
+        },
+        "checkable": true,
+        "audit_result": "pass"
+      },
+      {
+        "id": "18-E3",
+        "severity": "minor",
+        "description": "每一步说明操作目的——坐席在给出每个操作步骤的同时解释了该步的目的",
+        "decomposed_from": "pass_standard: 给予合理的处理办法、解释说明和操作指导",
+        "gate_checkable_test": {
+          "proposer_can_find_span": "定位坐席指导话轮，标记 (操作指令, 目的说明) 对",
+          "gate_can_verify": "count(目的说明伴随操作指令) / count(操作指令) 覆盖率 → E3 候选"
+        },
+        "checkable": true,
+        "audit_result": "pass"
+      }
+    ]
+  },
+  "facets": {
+    "programmatic": [
+      {
+        "facet_name": "programmatic_18-S01",
+        "enables_signals": [
+          "18-S01"
+        ],
+        "indicator": "values_gate_locates: transcript contains one of the named phrases: 客服系统、业务手册、思路混乱、引导延期",
+        "calculation": "1.0 when the named pattern is found in the transcript, else 0.0",
+        "output_schema": {
+          "signal_id": "18-S01",
+          "present": "bool",
+          "evidence_span": "str (quoted transcript span)"
+        }
+      }
+    ],
+    "model_based": [
+      {
+        "facet_name": "model_18-S02",
+        "enables_signals": [
+          "18-S02"
+        ],
+        "prompt": "extract evidence for model-judged evidence for criterion C18 (unmatched standard) with checkpoints: (1) locate the relevant turn(s) in the transcript, (2) quote the exact span, (3) judge the span against the signal description, (4) output per the schema below",
+        "output_schema": {
+          "signal_id": "18-S02",
+          "verdict": "bool",
+          "evidence_span": "str (quoted transcript span)",
+          "confidence": "float in [0, 1]"
+        }
+      },
+      {
+        "facet_name": "model_18-S03",
+        "enables_signals": [
+          "18-S03"
+        ],
+        "prompt": "extract evidence for quality of the agent's handling as judged against the pass standard with checkpoints: (1) locate the relevant turn(s) in the transcript, (2) quote the exact span, (3) judge the span against the signal description, (4) output per the schema below",
+        "output_schema": {
+          "signal_id": "18-S03",
+          "verdict": "bool",
+          "evidence_span": "str (quoted transcript span)",
+          "confidence": "float in [0, 1]"
+        }
+      }
+    ]
+  },
+  "corroborators": [],
+  "gap_rationale": "B-E refined (agentic Generator, 2026-08-13): clause-traced signals F1-F4/E1-E3; perceiver-style judgment — observable adaptation behavior gate-checkable, the cognitive state is not",
+  "residue_declared": "Problem Resolution 维度 residue: compiled 2 fail and 1 excellence signal(s) capture the named observables; the holistic judgment beyond them is residue.",
+  "agreement": {
+    "tau": 0.8,
+    "kappa_sample_plan": "rolling 200 calls, weekly kappa for C18",
+    "escape_sample_plan": "rolling 200 calls, weekly escape rate for C18 against the ceiling",
+    "escape_ceiling": 0.05,
+    "current_kappa": null
+  },
+  "applicability_gate": null,
+  "severity_map": null,
+  "data_dependency": null,
+  "gap_type": "values",
+  "escape_tier": "standard",
+  "iteration_policy": "re-ground via write-time epoch commit only; no rule edits from Argus output",
+  "companion_docs": null,
+  "depends_on": [],
+  "values_extracted": [
+    {
+      "kind": "lexical",
+      "spec": {
+        "phrases": [
+          "客服系统",
+          "业务手册",
+          "思路混乱",
+          "引导延期"
+        ],
+        "match": "any"
+      },
+      "confidence": 1.0
+    }
+  ]
+}

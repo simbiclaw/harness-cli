@@ -1,0 +1,20 @@
+# Fixture Generic Evaluator Skill template (AI template, not a human artifact).
+skill_name: "hotline-evaluator-fixture"
+source: "ai_template"
+dimensions:
+  - name: "procedural_accuracy"
+    description: "程序准确性：起接语、称呼等流程规范性"
+    failure_signatures: ["缺少标准问候", "称呼不当"]
+  - name: "commercial_guidance"
+    description: "业务引导：识别并引导营销机会"
+    failure_signatures: ["忽视营销机会", "无针对性推荐"]
+  - name: "empathy_and_tone"
+    description: "同理心与语气：情绪安抚与理解表达"
+    failure_signatures: ["无视情绪", "机械化回应"]
+  - name: "problem_resolution"
+    description: "问题解决：准确解答与处理"
+    failure_signatures: ["错误回答", "推诿"]
+scale: { min: 1, max: 10 }
+hard_threshold_mechanism:
+  description: "维度得分 ≤3 视为 IMMEDIATE-FAIL，触发 hard-fail 路由"
+  rules: [ { threshold: 3, action: "route_to_human" } ]

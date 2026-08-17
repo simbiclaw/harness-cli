@@ -1,0 +1,3 @@
+{"step": "b-e-refine", "item": "18", "rationale": "F1-F4/E1-E3 clause-traced per D12, replacing S02/S03 fallbacks"}
+{"step": "b-e-refine", "item": "18", "rationale": "F3/E1 checkable False — Q1 depends on model-extracted customer_confusion_cues facet"}
+{"step": "b-e-refine", "item": "18", "rationale": "E2 description authored observable (no 主动 — AUTH-1)"}

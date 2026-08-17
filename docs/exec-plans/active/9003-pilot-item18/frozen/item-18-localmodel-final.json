@@ -1,0 +1,224 @@
+{
+  "node_id": "item-18",
+  "category": "judgment",
+  "intents_path": "/_rubric/rules_criteria/Problem Resolution/item-18.yaml",
+  "intents_sha": "011c94b91c8cda1aa19009a2054ccbb0ac69f7b5",
+  "layer": "judgment",
+  "required_evidence": {},
+  "fail_condition": {},
+  "deduction": 1.0,
+  "authored_by": "rubric-compiler (9003 core)",
+  "dimension": "Problem Resolution",
+  "human_version": {
+    "item_number": 18,
+    "text": "思路清晰，能根据客户理解程度，灵活的给予合理的处理办法，解释说明和操作指导",
+    "na_condition": null
+  },
+  "machine_criterion": {
+    "criterion_id": "C18",
+    "description": "针对不同的用户理解能力、操作能力、所属环境适时调整自己的说话方式、指导方法，给予合理的处理办法、解释说明和操作指导；善于使用资源（例如客服系统、业务手册等）",
+    "scoring_scale": "1-10",
+    "gap_type": "values",
+    "auto_final_allowed": false,
+    "escape_tier": "standard"
+  },
+  "signals": {
+    "fail": [
+      {
+        "id": "18-S01",
+        "description": "transcript contains one of the named phrases: 客服系统、业务手册、思路混乱、引导延期",
+        "checkable": true,
+        "severity": "high",
+        "audit_result": "pass"
+      },
+      {
+        "id": "18-F1",
+        "description": "Agent gives instructions or explanations without first asking or confirming the customer's level of understanding, skill, or environment (e.g., proceeds with a fixed step-by-step guide without checking if the customer can follow).",
+        "severity": "major",
+        "decomposed_from": "思路混乱、发散或完全无方向；没有考虑到用户的立场以及理解能力、操作能力、所属环境，按照自己的思路进行指导",
+        "gate_checkable_test": {
+          "proposer_can_find_span": "Locate a segment where the agent starts giving instructions or explanations; check whether the agent asks any question about the customer's familiarity, device, or context before or during the guidance.",
+          "gate_can_verify": "A gate can detect the presence of at least one question from the agent about the customer's understanding/ability/environment before the first instruction, or the absence of such a question."
+        },
+        "checkable": true,
+        "audit_result": "pass"
+      },
+      {
+        "id": "18-F2",
+        "description": "Agent repeats the same explanation or instruction verbatim or with only superficial rewording after the customer indicates confusion or failure, without adapting the method (e.g., changing examples, simplifying language, switching to a different approach).",
+        "severity": "major",
+        "decomposed_from": "处理或解释死板（不能结合客户实际、主观；不能根据客户的具体情况和疑虑进行灵活解释）",
+        "gate_checkable_test": {
+          "proposer_can_find_span": "Find two or more turns where the customer expresses non-understanding or failure; compare the agent's subsequent responses for identical or near-identical phrasing or steps.",
+          "gate_can_verify": "A gate can compute text similarity between the agent's responses after customer confusion and flag if similarity exceeds a threshold without any new information or alternative approach."
+        },
+        "checkable": true,
+        "audit_result": "pass"
+      },
+      {
+        "id": "18-F3",
+        "description": "Agent provides a solution or recommendation without referencing any available resource (e.g., knowledge base, system lookup, manual) when the customer's issue is complex or the agent's own knowledge is insufficient, and the transcript shows no evidence of such resource use.",
+        "severity": "major",
+        "decomposed_from": "不善于使用资源",
+        "gate_checkable_test": {
+          "proposer_can_find_span": "Identify a segment where the customer asks a question or reports an issue that requires specific policy or system information; check whether the agent mentions consulting a resource (e.g., '我查一下', '系统显示', '手册里') or performs a system action.",
+          "gate_can_verify": "A gate can detect keywords indicating resource use (e.g., '查一下', '系统', '手册') in the agent's turns within that segment, or the absence of such keywords."
+        },
+        "checkable": true,
+        "audit_result": "pass"
+      },
+      {
+        "id": "18-F4",
+        "description": "Agent fails to ask clarifying questions about the customer's specific situation (e.g., account type, error message, device model, network environment) before giving a solution, leading to a generic or potentially incorrect answer.",
+        "severity": "major",
+        "decomposed_from": "考虑问题不周，对关联业务判断不足，造成客户肯定会在后续问题",
+        "gate_checkable_test": {
+          "proposer_can_find_span": "Locate the first problem-solving exchange; check whether the agent asks at least one clarifying question about the customer's specific context before proposing a solution.",
+          "gate_can_verify": "A gate can detect the presence of interrogative sentences or question marks in the agent's turns before the first solution proposal."
+        },
+        "checkable": true,
+        "audit_result": "pass"
+      },
+      {
+        "id": "18-F5",
+        "description": "Agent gives a directive (e.g., '请延期', '您需要续费') without first verifying the customer's actual situation (e.g., whether the issue is truly about expiry, whether the customer has already tried something), as evidenced by the agent skipping confirmation steps.",
+        "severity": "major",
+        "decomposed_from": "未确认清楚企业问题，查客服系统发现过期就直接引导延期，此项将扣分",
+        "gate_checkable_test": {
+          "proposer_can_find_span": "Find a segment where the agent issues a directive or recommendation; check whether the agent first asked the customer to describe the problem or confirm the symptom.",
+          "gate_can_verify": "A gate can detect the presence of a directive verb (e.g., '请', '您需要', '建议您') and check if the preceding agent turns contain any question about the customer's issue."
+        },
+        "checkable": true,
+        "audit_result": "pass"
+      },
+      {
+        "id": "18-F6",
+        "description": "Agent continues a phone call or interaction with the customer after the customer has indicated the issue is resolved or has not requested further assistance, without a clear reason (e.g., no pending action, no confirmation needed).",
+        "severity": "minor",
+        "decomposed_from": "已经连上远程，企业并未要求，客服继续和企业保持通话",
+        "gate_checkable_test": {
+          "proposer_can_find_span": "Identify the point where the customer states the problem is solved or expresses a desire to end the call; check whether the agent continues with unrelated talk or repeats instructions without a new task.",
+          "gate_can_verify": "A gate can detect customer closing signals (e.g., '好了', '可以了', '谢谢') and then check if the agent's subsequent turns contain new problem-solving content or are just filler."
+        },
+        "checkable": true,
+        "audit_result": "pass"
+      }
+    ],
+    "excellence": [
+      {
+        "id": "18-E1",
+        "description": "Agent explicitly asks the customer about their familiarity with the product, their device, or their environment before giving instructions, and then tailors the explanation (e.g., uses simpler terms, different examples, or step-by-step guidance) based on the customer's response.",
+        "severity": "minor",
+        "decomposed_from": "针对不同的用户理解能力、操作能力、所属环境适时调整自己的说话方式、指导方法，给予合理的处理办法、解释说明和操作指导",
+        "gate_checkable_test": {
+          "proposer_can_find_span": "Find a segment where the agent asks a question about the customer's context (e.g., '您之前操作过吗', '您用的是手机还是电脑') and then the agent's subsequent explanation contains language or steps that differ from a generic script (e.g., simplified wording, alternative examples).",
+          "gate_can_verify": "A gate can detect the presence of a context question and then compare the agent's explanation to a baseline generic explanation (e.g., via keyword overlap or length) to see if it is adapted."
+        },
+        "checkable": true,
+        "audit_result": "pass"
+      },
+      {
+        "id": "18-E2",
+        "description": "Agent explicitly mentions or demonstrates use of a resource (e.g., '我查一下系统', '根据手册', '让我看看知识库') during the interaction to verify information or find a solution, and the resource use is relevant to the customer's issue.",
+        "severity": "minor",
+        "decomposed_from": "善于使用资源（例如客服系统、业务手册等）",
+        "gate_checkable_test": {
+          "proposer_can_find_span": "Locate a turn where the agent states they are checking a resource (e.g., '我查一下', '系统显示', '手册里说') and the subsequent response contains information that appears to come from that resource (e.g., specific policy, error code, steps).",
+          "gate_can_verify": "A gate can detect resource-mention keywords and then check that the agent's next turn contains substantive content (e.g., not just '嗯' or '好的')."
+        },
+        "checkable": true,
+        "audit_result": "pass"
+      },
+      {
+        "id": "18-E3",
+        "description": "Agent asks one or more clarifying questions about the customer's specific situation (e.g., error message, account type, steps already tried) before proposing a solution, and the solution directly addresses the clarified details.",
+        "severity": "minor",
+        "decomposed_from": "给予合理的处理办法、解释说明和操作指导",
+        "gate_checkable_test": {
+          "proposer_can_find_span": "Find a segment where the agent asks at least two clarifying questions about the issue, and then the agent's proposed solution references the customer's answers (e.g., mentions the specific error, device, or action).",
+          "gate_can_verify": "A gate can count the number of questions in the agent's turns before the solution and check if the solution text contains keywords from the customer's answers."
+        },
+        "checkable": true,
+        "audit_result": "pass"
+      }
+    ]
+  },
+  "facets": {
+    "programmatic": [
+      {
+        "facet_name": "programmatic_18-S01",
+        "enables_signals": [
+          "18-S01"
+        ],
+        "indicator": "values_gate_locates: transcript contains one of the named phrases: 客服系统、业务手册、思路混乱、引导延期",
+        "calculation": "1.0 when the named pattern is found in the transcript, else 0.0",
+        "output_schema": {
+          "signal_id": "18-S01",
+          "present": "bool",
+          "evidence_span": "str (quoted transcript span)"
+        }
+      }
+    ],
+    "model_based": [
+      {
+        "facet_name": "model_18-S02",
+        "enables_signals": [
+          "18-S02"
+        ],
+        "prompt": "extract evidence for model-judged evidence for criterion C18 (unmatched standard) with checkpoints: (1) locate the relevant turn(s) in the transcript, (2) quote the exact span, (3) judge the span against the signal description, (4) output per the schema below",
+        "output_schema": {
+          "signal_id": "18-S02",
+          "verdict": "bool",
+          "evidence_span": "str (quoted transcript span)",
+          "confidence": "float in [0, 1]"
+        }
+      },
+      {
+        "facet_name": "model_18-S03",
+        "enables_signals": [
+          "18-S03"
+        ],
+        "prompt": "extract evidence for quality of the agent's handling as judged against the pass standard with checkpoints: (1) locate the relevant turn(s) in the transcript, (2) quote the exact span, (3) judge the span against the signal description, (4) output per the schema below",
+        "output_schema": {
+          "signal_id": "18-S03",
+          "verdict": "bool",
+          "evidence_span": "str (quoted transcript span)",
+          "confidence": "float in [0, 1]"
+        }
+      }
+    ]
+  },
+  "corroborators": [],
+  "gap_rationale": "Problem Resolution: 4 named phrase(s) give the gate a checkable lexical value",
+  "residue_declared": "Problem Resolution 维度 residue: compiled 2 fail and 1 excellence signal(s) capture the named observables; the holistic judgment beyond them is residue.",
+  "agreement": {
+    "tau": 0.8,
+    "kappa_sample_plan": "rolling 200 calls, weekly kappa for C18",
+    "escape_sample_plan": "rolling 200 calls, weekly escape rate for C18 against the ceiling",
+    "escape_ceiling": 0.05,
+    "current_kappa": null
+  },
+  "applicability_gate": null,
+  "severity_map": null,
+  "data_dependency": null,
+  "gap_type": "values",
+  "escape_tier": "standard",
+  "iteration_policy": "re-ground via write-time epoch commit only; no rule edits from Argus output",
+  "companion_docs": null,
+  "depends_on": [],
+  "values_extracted": [
+    {
+      "kind": "lexical",
+      "spec": {
+        "phrases": [
+          "客服系统",
+          "业务手册",
+          "思路混乱",
+          "引导延期"
+        ],
+        "match": "any"
+      },
+      "confidence": 1.0
+    }
+  ]
+}
