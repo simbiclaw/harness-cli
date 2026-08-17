@@ -3,7 +3,7 @@
 
 Executes the B-E authoring step against the LOCAL model endpoint
 (docs/references/ds4-flash-GUIDE.md — LiteLLM at 192.168.3.55:4000, model
-deepseek-v4-flash, OpenAI-compatible chat completions). Reads every node
+deepseek-v4-flash-local, OpenAI-compatible chat completions). Reads every node
 under `--out/nodes/`, identifies the checkable-False fallback signals in the
 fail+excellence lanes, and asks the local model to decompose the unmatched
 standard clauses into observable signals.
@@ -19,13 +19,18 @@ GAN repair round (max-3-rounds discipline): a response that parses as JSON
 but fails shape validation (missing required field / bad type), or returns
 empty/whitespace-only content (transient server behavior), is re-requested
 with the failure fed back to the model — budget 2 retries, 3 attempts total.
-Non-empty unparseable content halts immediately. Persistent failures halt
-(exit 2, node UNCHANGED); every repair is recorded as a
-`{"step": "b-e-repair", ...}` decision entry alongside the `b-e-refine` entry.
+After shape validation, the merged node runs through the M1 validator
+(`argus.core.compiler.validator.validate_node`, same sys.path bootstrap as
+the runner); AUTH-1-style findings are equally repairable feedback (the GAN
+Evaluator→Generator closure). Non-empty unparseable content halts
+immediately. Persistent failures halt (exit 2, node UNCHANGED); every repair
+is recorded as a `{"step": "b-e-repair", ...}` decision entry alongside the
+`b-e-refine` entry.
 
-Stdlib only (`urllib`) — no new dependencies. The endpoint is env-overridable:
+Stdlib only (`urllib`) plus the in-repo argus core for the Evaluator gate —
+no new dependencies. The endpoint is env-overridable:
 LOCAL_MODEL_URL (default http://192.168.3.55:4000), LOCAL_MODEL_NAME
-(default deepseek-v4-flash), LOCAL_MODEL_API_KEY (default sk-1234, the LAN
+(default deepseek-v4-flash-local), LOCAL_MODEL_API_KEY (default sk-1234, the LAN
 deployment's dev token).
 """
 
@@ -40,8 +45,23 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+REPO_ROOT = Path(__file__).resolve().parents[4]  # scripts/ → rubric-compiler/ → skills/ → .claude/ → repo
+
+# --- sys.path bootstrap (mirrors run_compile.py) ---------------------------
+try:  # pragma: no cover
+    import argus  # noqa: F401
+except ImportError:  # pragma: no cover
+    sys.path.insert(0, str(REPO_ROOT / "src"))
+
+try:
+    from argus.core.compiler.validator import validate_node
+
+    VALIDATOR_AVAILABLE = True
+except ImportError:
+    VALIDATOR_AVAILABLE = False
+
 DEFAULT_URL = "http://192.168.3.55:4000"
-DEFAULT_MODEL = "deepseek-v4-flash"
+DEFAULT_MODEL = "deepseek-v4-flash-local"
 DEFAULT_API_KEY = "sk-1234"
 REQUEST_TIMEOUT = 300  # seconds — the LAN model may take minutes for 16384 tokens
 MAX_ATTEMPTS = 3  # GAN repair budget: 2 retries, 3 attempts total
@@ -114,6 +134,23 @@ class EmptyResponseError(RepairableError):
         super().__init__(
             "empty response",
             "Your previous response was empty. Re-emit the complete JSON.",
+        )
+
+
+class ValidatorError(RepairableError):
+    """The M1 validator rejected the merged node (e.g. an AUTH-1 evaluative
+    adjective without a concrete referent). Repairable — the finding is fed
+    back and the request retried (GAN Evaluator→Generator closure)."""
+
+    def __init__(self, finding: str) -> None:
+        super().__init__(
+            finding,
+            feedback=(
+                "Your previous response was rejected by the validator: "
+                + finding
+                + ". Re-emit the complete JSON with all seven fields per signal, "
+                "descriptions observable without evaluative adjectives."
+            ),
         )
 
 
@@ -301,6 +338,25 @@ def build_payload(
     }
 
 
+def merge_refined(
+    node: dict[str, Any],
+    refined: dict[str, list[dict[str, Any]]],
+    targets: dict[str, list[dict[str, Any]]],
+) -> dict[str, Any]:
+    """A copy of the node with the refined signals merged into the targeted
+    lanes (checkable-True signals kept, refined signals appended in order).
+    The caller's node is never mutated — the write happens only after the
+    full repair loop succeeds (HALT = UNCHANGED)."""
+    merged = dict(node)
+    merged["signals"] = dict(node["signals"])
+    for lane in ("fail", "excellence"):
+        if not targets[lane]:
+            continue
+        lane_signals = node["signals"][lane]
+        merged["signals"][lane] = [s for s in lane_signals if s.get("checkable")] + refined[lane]
+    return merged
+
+
 def refine_node(
     path: Path,
     out: Path,
@@ -337,17 +393,30 @@ def refine_node(
         print(f"item {item_id}: no checkable-False fallback signals — nothing to refine")
         return 0
 
-    # GAN repair round: wrap call → parse → validate in a retry loop (budget
-    # 2 retries, 3 attempts). A shape-validation failure feeds the exact error
-    # back to the model and retries; anything else halts immediately.
+    # GAN repair round: wrap call → parse → validate → M1-validate in a retry
+    # loop (budget 2 retries, 3 attempts). A shape-validation failure, empty
+    # content, or validator finding feeds the exact error back to the model
+    # and retries; anything else halts immediately.
+    if not VALIDATOR_AVAILABLE:
+        raise BefineError(
+            "M6a Requires: M5 — argus.core.compiler.validator is not importable; "
+            "the Evaluator gate cannot run (no B-E refinement without the quality gate)"
+        )
     payload = build_payload(node, item_id, plan_items.get(item_id), model_name)
     last_error: str | None = None
     refined: dict[str, list[dict[str, Any]]] | None = None
+    candidate: dict[str, Any] | None = None
     for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
             body = call_local_model(payload, url, api_key)
             content = extract_content(body, url)
-            refined = parse_refinement(content, url)
+            parsed = parse_refinement(content, url)
+            merged = merge_refined(node, parsed, targets)
+            validator_findings = validate_node(merged)
+            if validator_findings:
+                raise ValidatorError(validator_findings[0])
+            refined = parsed
+            candidate = merged
             break
         except RepairableError as e:
             last_error = str(e)
@@ -358,20 +427,14 @@ def refine_node(
                 ) from e
             user = payload["messages"][1]
             user["content"] = str(user["content"]) + "\n\n" + e.feedback
-    if refined is None:
+    if refined is None or candidate is None:
         # Budget exhaustion raised inside the loop — unreachable.
         raise BefineError("internal error: refinement loop exited without a result")
     repairs = attempt - 1
 
-    replaced = 0
-    for lane in ("fail", "excellence"):
-        if not targets[lane]:
-            continue
-        keep = [s for s in signals[lane] if s.get("checkable")]
-        signals[lane] = keep + refined[lane]
-        replaced += len(refined[lane])
+    replaced = sum(len(refined[lane]) for lane in ("fail", "excellence") if targets[lane])
     # Only a fully successful refinement writes the node (HALT = UNCHANGED).
-    path.write_text(json.dumps(node, indent=2, ensure_ascii=False))
+    path.write_text(json.dumps(candidate, indent=2, ensure_ascii=False))
 
     with (out / "compile-decisions.jsonl").open("a", encoding="utf-8") as fh:
         if repairs:

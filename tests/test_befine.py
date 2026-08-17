@@ -6,7 +6,7 @@ rubric-compiler skill (import/exec error = the documented RED state).
 Contract: B-E refinement is executed by the LOCAL model endpoint
 (docs/references/ds4-flash-GUIDE.md — LiteLLM at 192.168.3.55:4000,
 model deepseek-v4-flash, OpenAI-compatible chat completions), env-overridable
-(LOCAL_MODEL_URL / LOCAL_MODEL_NAME / LOCAL_MODEL_API_KEY). HALT semantics:
+(LOCAL_MODEL_URL / LOCAL_MODEL_NAME / LOCAL_MODEL_API_KEY — the LOCAL id is deepseek-v4-flash-local; deepseek-v4-flash is NOT in the proxy's /v1/models list). HALT semantics:
 an unreachable endpoint or malformed response exits 2 with a clear error and
 leaves the node UNCHANGED — no fallback to the session model. Refined
 signals replace every checkable-False fallback signal; decisions record the
@@ -108,7 +108,7 @@ def _run_loop(out: Path) -> None:
 
 
 def _befine(out: Path, url: str, extra_env: dict | None = None) -> subprocess.CompletedProcess:
-    env = {"LOCAL_MODEL_URL": url, "LOCAL_MODEL_NAME": "deepseek-v4-flash",
+    env = {"LOCAL_MODEL_URL": url, "LOCAL_MODEL_NAME": "deepseek-v4-flash-local",
            "LOCAL_MODEL_API_KEY": "sk-test"}
     if extra_env:
         env.update(extra_env)
@@ -130,8 +130,22 @@ class TestBefineLocalModel:
                        for s in node["signals"][lane]), "fallbacks must be replaced"
         # the request must target the OpenAI chat endpoint with deterministic knobs
         req = MockLocalModel.received
-        assert req["model"] == "deepseek-v4-flash"
+        assert req["model"] == "deepseek-v4-flash-local", "must call the LOCAL deployment id (privacy: LAN only)"
         assert req.get("temperature") == 0, "B-E must run greedy for reproducibility"
+
+    def test_default_model_is_the_local_deployment(self, tmp_path: Path, mock_model: str) -> None:
+        """Without LOCAL_MODEL_NAME, the default must be deepseek-v4-flash-local
+        (the LAN deployment) — never an ambiguous/cloud-routed id (privacy)."""
+        _run_loop(tmp_path / "out")
+        env = {"LOCAL_MODEL_URL": mock_model, "LOCAL_MODEL_API_KEY": "sk-test"}
+        r = subprocess.run(
+            [sys.executable, str(BEFINE), "--out", str(tmp_path / "out")],
+            capture_output=True, text=True, cwd=REPO_ROOT, env=env,
+        )
+        assert r.returncode == 0, r.stdout + r.stderr
+        assert MockLocalModel.received["model"] == "deepseek-v4-flash-local", (
+            f"default must be the LOCAL deployment id, got {MockLocalModel.received['model']}"
+        )
 
     def test_halts_when_endpoint_unreachable(self, tmp_path: Path) -> None:
         _run_loop(tmp_path / "out")
@@ -190,6 +204,35 @@ class TestBefineLocalModel:
                      if line.strip()]
         assert any(d.get("step") == "b-e-repair" for d in decisions), "empty-response retry must be recorded"
 
+    def test_repairs_auth1_finding_then_succeeds(self, tmp_path: Path, mock_model: str) -> None:
+        """GAN Evaluator→Generator feedback: a refined signal carrying an
+        evaluative adjective (AUTH-1) is fed back to the model for repair."""
+        _run_loop(tmp_path / "out")
+        bad = json.loads(json.dumps(CANNED_REFINEMENT))
+        bad["excellence"][0]["description"] = "agent is proactive and flexible in adapting guidance"
+        MockLocalModel.payloads = [json.dumps(bad, ensure_ascii=False)]
+        r = _befine(tmp_path / "out", mock_model)
+        assert r.returncode == 0, r.stdout + r.stderr
+        node = json.loads((tmp_path / "out" / "nodes" / "item-18.json").read_text())
+        desc = next(s["description"] for s in node["signals"]["excellence"] if s["id"] == "18-E1")
+        assert "proactive" not in desc.lower() and "flexible" not in desc.lower(), (
+            "AUTH-1 finding must be repaired, got: " + desc
+        )
+        decisions = [json.loads(line) for line in (tmp_path / "out" / "compile-decisions.jsonl").read_text().splitlines()
+                     if line.strip()]
+        assert any("AUTH-1" in d.get("rationale", "") for d in decisions if d.get("step") == "b-e-repair")
+
+    def test_halts_on_persistent_auth1(self, tmp_path: Path, mock_model: str) -> None:
+        _run_loop(tmp_path / "out")
+        bad = json.loads(json.dumps(CANNED_REFINEMENT))
+        bad["excellence"][0]["description"] = "agent is proactive and flexible in adapting guidance"
+        MockLocalModel.payloads = [json.dumps(bad, ensure_ascii=False)] * 5
+        before = (tmp_path / "out" / "nodes" / "item-18.json").read_text()
+        r = _befine(tmp_path / "out", mock_model)
+        assert r.returncode == 2, "persistent AUTH-1 findings must halt"
+        after = (tmp_path / "out" / "nodes" / "item-18.json").read_text()
+        assert before == after
+
     def test_halts_on_persistent_empty(self, tmp_path: Path, mock_model: str) -> None:
         _run_loop(tmp_path / "out")
         MockLocalModel.payloads = [""] * 5
@@ -218,6 +261,6 @@ class TestBefineLocalModel:
         decisions = [json.loads(line) for line in (tmp_path / "out" / "compile-decisions.jsonl").read_text().splitlines()
                      if line.strip()]
         refined = [d for d in decisions if d.get("step") == "b-e-refine"]
-        assert refined and all(d.get("model") == "deepseek-v4-flash" for d in refined), (
+        assert refined and all(d.get("model") == "deepseek-v4-flash-local" for d in refined), (
             "decisions must record the model identity"
         )
