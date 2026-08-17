@@ -298,6 +298,33 @@ class TestB2FixRound:
         rows = [json.loads(line) for line in (out / "coverage-gaps.jsonl").read_text().splitlines() if line.strip()]
         assert len(rows) == 1, "standalone generate on item 24 must not duplicate gap rows"
 
+    # M8 pilot gap closure: lossy compilations must emit within_dimension rows
+    def test_lossy_items_get_within_dimension_rows(self, tmp_path: Path) -> None:
+        # Fixture run: model_based items (21, 26) are lossy; lexical-only (01, 02, 20, 22) are not
+        result, out = _run_loop(tmp_path)
+        assert result.returncode == 0, result.stdout + result.stderr
+        manifest = json.loads((out / "tree" / "_meta" / "residue-manifest.yaml").read_text())
+        within = [r for r in manifest["rows"] if r["kind"] == "within_dimension"]
+        lossy_ids = {item for r in within for item in r["source_items"]}
+        assert {"21", "26"} <= lossy_ids, f"model_based items must be lossy rows, got {lossy_ids}"
+        assert not ({"01", "02", "20", "22"} & lossy_ids), "lexical-only items must not be lossy"
+        # each row names what was left behind
+        for r in within:
+            assert r["left_behind"], "within_dimension row must name the residue"
+            assert r["disposition"], "within_dimension row must carry a disposition"
+
+    def test_pilot_item18_lossy_row_matches_residue(self, tmp_path: Path) -> None:
+        # Real item 18 (pilot inputs): the manifest row's left_behind must equal the node's residue
+        pilot = REPO_ROOT / "docs" / "exec-plans" / "active" / "9003-pilot-item18"
+        result, out = _run_loop(tmp_path, inputs=pilot)
+        assert result.returncode == 0, result.stdout + result.stderr
+        node = json.loads((out / "nodes" / "item-18.json").read_text())
+        manifest = json.loads((out / "tree" / "_meta" / "residue-manifest.yaml").read_text())
+        row = next(r for r in manifest["rows"] if r["kind"] == "within_dimension" and "18" in r["source_items"])
+        assert row["left_behind"] == node["residue_declared"], (
+            "within_dimension row must name exactly what the node declared as residue"
+        )
+
     # Epoch activation (round-3 decision 3): nodes pin the external tree's
     # real HEAD SHA (I4), never the zero placeholder.
     def test_runner_stamps_real_intents_sha(self, tmp_path: Path) -> None:

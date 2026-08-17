@@ -454,6 +454,42 @@ class TestB6FixRound:
         assert shape["first"] == "安抚" and shape["second"] == "处理"
 
 
+# ── M8 pilot gap closure (2026-08-13): excellence must not reuse fail phrases ─
+
+
+class TestExcellenceNoPhraseReuse:
+    """Pilot gap ②: the excellence lane must derive from the PASS standard's
+    observable content, never duplicate the FAIL lane's named phrases."""
+
+    def test_excellence_does_not_reuse_fail_phrases(self):
+        item = make_item(values={"named_phrases": ["思路混乱", "引导延期"], "numeric_thresholds": []})
+        signals = decompose_signals(item)
+        fail_phrases = set()
+        for s in signals["fail"]:
+            if s.get("checkable"):
+                for p in ("思路混乱", "引导延期"):
+                    if p in s["description"]:
+                        fail_phrases.add(p)
+        for s in signals["excellence"]:
+            for p in fail_phrases:
+                assert p not in s["description"], (
+                    f"excellence signal {s['id']} must not reuse FAIL phrase {p!r}"
+                )
+
+    def test_ordered_pass_standard_yields_ordered_excellence(self):
+        item = make_item(pass_standard="情绪激动场景先表达理解再进入处理")
+        signals = decompose_signals(item)
+        ordered = [s for s in signals["excellence"] if s.get("evidence_shape", {}).get("shape") == "ordered_relation"]
+        assert ordered, "先X再Y pass standard must produce an ordered excellence signal"
+        assert ordered[0]["checkable"] is True
+
+    def test_unmarked_pass_standard_yields_model_based_excellence(self):
+        item = make_item(pass_standard="针对不同的用户理解能力适时调整说话方式")
+        signals = decompose_signals(item)
+        model = [s for s in signals["excellence"] if s["checkable"] is False]
+        assert model, "pass standard without observable markers must yield model_based excellence"
+
+
 # ── A2-ph: phrase lexicon ────────────────────────────────────────────────────
 
 
