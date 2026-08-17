@@ -78,7 +78,11 @@ def make_node(**overrides) -> dict:
         },
         "facets": {"programmatic": [], "model_based": []},
         "corroborators": [
-            {"signal_type": "lexical_match", "node_ref": "item-20-S01", "independence_class": "independent"}
+            {
+                "signal_type": "lexical_match",
+                "node_ref": "item-20-S01",
+                "independence_class": "independent",
+            }
         ],
         "gap_rationale": "mock template classification",
         "residue_declared": "does not capture tone warmth; sincerity of engagement",
@@ -160,7 +164,11 @@ class TestAuth4RedundantCorroborator:
     def test_auth4_red_redundant_class(self):
         node = make_node(
             corroborators=[
-                {"signal_type": "soft_text", "node_ref": "item-26-S01", "independence_class": "redundant"}
+                {
+                    "signal_type": "soft_text",
+                    "node_ref": "item-26-S01",
+                    "independence_class": "redundant",
+                }
             ]
         )
         errors = check_no_redundant_corroborator(node)
@@ -237,7 +245,11 @@ class TestAuth7ApplicabilityGate:
 
     def test_auth7_green_with_gate(self):
         node = make_node(
-            human_version={"item_number": 21, "text": "积极灵活营销", "na_condition": "no opportunity"},
+            human_version={
+                "item_number": 21,
+                "text": "积极灵活营销",
+                "na_condition": "no opportunity",
+            },
             applicability_gate={"spec": "gate references prerequisite signals of item 20"},
         )
         assert check_applicability_gate(node) == []
@@ -249,14 +261,22 @@ class TestAuth7ApplicabilityGate:
 class TestAuth8DataDependency:
     def test_auth8_red_connected_false_without_defer(self):
         node = make_node(
-            data_dependency={"source": "callback_logs+ticket_status", "connected": False, "disposition": "route_to_human"}
+            data_dependency={
+                "source": "callback_logs+ticket_status",
+                "connected": False,
+                "disposition": "route_to_human",
+            }
         )
         errors = check_data_dependency(node)
         assert errors, "connected: false without defer disposition must be rejected"
 
     def test_auth8_green_deferred(self):
         node = make_node(
-            data_dependency={"source": "callback_logs+ticket_status", "connected": False, "disposition": "defer_until_source_connected"}
+            data_dependency={
+                "source": "callback_logs+ticket_status",
+                "connected": False,
+                "disposition": "defer_until_source_connected",
+            }
         )
         assert check_data_dependency(node) == []
 
@@ -283,7 +303,9 @@ class TestAuth9CalibrationCoverage:
             severity_map="calibration://manifest/epoch-000/severity/21",
         )
         errors = check_calibration_coverage(node, manifest=make_manifest(covered_criteria=set()))
-        assert errors, "calibration_surface_form with auto_final and no manifest coverage must be rejected"
+        assert errors, (
+            "calibration_surface_form with auto_final and no manifest coverage must be rejected"
+        )
 
     def test_auth9_green_no_auto_final(self):
         node = make_node(
@@ -312,7 +334,9 @@ class TestAuth9CalibrationCoverage:
             gap_type="calibration_surface_form",
             severity_map="calibration://manifest/epoch-001/severity/21",
         )
-        assert check_calibration_coverage(node, manifest=make_manifest(covered_criteria={"21"})) == []
+        assert (
+            check_calibration_coverage(node, manifest=make_manifest(covered_criteria={"21"})) == []
+        )
 
 
 # ── AUTH-10: no forced mapping ──────────────────────────────────────────────
@@ -340,7 +364,9 @@ class TestAuth10ForcedMapping:
 
 class TestS1CompanionDocs:
     def test_s1_red_missing_sha(self):
-        node = make_node(companion_docs=[{"document": "marketing-scripts.md", "role": "standard_scripts"}])
+        node = make_node(
+            companion_docs=[{"document": "marketing-scripts.md", "role": "standard_scripts"}]
+        )
         errors = check_companion_docs(node)
         assert errors, "companion_docs entry without sha256 must be rejected"
 
@@ -361,9 +387,14 @@ class TestS3DependsOn:
         node = make_node(
             node_id="item-21",
             depends_on=["20"],
-            applicability_gate={"spec": "gate references prerequisite signals", "refs": ["20-S01", "20-S99"]},
+            applicability_gate={
+                "spec": "gate references prerequisite signals",
+                "refs": ["20-S01", "20-S99"],
+            },
         )
-        sibling20 = make_node(node_id="item-20", signals={"fail": [{"id": "20-S01"}], "excellence": []})
+        sibling20 = make_node(
+            node_id="item-20", signals={"fail": [{"id": "20-S01"}], "excellence": []}
+        )
         errors = check_depends_on(node, siblings=[sibling20])
         assert errors, "depends_on ref to a non-existent sibling signal must be rejected"
 
@@ -373,7 +404,9 @@ class TestS3DependsOn:
             depends_on=["20"],
             applicability_gate={"spec": "gate references prerequisite signals", "refs": ["20-S01"]},
         )
-        sibling20 = make_node(node_id="item-20", signals={"fail": [{"id": "20-S01"}], "excellence": []})
+        sibling20 = make_node(
+            node_id="item-20", signals={"fail": [{"id": "20-S01"}], "excellence": []}
+        )
         assert check_depends_on(node, siblings=[sibling20]) == []
 
 
@@ -383,7 +416,10 @@ class TestS3DependsOn:
 class TestS4CheckableAudited:
     def test_s4_red_implicit_checkable(self):
         node = make_node(
-            signals={"fail": [{"id": "22-S01", "description": "phrase present", "severity": "high"}], "excellence": []}
+            signals={
+                "fail": [{"id": "22-S01", "description": "phrase present", "severity": "high"}],
+                "excellence": [],
+            }
         )  # no checkable / audit_result
         errors = check_checkable_audited(node)
         assert errors, "signal without checkable + audit_result must be rejected"
@@ -427,7 +463,11 @@ class TestS5ExclusionAdversarial:
         assert warnings, "exclusion pattern embedded in a positive pattern must be flagged"
 
     def test_s5_green_no_exclusions(self):
-        signal = {"id": "20-S01", "description": "specific recommendation present", "checkable": True}
+        signal = {
+            "id": "20-S01",
+            "description": "specific recommendation present",
+            "checkable": True,
+        }
         assert check_exclusion_set_adversarial(signal) == []
 
 
@@ -441,7 +481,9 @@ class TestS2SourceConflict:
             "marketing-scripts-v2.md": {"T001": ["子证书", "单独领证"]},  # T001 redefined
         }
         conflicts = validate_sources(sources)
-        assert conflicts, "trigger ID redefined with different keywords must produce a conflict report"
+        assert conflicts, (
+            "trigger ID redefined with different keywords must produce a conflict report"
+        )
 
     def test_s2_green_consistent(self):
         sources = {
@@ -468,7 +510,11 @@ class TestBFixRound:
     # F2: AUTH-8 defer substring denial
     def test_auth8_disposition_denies_defer_rejected(self):
         node = make_node(
-            data_dependency={"source": "s", "connected": False, "disposition": "no defer — judge anyway"}
+            data_dependency={
+                "source": "s",
+                "connected": False,
+                "disposition": "no defer — judge anyway",
+            }
         )
         errors = check_data_dependency(node)
         assert errors, "disposition containing 'no defer' must be rejected"
@@ -476,14 +522,20 @@ class TestBFixRound:
     # F3: AUTH-1 traditional / spaced adjectives
     def test_auth1_traditional_chinese_adjective_rejected(self):
         node = make_node(
-            signals={"fail": [{"id": "22-S01", "description": "坐席表現靈活", "severity": "high"}], "excellence": []}
+            signals={
+                "fail": [{"id": "22-S01", "description": "坐席表現靈活", "severity": "high"}],
+                "excellence": [],
+            }
         )
         errors = check_no_adjective_signals(node)
         assert errors, "traditional-Chinese adjective must be rejected"
 
     def test_auth1_spaced_adjective_rejected(self):
         node = make_node(
-            signals={"fail": [{"id": "22-S01", "description": "坐席表现灵 活", "severity": "high"}], "excellence": []}
+            signals={
+                "fail": [{"id": "22-S01", "description": "坐席表现灵 活", "severity": "high"}],
+                "excellence": [],
+            }
         )
         errors = check_no_adjective_signals(node)
         assert errors, "space-split adjective must be rejected"
@@ -503,7 +555,11 @@ class TestBFixRound:
     def test_auth4_cased_redundant_rejected(self):
         node = make_node(
             corroborators=[
-                {"signal_type": "soft_text", "node_ref": "item-26-S01", "independence_class": "Redundant"}
+                {
+                    "signal_type": "soft_text",
+                    "node_ref": "item-26-S01",
+                    "independence_class": "Redundant",
+                }
             ]
         )
         errors = check_no_redundant_corroborator(node)
@@ -513,7 +569,11 @@ class TestBFixRound:
         for ref in ("_rubric/evidence/acoustic", "../evidence/acoustic/indicators.yaml"):
             node = make_node(
                 corroborators=[
-                    {"signal_type": "acoustic_measurement", "node_ref": ref, "independence_class": "independent"}
+                    {
+                        "signal_type": "acoustic_measurement",
+                        "node_ref": ref,
+                        "independence_class": "independent",
+                    }
                 ]
             )
             errors = check_no_redundant_corroborator(node)
@@ -549,13 +609,23 @@ class TestBFixRound:
             gap_type="calibration_surface_form",
             severity_map="calibration://manifest/epoch-001/severity/21",
         )
-        manifest = {"rows": [{"kind": "within_dimension", "source_items": ["21"], "dimension": "commercial_guidance"}]}
+        manifest = {
+            "rows": [
+                {
+                    "kind": "within_dimension",
+                    "source_items": ["21"],
+                    "dimension": "commercial_guidance",
+                }
+            ]
+        }
         assert check_calibration_coverage(node, manifest=manifest) == []
 
     # F7: S1 sha256 format
     def test_s1_sha256_format_validated(self):
         node = make_node(
-            companion_docs=[{"document": "marketing-scripts.md", "role": "standard_scripts", "sha256": "abc"}]
+            companion_docs=[
+                {"document": "marketing-scripts.md", "role": "standard_scripts", "sha256": "abc"}
+            ]
         )
         errors = check_companion_docs(node)
         assert errors, "3-char sha256 'pin' must be rejected"
@@ -595,13 +665,13 @@ class TestB2FixRound:
         assert validate_node({"signals": ["x"]}), "non-dict signals must error, not crash"
 
     def test_b1_disposition_int_crash(self):
-        node = make_node(
-            data_dependency={"source": "s", "connected": False, "disposition": 42}
-        )
+        node = make_node(data_dependency={"source": "s", "connected": False, "disposition": 42})
         assert validate_node(node), "non-str disposition must error, not crash"
 
     def test_b1_corroborator_ref_int_crash(self):
-        node = make_node(corroborators=[{"signal_type": "x", "node_ref": 5, "independence_class": "independent"}])
+        node = make_node(
+            corroborators=[{"signal_type": "x", "node_ref": 5, "independence_class": "independent"}]
+        )
         assert validate_node(node), "non-str node_ref must error, not crash"
 
     def test_b1_depends_on_refs_int_crash(self):
@@ -643,14 +713,20 @@ class TestB2FixRound:
     # W1: orthographic mutations of adjectives
     def test_w1_zero_width_space_rejected(self):
         node = make_node(
-            signals={"fail": [{"id": "22-S01", "description": "坐席表现灵​活", "severity": "high"}], "excellence": []}
+            signals={
+                "fail": [{"id": "22-S01", "description": "坐席表现灵​活", "severity": "high"}],
+                "excellence": [],
+            }
         )
         assert check_no_adjective_signals(node), "zero-width-space adjective must be rejected"
 
     def test_w1_hyphenated_english_rejected(self):
         for desc in ("pro-active service", "pro active service", "flexibility shown"):
             node = make_node(
-                signals={"fail": [{"id": "22-S01", "description": desc, "severity": "high"}], "excellence": []}
+                signals={
+                    "fail": [{"id": "22-S01", "description": desc, "severity": "high"}],
+                    "excellence": [],
+                }
             )
             assert check_no_adjective_signals(node), f"mutation {desc!r} must be rejected"
 
@@ -658,18 +734,30 @@ class TestB2FixRound:
     def test_w3_bare_evidence_ref_rejected(self):
         node = make_node(
             corroborators=[
-                {"signal_type": "acoustic_measurement", "node_ref": "evidence/acoustic", "independence_class": "independent"}
+                {
+                    "signal_type": "acoustic_measurement",
+                    "node_ref": "evidence/acoustic",
+                    "independence_class": "independent",
+                }
             ]
         )
-        assert check_no_redundant_corroborator(node), "bare evidence/acoustic ref must be rejected (D16)"
+        assert check_no_redundant_corroborator(node), (
+            "bare evidence/acoustic ref must be rejected (D16)"
+        )
 
     def test_w3_sibling_dir_not_rejected(self):
         node = make_node(
             corroborators=[
-                {"signal_type": "acoustic_measurement", "node_ref": "_rubric/evidence/acousticfoo/indicators.yaml", "independence_class": "independent"}
+                {
+                    "signal_type": "acoustic_measurement",
+                    "node_ref": "_rubric/evidence/acousticfoo/indicators.yaml",
+                    "independence_class": "independent",
+                }
             ]
         )
-        assert check_no_redundant_corroborator(node) == [], "sibling dir acousticfoo must NOT be rejected"
+        assert check_no_redundant_corroborator(node) == [], (
+            "sibling dir acousticfoo must NOT be rejected"
+        )
 
 
 # ── B3 re-verification fix round (2026-08-12): case + invisible-char families ──
@@ -680,9 +768,17 @@ class TestB3FixRound:
 
     # F11: AUTH-1 case mutations
     def test_f11_case_mutations_rejected(self):
-        for desc in ("Flexible approach to escalations", "agent was VERY FLEXIBLE", "showed Flexibility throughout", "PRO-active service"):
+        for desc in (
+            "Flexible approach to escalations",
+            "agent was VERY FLEXIBLE",
+            "showed Flexibility throughout",
+            "PRO-active service",
+        ):
             node = make_node(
-                signals={"fail": [{"id": "22-S01", "description": desc, "severity": "high"}], "excellence": []}
+                signals={
+                    "fail": [{"id": "22-S01", "description": desc, "severity": "high"}],
+                    "excellence": [],
+                }
             )
             assert check_no_adjective_signals(node), f"case mutation {desc!r} must be rejected"
 
@@ -690,7 +786,10 @@ class TestB3FixRound:
     def test_f12_invisible_char_mutations_rejected(self):
         for desc in ("坐席表现灵﻿活", "坐席表现灵⁠活", "坐席表现灵­活"):
             node = make_node(
-                signals={"fail": [{"id": "22-S01", "description": desc, "severity": "high"}], "excellence": []}
+                signals={
+                    "fail": [{"id": "22-S01", "description": desc, "severity": "high"}],
+                    "excellence": [],
+                }
             )
             assert check_no_adjective_signals(node), "invisible-char mutation must be rejected"
 
@@ -704,10 +803,16 @@ class TestB3FixRound:
         ):
             node = make_node(
                 corroborators=[
-                    {"signal_type": "acoustic_measurement", "node_ref": ref, "independence_class": "independent"}
+                    {
+                        "signal_type": "acoustic_measurement",
+                        "node_ref": ref,
+                        "independence_class": "independent",
+                    }
                 ]
             )
-            assert check_no_redundant_corroborator(node), f"D16 ref variant {ref!r} must be rejected"
+            assert check_no_redundant_corroborator(node), (
+                f"D16 ref variant {ref!r} must be rejected"
+            )
 
 
 # ── validate_node: aggregate entry (the runner's contract) ──────────────────
@@ -720,7 +825,10 @@ class TestValidateNode:
     def test_validate_node_catches_multiple(self):
         node = make_node(
             residue_declared=None,
-            signals={"fail": [{"id": "22-S01", "description": "坐席表现灵活", "severity": "high"}], "excellence": []},
+            signals={
+                "fail": [{"id": "22-S01", "description": "坐席表现灵活", "severity": "high"}],
+                "excellence": [],
+            },
         )
         errors = validate_node(node)
         assert len(errors) >= 2, "validate_node must aggregate AUTH-1 + AUTH-2 failures"

@@ -35,8 +35,13 @@ def make_item(**overrides) -> dict:
 def make_signals(**overrides) -> dict:
     signals = {
         "fail": [
-            {"id": "22-S01", "description": "transcript contains one of the named phrases: 您别着急",
-             "severity": "high", "checkable": True, "audit_result": "pass"}
+            {
+                "id": "22-S01",
+                "description": "transcript contains one of the named phrases: 您别着急",
+                "severity": "high",
+                "checkable": True,
+                "audit_result": "pass",
+            }
         ],
         "excellence": [],
         "rejected": [],
@@ -56,8 +61,11 @@ class TestClassifyCorroborators:
             [{"signal_type": "acoustic_measurement", "node_ref": "call-42/acoustic/f0-range"}],
         )
         assert result == [
-            {"signal_type": "acoustic_measurement", "node_ref": "call-42/acoustic/f0-range",
-             "independence_class": "independent"}
+            {
+                "signal_type": "acoustic_measurement",
+                "node_ref": "call-42/acoustic/f0-range",
+                "independence_class": "independent",
+            }
         ]
 
     def test_error_case_match_is_correlated(self):
@@ -78,7 +86,10 @@ class TestClassifyCorroborators:
 
     def test_d16_framework_not_corroborator(self):
         """The acoustic framework / phrase lexicon are rubric, NOT corroborators (D16)."""
-        for ref in ("_rubric/evidence/acoustic/indicators.yaml", "_rubric/evidence/phrase-keyword/lexicon.yaml"):
+        for ref in (
+            "_rubric/evidence/acoustic/indicators.yaml",
+            "_rubric/evidence/phrase-keyword/lexicon.yaml",
+        ):
             result = classify_corroborators(
                 {"id": "C22"},
                 [{"signal_type": "acoustic_framework", "node_ref": ref}],
@@ -122,24 +133,40 @@ class TestBFixRound:
                 {"id": "C22"},
                 [{"signal_type": signal_type, "node_ref": "call-42/f0"}],
             )
-            assert result == [], f"padded/cased framework type {signal_type!r} must be excluded (D16)"
+            assert result == [], (
+                f"padded/cased framework type {signal_type!r} must be excluded (D16)"
+            )
 
     # F3: mixed checkable+model_based must not be coverage with a false rationale
     def test_f3_mixed_signals_not_coverage(self):
         item = make_item(values={"named_phrases": [], "numeric_thresholds": []})
         signals = {
             "fail": [
-                {"id": "22-S01", "description": "temporal proximity of recommendation", "severity": "high",
-                 "checkable": True, "audit_result": "split"},
-                {"id": "22-S02", "description": "context adaptation quality", "severity": "high",
-                 "checkable": False, "audit_result": "split"},
+                {
+                    "id": "22-S01",
+                    "description": "temporal proximity of recommendation",
+                    "severity": "high",
+                    "checkable": True,
+                    "audit_result": "split",
+                },
+                {
+                    "id": "22-S02",
+                    "description": "context adaptation quality",
+                    "severity": "high",
+                    "checkable": False,
+                    "audit_result": "split",
+                },
             ],
             "excellence": [],
             "rejected": [],
         }
         gap = classify_gap(item, "empathy_and_tone", signals)
-        assert gap["gap_type"] != "coverage", "mixed gate-checkable coverage must not be classified coverage"
-        assert "no compiled signals" not in gap.get("rationale", ""), "rationale must not claim empty coverage"
+        assert gap["gap_type"] != "coverage", (
+            "mixed gate-checkable coverage must not be classified coverage"
+        )
+        assert "no compiled signals" not in gap.get("rationale", ""), (
+            "rationale must not claim empty coverage"
+        )
 
 
 # ── B2 re-verification fix round (2026-08-12): type normalization ───────────
@@ -154,7 +181,9 @@ class TestB2FixRound:
             {"id": "C22"},
             [{"signal_type": "order_match", "node_ref": "call-42/span-7"}],
         )
-        assert result[0]["independence_class"] == "independent", "order_match must be independent (1.0)"
+        assert result[0]["independence_class"] == "independent", (
+            "order_match must be independent (1.0)"
+        )
 
     def test_b2_phrase_keyword_type_excluded(self):
         for signal_type in ("phrase-keyword", "Phrase-Keyword"):
@@ -182,7 +211,13 @@ class TestB3FixRound:
     """B3 findings closed: camelCase forms must normalize to their families."""
 
     def test_b3_camel_case_independent(self):
-        for signal_type in ("OrderMatch", "AcousticMeasurement", "LexicalMatch", "LookupValue", "DurationMs"):
+        for signal_type in (
+            "OrderMatch",
+            "AcousticMeasurement",
+            "LexicalMatch",
+            "LookupValue",
+            "DurationMs",
+        ):
             result = classify_corroborators(
                 {"id": "C22"},
                 [{"signal_type": signal_type, "node_ref": "call-42/f0"}],
@@ -196,7 +231,9 @@ class TestB3FixRound:
             {"id": "C22"},
             [{"signal_type": "SoftText", "node_ref": "item-26-S01"}],
         )
-        assert result and result[0]["independence_class"] == "redundant", "SoftText must be redundant"
+        assert result and result[0]["independence_class"] == "redundant", (
+            "SoftText must be redundant"
+        )
 
     def test_b3_camel_case_framework_excluded(self):
         for signal_type in ("PhraseLexicon", "PhraseKeyword", "AcousticFramework"):
@@ -213,7 +250,9 @@ class TestB3FixRound:
 class TestDeclareResidue:
     def test_residue_names_rejected_standards(self):
         signals = make_signals(
-            rejected=[{"standard": "坐席应表现灵活主动", "reason": "adjective without concrete referent"}]
+            rejected=[
+                {"standard": "坐席应表现灵活主动", "reason": "adjective without concrete referent"}
+            ]
         )
         residue = declare_residue(signals, "empathy_and_tone")
         assert residue, "residue must never be empty"
@@ -242,8 +281,15 @@ class TestClassifyGap:
     def test_perceiver_gap_from_model_based(self):
         item = make_item(values={"named_phrases": [], "numeric_thresholds": []})
         signals = make_signals(
-            fail=[{"id": "22-S01", "description": "emotional handling quality",
-                   "severity": "high", "checkable": False, "audit_result": "model_only"}]
+            fail=[
+                {
+                    "id": "22-S01",
+                    "description": "emotional handling quality",
+                    "severity": "high",
+                    "checkable": False,
+                    "audit_result": "model_only",
+                }
+            ]
         )
         assert classify_gap(item, "empathy_and_tone", signals)["gap_type"] == "perceiver"
 
@@ -254,14 +300,27 @@ class TestClassifyGap:
             depends_on=["20"],
         )
         signals = make_signals(
-            fail=[{"id": "21-S01", "description": "context adaptation quality",
-                   "severity": "high", "checkable": False, "audit_result": "model_only"}]
+            fail=[
+                {
+                    "id": "21-S01",
+                    "description": "context adaptation quality",
+                    "severity": "high",
+                    "checkable": False,
+                    "audit_result": "model_only",
+                }
+            ]
         )
-        assert classify_gap(item, "commercial_guidance", signals)["gap_type"] == "calibration_surface_form"
+        assert (
+            classify_gap(item, "commercial_guidance", signals)["gap_type"]
+            == "calibration_surface_form"
+        )
 
     def test_proxy_gap_from_numeric_threshold(self):
         item = make_item(
-            values={"named_phrases": [], "numeric_thresholds": [{"name": "speaking_rate", "threshold": 120}]}
+            values={
+                "named_phrases": [],
+                "numeric_thresholds": [{"name": "speaking_rate", "threshold": 120}],
+            }
         )
         assert classify_gap(item, "procedural_accuracy", make_signals())["gap_type"] == "proxy"
 

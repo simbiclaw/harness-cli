@@ -141,6 +141,4 @@ def set_iteration_policy(criterion: dict) -> str:
     from Argus output. Malformed input yields the same policy (B1), never
     a crash.
     """
-    return (
-        "re-ground via write-time epoch commit only; no rule edits from Argus output"
-    )
+    return "re-ground via write-time epoch commit only; no rule edits from Argus output"

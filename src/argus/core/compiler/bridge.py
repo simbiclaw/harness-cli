@@ -35,9 +35,7 @@ from argus.core.compiler.agreement import set_deduction_weight
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-def bind_item_to_dimension(
-    item: dict, align_map: dict, manifest_epoch: str | None
-) -> dict:
+def bind_item_to_dimension(item: dict, align_map: dict, manifest_epoch: str | None) -> dict:
     """B-A: attach the item to its align.md dimension, with its deduction
     weight and a severity_map reference into the calibration manifest at its
     current epoch. Without a manifest epoch the node compiles but
@@ -115,9 +113,7 @@ def synthesize_hard_fail(items: list[dict], dimension: str) -> dict | None:
     valid = [
         item.get("id")
         for item in items
-        if isinstance(item, dict)
-        and isinstance(item.get("id"), str)
-        and item.get("id").strip()
+        if isinstance(item, dict) and isinstance(item.get("id"), str) and item.get("id").strip()
     ]
     # The collective-failure count reads the raw items (duplicates count as
     # two failures), but the trigger lists each item once (W4): duplicate
@@ -203,9 +199,7 @@ def _usable_threshold(value: object) -> bool:
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-def check_dimension_coverage(
-    item: dict, align_map: dict, dimensions: list[str]
-) -> dict:
+def check_dimension_coverage(item: dict, align_map: dict, dimensions: list[str]) -> dict:
     """The coverage check every item must pass: does some dimension
     adequately measure what this item measures? An item whose align.md
     dimension is None or names a dimension the compile does not know is a

@@ -66,8 +66,7 @@ _ADJECTIVES = (
 # ZWNJ/ZWJ, LRM/RLM), U+2060..U+2064 (word joiner + invisible operators),
 # U+FEFF (zero-width no-break space), U+00AD (soft hyphen).
 _INVISIBLE_CHARS = frozenset(
-    chr(c)
-    for c in list(range(0x200B, 0x2010)) + list(range(0x2060, 0x2065)) + [0xFEFF, 0x00AD]
+    chr(c) for c in list(range(0x200B, 0x2010)) + list(range(0x2060, 0x2065)) + [0xFEFF, 0x00AD]
 )
 _HYPHENS = {"-", "—"}
 
@@ -100,6 +99,7 @@ def _guarded(label: str):
         return wrapper
 
     return decorator
+
 
 _REFERENT_MARKERS = (
     "named phrase",
@@ -392,9 +392,7 @@ def check_calibration_coverage(node: dict, manifest: dict | None) -> list[str]:
     # treated as UNSAFE and flagged (F6).
     auto_final = criterion.get("auto_final_allowed")
     if not isinstance(auto_final, bool):
-        return [
-            "AUTH-9: auto_final_allowed must be a real bool — string values are unsafe"
-        ]
+        return ["AUTH-9: auto_final_allowed must be a real bool — string values are unsafe"]
     if auto_final is False:
         return []
     severity_map = node.get("severity_map")

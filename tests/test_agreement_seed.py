@@ -134,7 +134,9 @@ class TestBFixRound:
 class TestNoCrash:
     def test_garbage_inputs_no_crash(self):
         for bad in (None, "x", [], 42):
-            assert seed_agreement_gate(bad)["kappa_sample_plan"], f"seed_agreement_gate({bad!r}) must not crash"
+            assert seed_agreement_gate(bad)["kappa_sample_plan"], (
+                f"seed_agreement_gate({bad!r}) must not crash"
+            )
             assert set_deduction_weight(bad, "d") == 1.0, "set_deduction_weight must not crash"
             assert set_w_c(bad)["value"] == 0.4, "set_w_c must not crash"
             assert set_iteration_policy(bad), "set_iteration_policy must not crash"

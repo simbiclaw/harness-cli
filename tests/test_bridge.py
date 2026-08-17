@@ -67,7 +67,9 @@ class TestBindItemToDimension:
         assert binding["severity_map"] is None
 
     def test_unmapped_item_binding_dimension_none(self):
-        binding = bind_item_to_dimension(make_item(id="24"), make_align(**{"24": None}), manifest_epoch=None)
+        binding = bind_item_to_dimension(
+            make_item(id="24"), make_align(**{"24": None}), manifest_epoch=None
+        )
         assert binding["dimension"] is None, "unmapped item binds to no dimension"
 
 
@@ -88,7 +90,11 @@ class TestCompileApplicabilityGate:
         """NA-bearing item without a gate → AUTH-7 rejects (M1 validator cross-check)."""
         node = {
             "node_id": "item-21",
-            "human_version": {"item_number": 21, "text": "积极灵活营销", "na_condition": "无营销机会"},
+            "human_version": {
+                "item_number": 21,
+                "text": "积极灵活营销",
+                "na_condition": "无营销机会",
+            },
             "applicability_gate": None,
         }
         errors = check_applicability_gate(node)
@@ -137,7 +143,9 @@ class TestExtractValues:
         assert threshold[0]["spec"]["name"] == "speaking_rate"
 
     def test_empty_values_no_extractions(self):
-        assert extract_values(make_item(values={"named_phrases": [], "numeric_thresholds": []})) == []
+        assert (
+            extract_values(make_item(values={"named_phrases": [], "numeric_thresholds": []})) == []
+        )
 
 
 # ── coverage check ───────────────────────────────────────────────────────────
@@ -187,8 +195,12 @@ class TestBFixRound:
     def test_w1_empty_epoch_no_auto_final(self):
         for epoch in ("", "   "):
             binding = bind_item_to_dimension(make_item(), make_align(), manifest_epoch=epoch)
-            assert binding["auto_final_allowed"] is False, f"epoch {epoch!r} must not grant auto-final"
-            assert binding["severity_map"] is None, f"epoch {epoch!r} must not produce a dangling ref"
+            assert binding["auto_final_allowed"] is False, (
+                f"epoch {epoch!r} must not grant auto-final"
+            )
+            assert binding["severity_map"] is None, (
+                f"epoch {epoch!r} must not produce a dangling ref"
+            )
 
     # W3: keyless threshold entries must not fabricate signals
     def test_w3_keyless_threshold_skipped(self):

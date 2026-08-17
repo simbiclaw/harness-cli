@@ -42,19 +42,27 @@ class TestDecomposeSignals:
         """A phrase-based criterion decomposes into a gate-checkable lexical FAIL signal."""
         signals = decompose_signals(make_item())
         fail = [s for s in signals["fail"] if s.get("checkable") and s["audit_result"] == "pass"]
-        assert any("您别着急" in s["description"] for s in fail), "lexical signal must reference the phrases"
+        assert any("您别着急" in s["description"] for s in fail), (
+            "lexical signal must reference the phrases"
+        )
         assert signals["rejected"] == [], "no rejected entries for a clean item"
 
     def test_ordered_relation_signal_decomposed(self):
         """'acknowledge before resolve' → FAIL signal with ordered-relation evidence shape."""
         item = make_item(fail_standard="坐席应先安抚客户情绪再进入处理")
         signals = decompose_signals(item)
-        ordered = [s for s in signals["fail"] if s.get("evidence_shape", {}).get("shape") == "ordered_relation"]
+        ordered = [
+            s
+            for s in signals["fail"]
+            if s.get("evidence_shape", {}).get("shape") == "ordered_relation"
+        ]
         assert ordered, "ordered-relation signal must be produced"
         s = ordered[0]
         assert s["checkable"] is True
         assert s["audit_result"] == "pass"
-        assert s["evidence_shape"]["first"] and s["evidence_shape"]["second"], "ordered pair must be named"
+        assert s["evidence_shape"]["first"] and s["evidence_shape"]["second"], (
+            "ordered pair must be named"
+        )
 
     def test_adjective_signal_rejected(self):
         """'agent should sound empathetic' → rejected, no concrete referent."""
@@ -64,8 +72,12 @@ class TestDecomposeSignals:
             fail_standard="坐席表现混乱",
         )
         signals = decompose_signals(item)
-        assert signals["rejected"], "adjective-only standards must be rejected, not silently dropped"
-        assert all(not s.get("checkable") for s in signals["fail"]), "no gate-checkable signal from adjectives"
+        assert signals["rejected"], (
+            "adjective-only standards must be rejected, not silently dropped"
+        )
+        assert all(not s.get("checkable") for s in signals["fail"]), (
+            "no gate-checkable signal from adjectives"
+        )
 
     def test_signal_split_needed(self):
         """'context-appropriate recommendation' → B-F auto-split into programmatic + model_based siblings."""
@@ -78,9 +90,17 @@ class TestDecomposeSignals:
         split = [s for s in signals["fail"] if s["audit_result"] == "split"]
         prog = [s for s in split if s["checkable"] is True]
         model = [s for s in split if s["checkable"] is False]
-        assert prog and model, "B-F split must produce both a programmatic and a model_based sibling"
-        assert "proximity" in prog[0]["description"].lower() or "temporal" in prog[0]["description"].lower()
-        assert "context" in model[0]["description"].lower() or "adaptation" in model[0]["description"].lower()
+        assert prog and model, (
+            "B-F split must produce both a programmatic and a model_based sibling"
+        )
+        assert (
+            "proximity" in prog[0]["description"].lower()
+            or "temporal" in prog[0]["description"].lower()
+        )
+        assert (
+            "context" in model[0]["description"].lower()
+            or "adaptation" in model[0]["description"].lower()
+        )
 
     def test_excellence_signals_present(self):
         """Pass standards decompose into excellence signals."""
@@ -93,7 +113,10 @@ class TestDecomposeSignals:
 
 class TestAuditGateCheckable:
     def test_lexical_is_pass(self):
-        signal = {"id": "22-S01", "description": "transcript contains one of the named phrases: 您别着急"}
+        signal = {
+            "id": "22-S01",
+            "description": "transcript contains one of the named phrases: 您别着急",
+        }
         assert audit_gate_checkable(signal) == "pass"
 
     def test_conclusion_only_is_model_only(self):
@@ -124,7 +147,9 @@ class TestDecomposeDimension:
 
 class TestAssignFacets:
     def test_programmatic_facet_signal_shaped(self):
-        signals = {"fail": [{"id": "22-S01", "description": "lexical phrase present", "checkable": True}]}
+        signals = {
+            "fail": [{"id": "22-S01", "description": "lexical phrase present", "checkable": True}]
+        }
         facets = assign_facets(signals, "values")
         prog = facets["programmatic"]
         assert prog, "programmatic facet must be assigned"
@@ -132,12 +157,18 @@ class TestAssignFacets:
         assert prog[0]["indicator"] and prog[0]["calculation"] and prog[0]["output_schema"]
 
     def test_model_based_facet_carries_prompt(self):
-        signals = {"fail": [{"id": "22-S02", "description": "emotional handling quality", "checkable": False}]}
+        signals = {
+            "fail": [
+                {"id": "22-S02", "description": "emotional handling quality", "checkable": False}
+            ]
+        }
         facets = assign_facets(signals, "perceiver")
         model = facets["model_based"]
         assert model, "model_based facet must be assigned"
         assert model[0]["enables_signals"] == ["22-S02"]
-        assert model[0]["prompt"] and model[0]["output_schema"], "extraction prompt authored by the compiler"
+        assert model[0]["prompt"] and model[0]["output_schema"], (
+            "extraction prompt authored by the compiler"
+        )
 
 
 # ── A2-ac: acoustic indicator framework ──────────────────────────────────────
@@ -204,7 +235,9 @@ class TestBFixRound:
     def test_b3_unknown_standard_not_dropped(self):
         signals = decompose_signals(make_item(fail_standard="坐席未使用道歉用语"))
         assert signals["fail"], "an unmatched fail standard must never silently vanish"
-        assert any(not s["checkable"] for s in signals["fail"]), "unmatched standard becomes model_based"
+        assert any(not s["checkable"] for s in signals["fail"]), (
+            "unmatched standard becomes model_based"
+        )
 
     # B4: decompose ↔ audit consistency
     def test_b4_audit_consistency_battery(self):
@@ -240,12 +273,16 @@ class TestBFixRound:
             )
         )
         assert signals["fail"], "adjective-with-referent standard must still produce a signal"
-        assert any(not s["checkable"] for s in signals["fail"]), "must be model_based, not gate-checkable"
+        assert any(not s["checkable"] for s in signals["fail"]), (
+            "must be model_based, not gate-checkable"
+        )
 
     # W2: non-list lexicon section must not manufacture garbage
     def test_w2_lexicon_non_list_section_empty(self):
         sections = compile_phrase_lexicon({"a": "not-a-list"})
-        assert sections == {"a": []}, "non-list section must yield an empty list, not per-char garbage"
+        assert sections == {"a": []}, (
+            "non-list section must yield an empty list, not per-char garbage"
+        )
 
     # W3: None id sanitized
     def test_w3_none_id_sanitized(self):
@@ -263,7 +300,11 @@ class TestB2FixRound:
     # F1: 然后 must not corrupt the ordered pair
     def test_f1_ranhou_no_corruption(self):
         signals = decompose_signals(make_item(fail_standard="先安抚然后处理"))
-        ordered = [s for s in signals["fail"] if s.get("evidence_shape", {}).get("shape") == "ordered_relation"]
+        ordered = [
+            s
+            for s in signals["fail"]
+            if s.get("evidence_shape", {}).get("shape") == "ordered_relation"
+        ]
         assert ordered, "先X然后Y must produce an ordered signal"
         shape = ordered[0]["evidence_shape"]
         assert shape["first"] == "安抚", f"first must be '安抚', got {shape['first']!r}"
@@ -271,7 +312,11 @@ class TestB2FixRound:
 
     def test_f1_enumeration_not_glued(self):
         signals = decompose_signals(make_item(fail_standard="先确认，再处理，最后记录"))
-        ordered = [s for s in signals["fail"] if s.get("evidence_shape", {}).get("shape") == "ordered_relation"]
+        ordered = [
+            s
+            for s in signals["fail"]
+            if s.get("evidence_shape", {}).get("shape") == "ordered_relation"
+        ]
         assert ordered
         second = ordered[0]["evidence_shape"]["second"]
         assert "最后" not in second, "second element must cut at the first clause separator"
@@ -282,24 +327,40 @@ class TestB2FixRound:
 
         for model in (AlignMap(entries={}), SpecificRubric(items=[])):
             signals = decompose_signals(model)
-            assert signals["rejected"], f"{type(model).__name__} must produce a malformed rejection, not signals"
+            assert signals["rejected"], (
+                f"{type(model).__name__} must produce a malformed rejection, not signals"
+            )
 
     # F3: comma before then/before must not break the English ordered form
     def test_f3_comma_then_recognized(self):
         signals = decompose_signals(make_item(fail_standard="acknowledge, then resolve"))
-        ordered = [s for s in signals["fail"] if s.get("evidence_shape", {}).get("shape") == "ordered_relation"]
+        ordered = [
+            s
+            for s in signals["fail"]
+            if s.get("evidence_shape", {}).get("shape") == "ordered_relation"
+        ]
         assert ordered, "'acknowledge, then resolve' must be recognized as ordered"
 
     def test_f3_sentence_prefix_trimmed(self):
-        signals = decompose_signals(make_item(fail_standard="agent must acknowledge before resolve"))
-        ordered = [s for s in signals["fail"] if s.get("evidence_shape", {}).get("shape") == "ordered_relation"]
+        signals = decompose_signals(
+            make_item(fail_standard="agent must acknowledge before resolve")
+        )
+        ordered = [
+            s
+            for s in signals["fail"]
+            if s.get("evidence_shape", {}).get("shape") == "ordered_relation"
+        ]
         assert ordered
         first = ordered[0]["evidence_shape"]["first"]
-        assert "agent must" not in first, f"first element must be trimmed to the verb, got {first!r}"
+        assert "agent must" not in first, (
+            f"first element must be trimmed to the verb, got {first!r}"
+        )
 
     # F4: checkable False signals must never audit "pass"
     def test_f4_model_based_never_audits_pass(self):
-        signals = decompose_signals(make_item(fail_standard="agent did not confirm satisfaction in the transcript"))
+        signals = decompose_signals(
+            make_item(fail_standard="agent did not confirm satisfaction in the transcript")
+        )
         for s in signals["fail"]:
             if not s["checkable"]:
                 assert s["audit_result"] == "model_only", (
@@ -322,10 +383,16 @@ class TestB3FixRound:
             ("先A然后再B", "B"),
         ):
             signals = decompose_signals(make_item(fail_standard=standard))
-            ordered = [s for s in signals["fail"] if s.get("evidence_shape", {}).get("shape") == "ordered_relation"]
+            ordered = [
+                s
+                for s in signals["fail"]
+                if s.get("evidence_shape", {}).get("shape") == "ordered_relation"
+            ]
             assert ordered, f"{standard!r} must produce an ordered signal"
             second = ordered[0]["evidence_shape"]["second"]
-            assert second == expected_second, f"{standard!r}: second must be {expected_second!r}, got {second!r}"
+            assert second == expected_second, (
+                f"{standard!r}: second must be {expected_second!r}, got {second!r}"
+            )
 
     # WARN-1: degenerate 先-然后 form must not emit an empty first element
     def test_warn1_empty_first_not_emitted(self):
@@ -369,10 +436,16 @@ class TestB4FixRound:
     def test_f1_first_element_connective_stripped(self):
         for standard, expected_first in (("先A再然后B", "A"), ("先A再B再然后C", "A")):
             signals = decompose_signals(make_item(fail_standard=standard))
-            ordered = [s for s in signals["fail"] if s.get("evidence_shape", {}).get("shape") == "ordered_relation"]
+            ordered = [
+                s
+                for s in signals["fail"]
+                if s.get("evidence_shape", {}).get("shape") == "ordered_relation"
+            ]
             assert ordered, f"{standard!r} must produce an ordered signal"
             first = ordered[0]["evidence_shape"]["first"]
-            assert first == expected_first, f"{standard!r}: first must be {expected_first!r}, got {first!r}"
+            assert first == expected_first, (
+                f"{standard!r}: first must be {expected_first!r}, got {first!r}"
+            )
 
     def test_f1_no_connectives_in_pair(self):
         for standard in ("先A再然后B", "先A再B再然后C", "先A后B然后C"):
@@ -392,7 +465,9 @@ class TestB4FixRound:
             for s in signals["fail"]:
                 shape = s.get("evidence_shape")
                 if shape and shape.get("shape") == "ordered_relation":
-                    assert shape["second"], f"{standard!r}: second must be non-empty, got {shape['second']!r}"
+                    assert shape["second"], (
+                        f"{standard!r}: second must be non-empty, got {shape['second']!r}"
+                    )
 
 
 # ── B5 re-verification fix round (2026-08-12): word-aware connective cuts ───
@@ -405,15 +480,25 @@ class TestB5FixRound:
         # 售后 is a real word (after-sales); cutting at its 后 corrupts it
         for standard, expected_first in (("先售后然后处理", "售后"), ("先售后再处理", "售后")):
             signals = decompose_signals(make_item(fail_standard=standard))
-            ordered = [s for s in signals["fail"] if s.get("evidence_shape", {}).get("shape") == "ordered_relation"]
+            ordered = [
+                s
+                for s in signals["fail"]
+                if s.get("evidence_shape", {}).get("shape") == "ordered_relation"
+            ]
             assert ordered, f"{standard!r} must produce an ordered signal"
             first = ordered[0]["evidence_shape"]["first"]
-            assert first == expected_first, f"{standard!r}: first must be {expected_first!r}, got {first!r}"
+            assert first == expected_first, (
+                f"{standard!r}: first must be {expected_first!r}, got {first!r}"
+            )
 
     def test_b5_second_leading_strip_word_aware(self):
         # 后台 is a real word; the leading-connective strip must not eat its 后
         signals = decompose_signals(make_item(fail_standard="先A然后后台处理"))
-        ordered = [s for s in signals["fail"] if s.get("evidence_shape", {}).get("shape") == "ordered_relation"]
+        ordered = [
+            s
+            for s in signals["fail"]
+            if s.get("evidence_shape", {}).get("shape") == "ordered_relation"
+        ]
         assert ordered
         second = ordered[0]["evidence_shape"]["second"]
         assert second == "后台处理", f"second must keep 后台 intact, got {second!r}"
@@ -422,9 +507,15 @@ class TestB5FixRound:
         # The round-4 pins must keep holding alongside the word-awareness
         for standard, expected_first in (("先A再然后B", "A"), ("先A再B再然后C", "A")):
             signals = decompose_signals(make_item(fail_standard=standard))
-            ordered = [s for s in signals["fail"] if s.get("evidence_shape", {}).get("shape") == "ordered_relation"]
+            ordered = [
+                s
+                for s in signals["fail"]
+                if s.get("evidence_shape", {}).get("shape") == "ordered_relation"
+            ]
             first = ordered[0]["evidence_shape"]["first"]
-            assert first == expected_first, f"{standard!r}: first must be {expected_first!r}, got {first!r}"
+            assert first == expected_first, (
+                f"{standard!r}: first must be {expected_first!r}, got {first!r}"
+            )
 
 
 # ── B6 re-verification fix round (2026-08-12): marker-position word awareness ─
@@ -448,7 +539,11 @@ class TestB6FixRound:
 
     def test_b6_clean_hou_marker_still_works(self):
         signals = decompose_signals(make_item(fail_standard="先安抚后处理"))
-        ordered = [s for s in signals["fail"] if s.get("evidence_shape", {}).get("shape") == "ordered_relation"]
+        ordered = [
+            s
+            for s in signals["fail"]
+            if s.get("evidence_shape", {}).get("shape") == "ordered_relation"
+        ]
         assert ordered, "clean 先X后Y must still produce an ordered signal"
         shape = ordered[0]["evidence_shape"]
         assert shape["first"] == "安抚" and shape["second"] == "处理"
@@ -462,7 +557,9 @@ class TestExcellenceNoPhraseReuse:
     observable content, never duplicate the FAIL lane's named phrases."""
 
     def test_excellence_does_not_reuse_fail_phrases(self):
-        item = make_item(values={"named_phrases": ["思路混乱", "引导延期"], "numeric_thresholds": []})
+        item = make_item(
+            values={"named_phrases": ["思路混乱", "引导延期"], "numeric_thresholds": []}
+        )
         signals = decompose_signals(item)
         fail_phrases = set()
         for s in signals["fail"]:
@@ -479,7 +576,11 @@ class TestExcellenceNoPhraseReuse:
     def test_ordered_pass_standard_yields_ordered_excellence(self):
         item = make_item(pass_standard="情绪激动场景先表达理解再进入处理")
         signals = decompose_signals(item)
-        ordered = [s for s in signals["excellence"] if s.get("evidence_shape", {}).get("shape") == "ordered_relation"]
+        ordered = [
+            s
+            for s in signals["excellence"]
+            if s.get("evidence_shape", {}).get("shape") == "ordered_relation"
+        ]
         assert ordered, "先X再Y pass standard must produce an ordered excellence signal"
         assert ordered[0]["checkable"] is True
 

@@ -28,7 +28,9 @@ RUNNER = SKILL_DIR / "scripts" / "run_compile.py"
 FIXTURES = SKILL_DIR / "fixtures"
 
 
-def _run_loop(tmp_path: Path, inputs: Path | None = None) -> tuple[subprocess.CompletedProcess, Path]:
+def _run_loop(
+    tmp_path: Path, inputs: Path | None = None
+) -> tuple[subprocess.CompletedProcess, Path]:
     """Drive the runner's mock loop headlessly; return (result, staging dir)."""
     if inputs is None:
         inputs = FIXTURES
@@ -37,9 +39,12 @@ def _run_loop(tmp_path: Path, inputs: Path | None = None) -> tuple[subprocess.Co
         sys.executable,
         str(RUNNER),
         "loop",
-        "--inputs", str(inputs),
-        "--evaluator", "mock",
-        "--out", str(out),
+        "--inputs",
+        str(inputs),
+        "--evaluator",
+        "mock",
+        "--out",
+        str(out),
         "--no-epoch-commit",
     ]
     result = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO_ROOT)
@@ -74,7 +79,9 @@ def test_skill_loop_output_passes_validator(tmp_path: Path) -> None:
     item20_signal_ids = {s["id"] for s in item20["signals"]["fail"]}
     assert item21["depends_on"] == ["20"]
     refs = set(item21["applicability_gate"]["refs"])
-    assert refs and refs <= item20_signal_ids, f"Item 21 gate refs {refs} not in Item 20 signals {item20_signal_ids}"
+    assert refs and refs <= item20_signal_ids, (
+        f"Item 21 gate refs {refs} not in Item 20 signals {item20_signal_ids}"
+    )
 
     # (d) residue manifest present with the dimension_coverage_gap row (AUTH-5)
     manifest = json.loads((out / "tree" / "_meta" / "residue-manifest.yaml").read_text())
@@ -82,7 +89,11 @@ def test_skill_loop_output_passes_validator(tmp_path: Path) -> None:
     assert any("24" in r["source_items"] for r in gap_rows)
 
     # (e) every model-judged step has a recorded decision line
-    decisions = [json.loads(line) for line in (out / "compile-decisions.jsonl").read_text().splitlines() if line.strip()]
+    decisions = [
+        json.loads(line)
+        for line in (out / "compile-decisions.jsonl").read_text().splitlines()
+        if line.strip()
+    ]
     assert decisions, "compile-decisions.jsonl must not be empty"
     assert all(d.get("step") and d.get("rationale") for d in decisions)
 
@@ -103,7 +114,9 @@ def test_skill_halt_on_source_conflict(tmp_path: Path) -> None:
     assert report.exists()
     text = report.read_text()
     assert "T001" in text and "CONFLICT" in text
-    assert not (out / "nodes").exists() or not list((out / "nodes").glob("item-*.json")), "no nodes may be emitted"
+    assert not (out / "nodes").exists() or not list((out / "nodes").glob("item-*.json")), (
+        "no nodes may be emitted"
+    )
 
 
 def test_runner_uses_core_chain(tmp_path: Path) -> None:
@@ -127,7 +140,9 @@ def test_runner_uses_core_chain(tmp_path: Path) -> None:
     agreement = seed_agreement_gate({"id": "C22"})
 
     emitted = json.loads((out / "nodes" / "item-22.json").read_text())
-    assert emitted["signals"]["fail"] == signals["fail"], "signals must come from decompose_signals (M2)"
+    assert emitted["signals"]["fail"] == signals["fail"], (
+        "signals must come from decompose_signals (M2)"
+    )
     assert emitted["signals"]["excellence"] == signals["excellence"]
     assert emitted["gap_type"] == gap["gap_type"], "gap must come from classify_gap (M3)"
     assert emitted["facets"] == facets, "facets must come from assign_facets (M2)"
@@ -150,7 +165,9 @@ def test_gap_row_carries_data_dependency(tmp_path: Path) -> None:
 # ── B-verification fix round (2026-08-12): B1/B2/W2/W3 ──────────────────────
 
 
-def _run_runner_args(args: list[str], tmp_path: Path, env: dict | None = None) -> subprocess.CompletedProcess:
+def _run_runner_args(
+    args: list[str], tmp_path: Path, env: dict | None = None
+) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, str(RUNNER), *args],
         capture_output=True,
@@ -171,9 +188,18 @@ class TestBFixRound:
         env = {**os.environ, "PYTHONPATH": str(tmp_path / "shim")}
         for mode in ("mock", "real"):
             r = _run_runner_args(
-                ["loop", "--inputs", str(FIXTURES), "--evaluator", mode,
-                 "--out", str(tmp_path / f"out-{mode}"), "--no-epoch-commit"],
-                tmp_path, env=env,
+                [
+                    "loop",
+                    "--inputs",
+                    str(FIXTURES),
+                    "--evaluator",
+                    mode,
+                    "--out",
+                    str(tmp_path / f"out-{mode}"),
+                    "--no-epoch-commit",
+                ],
+                tmp_path,
+                env=env,
             )
             assert r.returncode == 2, f"{mode}: expected exit 2, got {r.returncode}"
             assert "Requires: M5" in r.stdout + r.stderr, f"{mode}: remediation message missing"
@@ -185,17 +211,23 @@ class TestBFixRound:
         bad.mkdir()
         # missing specific-rubric.yaml
         r = _run_runner_args(
-            ["loop", "--inputs", str(bad), "--out", str(tmp_path / "o1"), "--no-epoch-commit"], tmp_path
+            ["loop", "--inputs", str(bad), "--out", str(tmp_path / "o1"), "--no-epoch-commit"],
+            tmp_path,
         )
-        assert r.returncode == 2 and "Traceback" not in r.stdout + r.stderr, "missing input must exit clean"
+        assert r.returncode == 2 and "Traceback" not in r.stdout + r.stderr, (
+            "missing input must exit clean"
+        )
         # malformed YAML
         (bad / "specific-rubric.yaml").write_text("::: not yaml :::")
         (bad / "generic-skill.yaml").write_text("x: 1")
         (bad / "align.md").write_text("")
         r = _run_runner_args(
-            ["loop", "--inputs", str(bad), "--out", str(tmp_path / "o2"), "--no-epoch-commit"], tmp_path
+            ["loop", "--inputs", str(bad), "--out", str(tmp_path / "o2"), "--no-epoch-commit"],
+            tmp_path,
         )
-        assert r.returncode == 2 and "Traceback" not in r.stdout + r.stderr, "malformed yaml must exit clean"
+        assert r.returncode == 2 and "Traceback" not in r.stdout + r.stderr, (
+            "malformed yaml must exit clean"
+        )
         # read-only out dir
         ro = tmp_path / "ro"
         ro.mkdir()
@@ -204,7 +236,9 @@ class TestBFixRound:
             r = _run_runner_args(
                 ["loop", "--inputs", str(FIXTURES), "--out", str(ro), "--no-epoch-commit"], tmp_path
             )
-            assert r.returncode == 2 and "Traceback" not in r.stdout + r.stderr, "read-only out must exit clean"
+            assert r.returncode == 2 and "Traceback" not in r.stdout + r.stderr, (
+                "read-only out must exit clean"
+            )
         finally:
             ro.chmod(0o755)
 
@@ -215,17 +249,34 @@ class TestBFixRound:
         result, out = _run_loop(tmp_path)
         assert result.returncode == 0
         fix = json.dumps(
-            {"signal_id": "22-S01", "field": "description", "issue": "x",
-             "suggested_fix": "agent's emotional handling quality"}
+            {
+                "signal_id": "22-S01",
+                "field": "description",
+                "issue": "x",
+                "suggested_fix": "agent's emotional handling quality",
+            }
         )
         r = _run_runner_args(
-            ["generate", "--inputs", str(FIXTURES), "--out", str(out), "--item", "22", "--fix", fix], tmp_path
+            [
+                "generate",
+                "--inputs",
+                str(FIXTURES),
+                "--out",
+                str(out),
+                "--item",
+                "22",
+                "--fix",
+                fix,
+            ],
+            tmp_path,
         )
         assert r.returncode == 0, r.stdout + r.stderr
         node = json.loads((out / "nodes" / "item-22.json").read_text())
         sig = node["signals"]["fail"][0]
         assert sig["audit_result"] == audit_gate_checkable(sig), "fix must recompute audit_result"
-        assert sig["checkable"] == (sig["audit_result"] != "model_only"), "checkable must follow the audit"
+        assert sig["checkable"] == (sig["audit_result"] != "model_only"), (
+            "checkable must follow the audit"
+        )
 
     # W3: re-running into the same out dir must not duplicate gap rows
     def test_w3_rerun_same_out_no_duplicate_rows(self, tmp_path: Path) -> None:
@@ -247,7 +298,18 @@ class TestB2FixRound:
         assert result.returncode == 0
         for fix in ('{"signal_id": "21-S01", field: description}', "[1,2,3]"):
             r = _run_runner_args(
-                ["generate", "--inputs", str(FIXTURES), "--out", str(out), "--item", "21", "--fix", fix], tmp_path
+                [
+                    "generate",
+                    "--inputs",
+                    str(FIXTURES),
+                    "--out",
+                    str(out),
+                    "--item",
+                    "21",
+                    "--fix",
+                    fix,
+                ],
+                tmp_path,
             )
             assert r.returncode == 2, f"fix {fix!r}: expected exit 2, got {r.returncode}"
             assert "Traceback" not in r.stdout + r.stderr, f"fix {fix!r}: traceback leaked"
@@ -279,9 +341,22 @@ class TestB2FixRound:
     def test_f5_unknown_signal_id_errors(self, tmp_path: Path) -> None:
         result, out = _run_loop(tmp_path)
         assert result.returncode == 0
-        fix = json.dumps({"signal_id": "99-S99", "field": "description", "issue": "x", "suggested_fix": "y"})
+        fix = json.dumps(
+            {"signal_id": "99-S99", "field": "description", "issue": "x", "suggested_fix": "y"}
+        )
         r = _run_runner_args(
-            ["generate", "--inputs", str(FIXTURES), "--out", str(out), "--item", "21", "--fix", fix], tmp_path
+            [
+                "generate",
+                "--inputs",
+                str(FIXTURES),
+                "--out",
+                str(out),
+                "--item",
+                "21",
+                "--fix",
+                fix,
+            ],
+            tmp_path,
         )
         assert r.returncode == 2, "unknown signal id must error"
         assert "99-S99" in r.stdout + r.stderr
@@ -295,7 +370,11 @@ class TestB2FixRound:
                 ["generate", "--inputs", str(FIXTURES), "--out", str(out), "--item", "24"], tmp_path
             )
             assert r.returncode == 0
-        rows = [json.loads(line) for line in (out / "coverage-gaps.jsonl").read_text().splitlines() if line.strip()]
+        rows = [
+            json.loads(line)
+            for line in (out / "coverage-gaps.jsonl").read_text().splitlines()
+            if line.strip()
+        ]
         assert len(rows) == 1, "standalone generate on item 24 must not duplicate gap rows"
 
     # M8 pilot gap closure: lossy compilations must emit within_dimension rows
@@ -320,7 +399,11 @@ class TestB2FixRound:
         assert result.returncode == 0, result.stdout + result.stderr
         node = json.loads((out / "nodes" / "item-18.json").read_text())
         manifest = json.loads((out / "tree" / "_meta" / "residue-manifest.yaml").read_text())
-        row = next(r for r in manifest["rows"] if r["kind"] == "within_dimension" and "18" in r["source_items"])
+        row = next(
+            r
+            for r in manifest["rows"]
+            if r["kind"] == "within_dimension" and "18" in r["source_items"]
+        )
         assert row["left_behind"] == node["residue_declared"], (
             "within_dimension row must name exactly what the node declared as residue"
         )
@@ -347,7 +430,9 @@ class TestB2FixRound:
                 f"{raw['node_id']} must pin the EPOCH.yaml-declared epoch, got {raw['intents_sha']}"
             )
         manifest = json.loads((out / "tree" / "_meta" / "residue-manifest.yaml").read_text())
-        assert manifest["compiler_epoch"] == epoch_declared, "compiler_epoch must be the declared epoch"
+        assert manifest["compiler_epoch"] == epoch_declared, (
+            "compiler_epoch must be the declared epoch"
+        )
 
 
 class TestBFixRound2:

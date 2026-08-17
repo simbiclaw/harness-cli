@@ -76,9 +76,7 @@ def load_manifest(path: Path) -> CalibrationManifest:
         )
     epoch_id = payload.get("epoch_id")
     if not isinstance(epoch_id, str) or not _EPOCH_RE.match(epoch_id):
-        raise ValueError(
-            f"manifest epoch_id must match YYYY-MM-DD-<40 hex>, got {epoch_id!r}"
-        )
+        raise ValueError(f"manifest epoch_id must match YYYY-MM-DD-<40 hex>, got {epoch_id!r}")
     file_epoch = file_match.group(1)
     if file_epoch != epoch_id:
         # F2: only the exact calibration-manifest.<epoch_id>.yaml name loads —

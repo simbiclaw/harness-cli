@@ -348,9 +348,7 @@ def decompose_signals(item: RubricItem | dict) -> dict:
             return signal
 
         def reject(standard: str) -> None:
-            rejected.append(
-                {"standard": standard, "reason": "adjective without concrete referent"}
-            )
+            rejected.append({"standard": standard, "reason": "adjective without concrete referent"})
 
         # 1. Lexical signals from the item's named phrases (B-D).
         if named_phrases:
@@ -475,9 +473,7 @@ def _malformed_signals(item) -> dict:
     return {
         "fail": [],
         "excellence": [],
-        "rejected": [
-            {"standard": repr(item), "reason": "malformed input: expected item dict"}
-        ],
+        "rejected": [{"standard": repr(item), "reason": "malformed input: expected item dict"}],
     }
 
 
@@ -579,7 +575,7 @@ def _strip_leading_connectives(text: str) -> str:
         match = _LEADING_CONNECTIVE_RE.match(text)
         if match is None or _completes_non_split_word(text, match.start(), match.end()):
             return text
-        text = text[match.end():]
+        text = text[match.end() :]
 
 
 def _completes_non_split_word(text: str, start: int, end: int) -> bool:
@@ -594,7 +590,7 @@ def _completes_non_split_word(text: str, start: int, end: int) -> bool:
             if prefix and text[max(0, start - len(prefix)) : start] == prefix:
                 return True
         if word.startswith(matched):
-            suffix = word[len(matched):]
+            suffix = word[len(matched) :]
             if suffix and text[end : end + len(suffix)] == suffix:
                 return True
     return False
@@ -644,9 +640,7 @@ def _pass_cites_fail_standard(
     standard, never a phrase reuse."""
     if not pass_standard or not fail_standard or not named_phrases:
         return False
-    return any(
-        phrase in pass_standard and phrase in fail_standard for phrase in named_phrases
-    )
+    return any(phrase in pass_standard and phrase in fail_standard for phrase in named_phrases)
 
 
 def _emit_split_siblings(fail: list[dict], next_signal_id) -> None:
@@ -774,7 +768,8 @@ def assign_facets(signals: dict, gap: str) -> dict:
                             "facet_name": f"model_{signal_id}",
                             "enables_signals": [signal_id],
                             "prompt": (
-                                "extract evidence for " + description
+                                "extract evidence for "
+                                + description
                                 + " with checkpoints: (1) locate the relevant turn(s) in the "
                                 "transcript, (2) quote the exact span, (3) judge the span "
                                 "against the signal description, (4) output per the schema below"

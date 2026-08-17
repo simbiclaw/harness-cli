@@ -35,9 +35,16 @@ EPOCH_2 = "2026-08-13-cdef0123456789abcdef0123456789abcdef01ab"
 def _run_loop(tmp_path: Path) -> tuple[subprocess.CompletedProcess, Path]:
     out = tmp_path / "out"
     cmd = [
-        sys.executable, str(RUNNER), "loop",
-        "--inputs", str(FIXTURES), "--evaluator", "mock",
-        "--out", str(out), "--no-epoch-commit",
+        sys.executable,
+        str(RUNNER),
+        "loop",
+        "--inputs",
+        str(FIXTURES),
+        "--evaluator",
+        "mock",
+        "--out",
+        str(out),
+        "--no-epoch-commit",
     ]
     result = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO_ROOT)
     return result, out
@@ -47,7 +54,9 @@ def _node(out: Path, item_id: str) -> dict:
     return json.loads((out / "nodes" / f"item-{item_id}.json").read_text())
 
 
-def _write_manifest(tmp_path: Path, epoch: str, fragments: list[dict], name: str | None = None) -> Path:
+def _write_manifest(
+    tmp_path: Path, epoch: str, fragments: list[dict], name: str | None = None
+) -> Path:
     manifest = {
         "epoch_id": epoch,
         "fragments": fragments,
@@ -64,7 +73,9 @@ def _write_manifest(tmp_path: Path, epoch: str, fragments: list[dict], name: str
 def _inject(tmp_path: Path, out: Path, manifest_file: Path) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, str(RUNNER), "manifest", "inject", str(manifest_file), "--out", str(out)],
-        capture_output=True, text=True, cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT,
     )
 
 
@@ -82,7 +93,9 @@ class TestManifestInjection:
 
         after = _node(out, "22")
         assert after["severity_map"] == f"calibration://manifest/{EPOCH_2}/severity/22"
-        assert json.dumps(after["signals"], sort_keys=True) == signals_before, "signals must be unchanged"
+        assert json.dumps(after["signals"], sort_keys=True) == signals_before, (
+            "signals must be unchanged"
+        )
 
     def test_auth9_reevaluated_on_injection(self, tmp_path: Path) -> None:
         """A surface-form node deferred by AUTH-9 gains auto-final when the
@@ -90,20 +103,32 @@ class TestManifestInjection:
         result, out = _run_loop(tmp_path)
         assert result.returncode == 0
         before = _node(out, "21")
-        assert before["machine_criterion"]["auto_final_allowed"] is False, "fixture starts deferred (AUTH-9)"
+        assert before["machine_criterion"]["auto_final_allowed"] is False, (
+            "fixture starts deferred (AUTH-9)"
+        )
 
         manifest_file = _write_manifest(
-            tmp_path, EPOCH_2,
-            [{"fragment_id": "frag-001", "source_case": "errors.case-0042.yaml",
-              "transcript_span": {"start": 1, "end": 2}, "human_score": 3,
-              "affected_criterion": "21", "failure_surface": "generic recommendation",
-              "severity_anchor": "emp-sev-v3:low"}],
+            tmp_path,
+            EPOCH_2,
+            [
+                {
+                    "fragment_id": "frag-001",
+                    "source_case": "errors.case-0042.yaml",
+                    "transcript_span": {"start": 1, "end": 2},
+                    "human_score": 3,
+                    "affected_criterion": "21",
+                    "failure_surface": "generic recommendation",
+                    "severity_anchor": "emp-sev-v3:low",
+                }
+            ],
         )
         r = _inject(tmp_path, out, manifest_file)
         assert r.returncode == 0, r.stdout + r.stderr
 
         after = _node(out, "21")
-        assert after["machine_criterion"]["auto_final_allowed"] is True, "AUTH-9 coverage grants auto-final"
+        assert after["machine_criterion"]["auto_final_allowed"] is True, (
+            "AUTH-9 coverage grants auto-final"
+        )
 
     def test_manifest_injection_no_recompile(self, tmp_path: Path) -> None:
         """Injection changes only severity_map + auto_final — never signals,
@@ -115,7 +140,14 @@ class TestManifestInjection:
         r = _inject(tmp_path, out, manifest_file)
         assert r.returncode == 0
         after = _node(out, "20")
-        for field in ("signals", "facets", "corroborators", "agreement", "residue_declared", "gap_type"):
+        for field in (
+            "signals",
+            "facets",
+            "corroborators",
+            "agreement",
+            "residue_declared",
+            "gap_type",
+        ):
             assert before[field] == after[field], f"{field} must be untouched by injection"
 
     def test_manifest_epoch_independent_of_rule_epoch(self, tmp_path: Path) -> None:
@@ -141,9 +173,19 @@ class TestManifestLoader:
         """source_case refs must match conventions.yaml grammar — structural only,
         never existence-checked (the libraries are empty)."""
         ok = _write_manifest(
-            tmp_path, EPOCH_1,
-            [{"fragment_id": "f1", "source_case": "cookbook.empathy.yaml", "transcript_span": {},
-              "human_score": 4, "affected_criterion": "22", "failure_surface": "x", "severity_anchor": "s"}],
+            tmp_path,
+            EPOCH_1,
+            [
+                {
+                    "fragment_id": "f1",
+                    "source_case": "cookbook.empathy.yaml",
+                    "transcript_span": {},
+                    "human_score": 4,
+                    "affected_criterion": "22",
+                    "failure_surface": "x",
+                    "severity_anchor": "s",
+                }
+            ],
             name=f"calibration-manifest.{EPOCH_1}.yaml",
         )
         manifest = load_manifest(ok)
@@ -153,9 +195,19 @@ class TestManifestLoader:
 
     def test_loader_rejects_non_grammar_source_case(self, tmp_path: Path) -> None:
         bad = _write_manifest(
-            tmp_path, EPOCH_1,
-            [{"fragment_id": "f1", "source_case": "bestpractice.txt", "transcript_span": {},
-              "human_score": 4, "affected_criterion": "22", "failure_surface": "x", "severity_anchor": "s"}],
+            tmp_path,
+            EPOCH_1,
+            [
+                {
+                    "fragment_id": "f1",
+                    "source_case": "bestpractice.txt",
+                    "transcript_span": {},
+                    "human_score": 4,
+                    "affected_criterion": "22",
+                    "failure_surface": "x",
+                    "severity_anchor": "s",
+                }
+            ],
             name="calibration-manifest.bad.yaml",
         )
         with pytest.raises(Exception):
@@ -165,7 +217,9 @@ class TestManifestLoader:
         """The manifest file's epoch must match its epoch_id (round-3 Q8: URI refs
         align with the manifest file's epoch)."""
         misaligned = _write_manifest(
-            tmp_path, EPOCH_2, [],
+            tmp_path,
+            EPOCH_2,
+            [],
             name="calibration-manifest.2026-08-11-0000000000000000000000000000000000000000.yaml",
         )
         with pytest.raises(Exception):
@@ -190,22 +244,38 @@ class TestBFixRound:
         result, out = _run_loop(tmp_path)
         assert result.returncode == 0
         covering = _write_manifest(
-            tmp_path, EPOCH_2,
-            [{"fragment_id": "frag-001", "source_case": "errors.case-0042.yaml",
-              "transcript_span": {"start": 1, "end": 2}, "human_score": 3,
-              "affected_criterion": "21", "failure_surface": "generic recommendation",
-              "severity_anchor": "emp-sev-v3:low"}],
+            tmp_path,
+            EPOCH_2,
+            [
+                {
+                    "fragment_id": "frag-001",
+                    "source_case": "errors.case-0042.yaml",
+                    "transcript_span": {"start": 1, "end": 2},
+                    "human_score": 3,
+                    "affected_criterion": "21",
+                    "failure_surface": "generic recommendation",
+                    "severity_anchor": "emp-sev-v3:low",
+                }
+            ],
         )
         assert _inject(tmp_path, out, covering).returncode == 0
         assert _node(out, "21")["machine_criterion"]["auto_final_allowed"] is True
 
         # EPOCH_1 covers only criterion 26 — criterion 21 must LOSE auto-final
         non_covering = _write_manifest(
-            tmp_path, EPOCH_1,
-            [{"fragment_id": "frag-002", "source_case": "cookbook.empathy.yaml",
-              "transcript_span": {"start": 1, "end": 2}, "human_score": 4,
-              "affected_criterion": "26", "failure_surface": "empathy",
-              "severity_anchor": "emp-sev-v3:mid"}],
+            tmp_path,
+            EPOCH_1,
+            [
+                {
+                    "fragment_id": "frag-002",
+                    "source_case": "cookbook.empathy.yaml",
+                    "transcript_span": {"start": 1, "end": 2},
+                    "human_score": 4,
+                    "affected_criterion": "26",
+                    "failure_surface": "empathy",
+                    "severity_anchor": "emp-sev-v3:mid",
+                }
+            ],
         )
         assert _inject(tmp_path, out, non_covering).returncode == 0
         after = _node(out, "21")
@@ -217,7 +287,9 @@ class TestBFixRound:
     # reject it rather than loading with an unalignable ref
     def test_f2_misnamed_file_rejected(self, tmp_path: Path) -> None:
         misnamed = _write_manifest(
-            tmp_path, EPOCH_1, [],
+            tmp_path,
+            EPOCH_1,
+            [],
             name="calibration-manifest.garbage.yaml",
         )
         with pytest.raises(Exception):
@@ -227,11 +299,19 @@ class TestBFixRound:
     # the prefixed form ("C21") that silently never grants
     def test_f3_prefixed_criterion_rejected(self, tmp_path: Path) -> None:
         prefixed = _write_manifest(
-            tmp_path, EPOCH_1,
-            [{"fragment_id": "frag-003", "source_case": "cookbook.empathy.yaml",
-              "transcript_span": {"start": 1, "end": 2}, "human_score": 4,
-              "affected_criterion": "C21", "failure_surface": "x",
-              "severity_anchor": "s"}],
+            tmp_path,
+            EPOCH_1,
+            [
+                {
+                    "fragment_id": "frag-003",
+                    "source_case": "cookbook.empathy.yaml",
+                    "transcript_span": {"start": 1, "end": 2},
+                    "human_score": 4,
+                    "affected_criterion": "C21",
+                    "failure_surface": "x",
+                    "severity_anchor": "s",
+                }
+            ],
         )
         with pytest.raises(Exception):
             load_manifest(prefixed)
