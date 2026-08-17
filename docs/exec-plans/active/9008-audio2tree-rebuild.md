@@ -85,9 +85,21 @@ Write `intent_manifest.json → bottom_up` for all L2/L3 nodes produced by M2+M3
 
 ## 5. Decision Log
 
-### Decision: Completely overturn 9004 and rebuild from scratch
+### Decision: Overturn 9004 and complete redesign
 
-**Rationale:** `Source: docs/exec-plans/archived/9004-skill-prototype-cli-production.md (Outcomes & Retrospective) · docs/retrospectives/9004-execution-mistakes.md` — 9004's Phase A gate was never met: S0/S1 never ran on real data, S3 routing was a no-op, and M4 was checked off then reverted on the same day. The failure was structural (the execution plan validated fixtures, not the pipeline), so it cannot be fixed by patching milestones. This plan replaces 9004 entirely. `Confidence: high`.
+**Rationale:**
+- Source: Validation failure in the 9004 Phase A acceptance gate (2026-07-20 execution run; documented in `docs/exec-plans/archived/9004-skill-prototype-cli-production.md` Outcomes & Retrospective and `docs/retrospectives/9004-execution-mistakes.md`)
+- S0 (ASR) never ran on real WAV files; S1 (Claude Request extraction) was never invoked — hardcoded strings substituted for Claude's output
+- S3 routing was a no-op: `batch_route()` returned every request to the deviation channel without embedding or cosine computation
+- M4 was checked off without its acceptance criteria ever being met, then reverted the same day (commit `92ae7b1`); 46 unit tests passing was misreported as "end-to-end pass"
+
+**Confidence:** high (overturn confirmed by the failed acceptance gate and the revert)
+
+**Consequences:**
+- The 9004 execution code on `feat/audio2tree-skill` (commits `98e9ab8`…`db33dd4`) is deprecated and not inherited — all scripts and tests are written fresh in `.claude/skills/audio2tree/scripts/`
+- 9004 is archived to `docs/exec-plans/archived/` with its Outcomes & Retrospective recording the overturn; this plan (9008) is the sole successor
+- Every milestone in this plan gates on real-data execution (real WAV → ASR → Claude extraction → routing → manifests); fixture-only validation is no longer accepted as a milestone check
+- The design reference documents (`audio2tree-pipeline-design.md`, 2026-07-19/20 specs) remain valid inputs — the overturn invalidates the execution plan, not the product spec
 
 ### Decision: Inherit none of the feat/audio2tree-skill execution code
 
