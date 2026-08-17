@@ -60,6 +60,7 @@ class MockLocalModel(BaseHTTPRequestHandler):
     """Canned OpenAI-compatible chat completions endpoint."""
 
     payload: ClassVar[str] = json.dumps(CANNED_REFINEMENT, ensure_ascii=False)
+    payloads: ClassVar[list] = []  # queue; popped per request before payload
     status: ClassVar[int] = 200
     malformed: ClassVar[bool] = False
     received: ClassVar[dict] = {}
@@ -68,7 +69,10 @@ class MockLocalModel(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", 0))
         body = json.loads(self.rfile.read(length) or b"{}")
         MockLocalModel.received = body
-        content = "not-json{{{" if MockLocalModel.malformed else MockLocalModel.payload
+        if MockLocalModel.payloads:
+            content = MockLocalModel.payloads.pop(0)
+        else:
+            content = "not-json{{{" if MockLocalModel.malformed else MockLocalModel.payload
         response = {
             "choices": [{"message": {"role": "assistant", "content": content}}],
             "model": "deepseek-v4-flash",
@@ -87,6 +91,7 @@ class MockLocalModel(BaseHTTPRequestHandler):
 @pytest.fixture()
 def mock_model():
     MockLocalModel.malformed = False  # reset test-order pollution
+    MockLocalModel.payloads = []      # reset retry queue
     server = HTTPServer(("127.0.0.1", 0), MockLocalModel)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
@@ -142,6 +147,69 @@ class TestBefineLocalModel:
         MockLocalModel.malformed = True
         r = _befine(tmp_path / "out", mock_model)
         assert r.returncode == 2, f"malformed response must halt, got {r.returncode}"
+
+    def test_parses_fenced_json(self, tmp_path: Path, mock_model: str) -> None:
+        """Models commonly wrap JSON in markdown fences — the script must strip
+        ```json fences before parsing (live finding: ds4-flash may fence)."""
+        _run_loop(tmp_path / "out")
+        MockLocalModel.payload = "```json\n" + json.dumps(CANNED_REFINEMENT, ensure_ascii=False) + "\n```"
+        r = _befine(tmp_path / "out", mock_model)
+        assert r.returncode == 0, r.stdout + r.stderr
+        node = json.loads((tmp_path / "out" / "nodes" / "item-18.json").read_text())
+        ids = {s["id"] for lane in ("fail", "excellence") for s in node["signals"][lane]}
+        assert "18-F1" in ids, "fenced JSON must still be parsed"
+
+    def test_repairs_missing_field_then_succeeds(self, tmp_path: Path, mock_model: str) -> None:
+        """GAN repair round: a response missing a required field is rejected and
+        re-requested with the error fed back; the second attempt succeeds."""
+        _run_loop(tmp_path / "out")
+        bad = json.loads(json.dumps(CANNED_REFINEMENT))
+        del bad["fail"][0]["decomposed_from"]  # missing required field
+        MockLocalModel.payloads = [json.dumps(bad, ensure_ascii=False)]
+        r = _befine(tmp_path / "out", mock_model)
+        assert r.returncode == 0, r.stdout + r.stderr
+        node = json.loads((tmp_path / "out" / "nodes" / "item-18.json").read_text())
+        ids = {s["id"] for lane in ("fail", "excellence") for s in node["signals"][lane]}
+        assert "18-F1" in ids, "repair round must land the refined signals"
+        decisions = [json.loads(line) for line in (tmp_path / "out" / "compile-decisions.jsonl").read_text().splitlines()
+                     if line.strip()]
+        repairs = [d for d in decisions if d.get("step") == "b-e-repair"]
+        assert repairs, "the repair round must be recorded in decisions"
+
+    def test_retries_empty_response_then_succeeds(self, tmp_path: Path, mock_model: str) -> None:
+        """An EMPTY content (transient server behavior) is repairable — one retry
+        succeeds; non-empty garbage still halts immediately (existing test)."""
+        _run_loop(tmp_path / "out")
+        MockLocalModel.payloads = ["", json.dumps(CANNED_REFINEMENT, ensure_ascii=False)]
+        r = _befine(tmp_path / "out", mock_model)
+        assert r.returncode == 0, r.stdout + r.stderr
+        node = json.loads((tmp_path / "out" / "nodes" / "item-18.json").read_text())
+        ids = {s["id"] for lane in ("fail", "excellence") for s in node["signals"][lane]}
+        assert "18-F1" in ids, "retry after empty response must land the signals"
+        decisions = [json.loads(line) for line in (tmp_path / "out" / "compile-decisions.jsonl").read_text().splitlines()
+                     if line.strip()]
+        assert any(d.get("step") == "b-e-repair" for d in decisions), "empty-response retry must be recorded"
+
+    def test_halts_on_persistent_empty(self, tmp_path: Path, mock_model: str) -> None:
+        _run_loop(tmp_path / "out")
+        MockLocalModel.payloads = [""] * 5
+        before = (tmp_path / "out" / "nodes" / "item-18.json").read_text()
+        r = _befine(tmp_path / "out", mock_model)
+        assert r.returncode == 2, "persistent empty responses must halt"
+        after = (tmp_path / "out" / "nodes" / "item-18.json").read_text()
+        assert before == after
+
+    def test_halts_after_repair_exhausted(self, tmp_path: Path, mock_model: str) -> None:
+        """Persistent missing fields halt after the retry budget — node unchanged."""
+        _run_loop(tmp_path / "out")
+        bad = json.loads(json.dumps(CANNED_REFINEMENT))
+        del bad["fail"][0]["decomposed_from"]
+        MockLocalModel.payloads = [json.dumps(bad, ensure_ascii=False)] * 5  # exhaust retries
+        before = (tmp_path / "out" / "nodes" / "item-18.json").read_text()
+        r = _befine(tmp_path / "out", mock_model)
+        assert r.returncode == 2, f"must halt after retries, got {r.returncode}"
+        after = (tmp_path / "out" / "nodes" / "item-18.json").read_text()
+        assert before == after, "node must be UNCHANGED on exhausted repair"
 
     def test_records_model_identity(self, tmp_path: Path, mock_model: str) -> None:
         _run_loop(tmp_path / "out")

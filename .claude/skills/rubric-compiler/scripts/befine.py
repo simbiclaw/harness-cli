@@ -15,6 +15,14 @@ the session model. The model identity is recorded in every decision entry
 (`{"step": "b-e-refine", "item": <id>, "model": <LOCAL_MODEL_NAME>, ...}`
 appended to `--out/compile-decisions.jsonl`).
 
+GAN repair round (max-3-rounds discipline): a response that parses as JSON
+but fails shape validation (missing required field / bad type), or returns
+empty/whitespace-only content (transient server behavior), is re-requested
+with the failure fed back to the model — budget 2 retries, 3 attempts total.
+Non-empty unparseable content halts immediately. Persistent failures halt
+(exit 2, node UNCHANGED); every repair is recorded as a
+`{"step": "b-e-repair", ...}` decision entry alongside the `b-e-refine` entry.
+
 Stdlib only (`urllib`) — no new dependencies. The endpoint is env-overridable:
 LOCAL_MODEL_URL (default http://192.168.3.55:4000), LOCAL_MODEL_NAME
 (default deepseek-v4-flash), LOCAL_MODEL_API_KEY (default sk-1234, the LAN
@@ -35,7 +43,8 @@ from typing import Any
 DEFAULT_URL = "http://192.168.3.55:4000"
 DEFAULT_MODEL = "deepseek-v4-flash"
 DEFAULT_API_KEY = "sk-1234"
-REQUEST_TIMEOUT = 300  # seconds — the LAN model may take minutes for 8000 tokens
+REQUEST_TIMEOUT = 300  # seconds — the LAN model may take minutes for 16384 tokens
+MAX_ATTEMPTS = 3  # GAN repair budget: 2 retries, 3 attempts total
 
 # The B-E protocol (system message): one observable signal per fallback
 # clause, no evaluative adjectives (AUTH-1), gate_checkable_test shape,
@@ -71,6 +80,41 @@ REQUIRED_FIELDS = (
 class BefineError(Exception):
     """One-line halt condition: connection failure, non-200, malformed
     response, or invalid signal shape. The node is left UNCHANGED."""
+
+
+class RepairableError(BefineError):
+    """A response that failed in a repairable way: the failure is fed back to
+    the model and the request is retried within the attempt budget. Messages
+    carry no endpoint URL so the feedback stays clean."""
+
+    def __init__(self, message: str, feedback: str) -> None:
+        super().__init__(message)
+        self.feedback = feedback
+
+
+class ShapeValidationError(RepairableError):
+    """A refined-signal payload that parsed as JSON but failed shape
+    validation (missing required field / bad type)."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(
+            message,
+            feedback=(
+                "Your previous response was rejected: "
+                + message
+                + ". Re-emit the complete JSON with ALL seven fields per signal."
+            ),
+        )
+
+
+class EmptyResponseError(RepairableError):
+    """Empty/whitespace-only content — transient server behavior, repairable."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            "empty response",
+            "Your previous response was empty. Re-emit the complete JSON.",
+        )
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -130,7 +174,33 @@ def extract_content(body: dict[str, Any], url: str) -> str:
         raise BefineError(
             f"LOCAL_MODEL {url} returned a malformed response: choices[0].message.content is not a string"
         )
+    if not content.strip():
+        # Empty/whitespace-only content is transient server behavior —
+        # repairable: feed the notice back and retry within the budget.
+        raise EmptyResponseError()
     return content
+
+
+def _strip_markdown_fence(content: str) -> str:
+    """Strip a ```json ... ``` (or bare ``` ... ```) markdown code fence
+    wrapper if the content is fenced; anything else passes through unchanged,
+    so a genuinely non-JSON payload still halts in parse_refinement."""
+    text = content.strip()
+    if not text.startswith("```"):
+        return text
+    body_start = text.find("\n")
+    if body_start == -1:
+        # No newline ("```json{...}```"): cut the opening fence token and the
+        # closing fence at the JSON's first brace.
+        if text.endswith("```"):
+            first_brace = text.find("{")
+            if first_brace != -1 and first_brace < len(text) - 3:
+                return text[first_brace:-3].strip()
+        return text
+    closing = text.rfind("```")
+    if closing <= body_start:
+        return text
+    return text[body_start + 1 : closing].strip()
 
 
 def parse_refinement(content: str, url: str) -> dict[str, list[dict[str, Any]]]:
@@ -138,70 +208,43 @@ def parse_refinement(content: str, url: str) -> dict[str, list[dict[str, Any]]]:
 
     The content must be a JSON object with "fail" and "excellence" list keys;
     every entry must carry id, description, severity, decomposed_from,
-    gate_checkable_test, checkable, and audit_result. Anything else is a
-    malformed response — halt.
+    gate_checkable_test, checkable, and audit_result. Unparseable content is
+    a malformed response — halt. A parseable payload with the wrong shape is
+    a ShapeValidationError — repairable via the GAN retry loop.
     """
     try:
-        parsed = json.loads(content)
+        parsed = json.loads(_strip_markdown_fence(content))
     except json.JSONDecodeError as e:
         raise BefineError(
             f"LOCAL_MODEL {url} returned a malformed response: content is not JSON: {e}"
         ) from e
     if not isinstance(parsed, dict):
-        raise BefineError(
-            f"LOCAL_MODEL {url} returned a malformed response: content is not a JSON object"
-        )
+        raise ShapeValidationError("the response is not a JSON object")
     refined: dict[str, list[dict[str, Any]]] = {}
     for lane in ("fail", "excellence"):
         lane_list = parsed.get(lane)
         if not isinstance(lane_list, list):
-            raise BefineError(
-                f"LOCAL_MODEL {url} returned a malformed response: missing '{lane}' list"
-            )
+            raise ShapeValidationError(f"missing required '{lane}' list")
         for index, entry in enumerate(lane_list):
             if not isinstance(entry, dict):
-                raise BefineError(
-                    f"LOCAL_MODEL {url} returned an invalid signal: {lane}[{index}] is not an object"
-                )
+                raise ShapeValidationError(f"{lane}[{index}] is not an object")
             for field in REQUIRED_FIELDS:
                 if field not in entry:
-                    raise BefineError(
-                        f"LOCAL_MODEL {url} returned an invalid signal: {lane}[{index}] "
-                        f"lacks required field '{field}'"
-                    )
+                    raise ShapeValidationError(f"{lane}[{index}] lacks required field '{field}'")
             if not isinstance(entry["id"], str) or not entry["id"].strip():
-                raise BefineError(
-                    f"LOCAL_MODEL {url} returned an invalid signal: {lane}[{index}] id must be a non-empty string"
-                )
+                raise ShapeValidationError(f"{lane}[{index}] id must be a non-empty string")
             if not isinstance(entry["description"], str) or not entry["description"].strip():
-                raise BefineError(
-                    f"LOCAL_MODEL {url} returned an invalid signal: {lane}[{index}] "
-                    "description must be a non-empty string"
-                )
+                raise ShapeValidationError(f"{lane}[{index}] description must be a non-empty string")
             if not isinstance(entry["severity"], str):
-                raise BefineError(
-                    f"LOCAL_MODEL {url} returned an invalid signal: {lane}[{index}] severity must be a string"
-                )
+                raise ShapeValidationError(f"{lane}[{index}] severity must be a string")
             if not isinstance(entry["decomposed_from"], str):
-                raise BefineError(
-                    f"LOCAL_MODEL {url} returned an invalid signal: {lane}[{index}] "
-                    "decomposed_from must be a string"
-                )
+                raise ShapeValidationError(f"{lane}[{index}] decomposed_from must be a string")
             if not isinstance(entry["gate_checkable_test"], dict):
-                raise BefineError(
-                    f"LOCAL_MODEL {url} returned an invalid signal: {lane}[{index}] "
-                    "gate_checkable_test must be an object"
-                )
+                raise ShapeValidationError(f"{lane}[{index}] gate_checkable_test must be an object")
             if not isinstance(entry["checkable"], bool):
-                raise BefineError(
-                    f"LOCAL_MODEL {url} returned an invalid signal: {lane}[{index}] "
-                    "checkable must be a boolean"
-                )
+                raise ShapeValidationError(f"{lane}[{index}] checkable must be a boolean")
             if not isinstance(entry["audit_result"], str):
-                raise BefineError(
-                    f"LOCAL_MODEL {url} returned an invalid signal: {lane}[{index}] "
-                    "audit_result must be a string"
-                )
+                raise ShapeValidationError(f"{lane}[{index}] audit_result must be a string")
         refined[lane] = lane_list
     return refined
 
@@ -217,7 +260,10 @@ def build_payload(
     """Assemble the chat-completions body for one item.
 
     Deterministic knobs: temperature 0 (greedy — cross-session reproducible),
-    think false (direct answer), max_tokens 8000. The user message carries the
+    think false plus the explicit `thinking: {"type": "disabled"}` form
+    (belt-and-suspenders — the deployment may still emit reasoning_content
+    with think false alone), max_tokens 16384 (thinking tokens must not
+    truncate the JSON mid-string). The user message carries the
     item id/text/pass_standard/fail_standard, the deterministic signals, and
     the instruction to decompose every checkable-False clause into observable
     signals.
@@ -250,7 +296,8 @@ def build_payload(
         ],
         "temperature": 0,
         "think": False,
-        "max_tokens": 8000,
+        "thinking": {"type": "disabled"},
+        "max_tokens": 16384,
     }
 
 
@@ -290,10 +337,31 @@ def refine_node(
         print(f"item {item_id}: no checkable-False fallback signals — nothing to refine")
         return 0
 
+    # GAN repair round: wrap call → parse → validate in a retry loop (budget
+    # 2 retries, 3 attempts). A shape-validation failure feeds the exact error
+    # back to the model and retries; anything else halts immediately.
     payload = build_payload(node, item_id, plan_items.get(item_id), model_name)
-    body = call_local_model(payload, url, api_key)
-    content = extract_content(body, url)
-    refined = parse_refinement(content, url)
+    last_error: str | None = None
+    refined: dict[str, list[dict[str, Any]]] | None = None
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            body = call_local_model(payload, url, api_key)
+            content = extract_content(body, url)
+            refined = parse_refinement(content, url)
+            break
+        except RepairableError as e:
+            last_error = str(e)
+            if attempt == MAX_ATTEMPTS:
+                raise BefineError(
+                    f"LOCAL_MODEL {url} returned invalid refined signals after "
+                    f"{MAX_ATTEMPTS} attempts: {last_error}"
+                ) from e
+            user = payload["messages"][1]
+            user["content"] = str(user["content"]) + "\n\n" + e.feedback
+    if refined is None:
+        # Budget exhaustion raised inside the loop — unreachable.
+        raise BefineError("internal error: refinement loop exited without a result")
+    repairs = attempt - 1
 
     replaced = 0
     for lane in ("fail", "excellence"):
@@ -305,18 +373,37 @@ def refine_node(
     # Only a fully successful refinement writes the node (HALT = UNCHANGED).
     path.write_text(json.dumps(node, indent=2, ensure_ascii=False))
 
-    decision = {
-        "step": "b-e-refine",
-        "item": item_id,
-        "model": model_name,
-        "rationale": (
-            f"B-E refinement: {replaced} checkable-False fallback clause(s) decomposed "
-            "into observable signals via the local model"
-        ),
-    }
     with (out / "compile-decisions.jsonl").open("a", encoding="utf-8") as fh:
-        fh.write(json.dumps(decision, ensure_ascii=False) + "\n")
-    print(f"item {item_id}: B-E refined {replaced} checkable-False signal(s) via {model_name}")
+        if repairs:
+            fh.write(
+                json.dumps(
+                    {
+                        "step": "b-e-repair",
+                        "item": item_id,
+                        "model": model_name,
+                        "rationale": f"{last_error} — retried",
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
+        fh.write(
+            json.dumps(
+                {
+                    "step": "b-e-refine",
+                    "item": item_id,
+                    "model": model_name,
+                    "rationale": (
+                        f"B-E refinement: {replaced} checkable-False fallback clause(s) "
+                        "decomposed into observable signals via the local model"
+                    ),
+                },
+                ensure_ascii=False,
+            )
+            + "\n"
+        )
+    note = f" (after {repairs} repair round(s))" if repairs else ""
+    print(f"item {item_id}: B-E refined {replaced} checkable-False signal(s) via {model_name}{note}")
     return 0
 
 
