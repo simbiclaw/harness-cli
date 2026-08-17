@@ -424,9 +424,40 @@ Verdict: CONFIRMED (round 2)
 
 ## 8. Outcomes & Retrospective
 
-*Written at completion (2026-08-12).*
+*Written at closure (2026-08-17).*
 
+### What shipped
+
+- **M0–M5 纯核心**(validator AUTH-1..10+S1-S5/D8 · signals · classify · agreement · bridge)——全部经对抗验证 CONFIRMED(2–7 轮/里程碑),零模型依赖(I1 隔离),结构测试强制
+- **M6a agent skill**(`.claude/skills/rubric-compiler/`)——GAN 循环(Planner/Generator/Evaluator)重接 M1–M5 纯核心;`--evaluator mock` 已废弃语义;B-E 精化协议入 SKILL.md,由**本地模型**(`deepseek-v4-flash-local`,LAN-only)经 `befine.py` 执行——形状校验 + M1 验证器反馈轮 + halt 语义(节点字节不变)
+- **M7 manifest 通道**——`_meta/calibration-manifest.<epoch_id>.yaml` 独立注入;AUTH-9 双向(授权/撤销);source_case 结构校验
+- **Epoch 机制激活**(2026-08-13)——外部 INTENTS 树真实提交 + EPOCH.yaml 实 SHA(内容基线 `011c94b`);节点 `intents_sha`/manifest `compiler_epoch` 钉 EPOCH 声明值(I4)
+- **M8 解锁 + item-18 试点**(2026-08-13 起)——真实输入到位(`docs/PRD/eval/`);试点闭环:真实 rubric → 确定性核心 → 本地模型 B-E(7–10 信号,gate_checkable_test)→ evaluate CONFIRMED → validate PASSES;试点暴露并修复 4 个 live 问题(截断、围栏、修复轮、空响应)+ 模型 ID 隐私纠正
 - **执行报告**: [9003-implement-soft-criteria-compiler-report.html](../reports/9003-implement-soft-criteria-compiler-report.html)
-- 全部 8 个可执行里程碑(M0-M5 纯核心、M6a agent skill、M7 manifest 通道)经对抗验证 CONFIRMED 翻转;M6 CLI 按 round-3 决策 1 延后,M8 按 Awaiting Steering Q1 门控真实输入。
-- 行为测试 202 通过 + 结构测试 195 通过 + ruff/import-linter 干净;26 次子代理对抗轮,33+ 发现全部以 RED 测试封闭。
-- 主要债务:W_C 0.4 PROVISIONAL 待实测、M6 CLI 重建、M8 真实输入;详见报告 Technical Debt。
+
+### 关键契约记录
+
+- **27 = 25 + 2**(2026-08-13 人工澄清):rubric 27 项;`*` 标记的 6/7 需外部系统数据,延迟编译(lookup 信号,系统可用后);M8 编译 25 项操作条目
+- **1/0/NA scored items,非 binary checklist**(真实 rubric 结构,人工纠正后全仓清理)
+- **INTENTS 写者模型**:L1 人工 curated · L2 doc2graph · L3 audio2tree · `_rubric/` criteria-compiler(权威出处:树元数据 MANIFEST/AGENTS)
+
+### 数字
+
+25+ 次子代理对抗轮、33+ 发现全部以 RED 测试封闭;行为测试 ~214、结构 195/195、ruff/import-linter 干净;仓库 40+ 提交(9003 分支);实测 token ~2.36M(26 次 dispatch)。
+
+### 技术债务(详见报告 Technical Debt)
+
+- W_C = 0.4 PROVISIONAL(待人工标注样本实测)
+- M6 CLI 重建(在冻结输出契约上)
+- **M8 全量 25 项工作编译**(输入已到位,试点完成,全量未跑——后续计划承接)
+- `source_binary_items` 字段名(重命名 = Tier C,已记录)
+- gap_type 过分类(values vs perceiver——item-18 实证)
+- PyYAML 已声明(9009 M2 关闭);QUALITY_SCORE 已重评(9009 M0)
+
+### 教训(提升候选见各条目)
+
+对抗收敛模式(逐层变异家族)、测试即契约、沙箱覆盖层必须非沙箱验证、门控输入创建时验证仓库内存在性、树写者模型以树元数据为准、PEV 三子代理编排、测试常量程序化验证。
+
+### 归档说明
+
+M8 未翻转:解锁后仅完成 item-18 试点;全量 25 项编译与 M6 CLI 重建作为后续计划承接(本计划的 Awaiting Steering Q1/Q2 与 Decision Log 已完整记录契约,防分歧)。
