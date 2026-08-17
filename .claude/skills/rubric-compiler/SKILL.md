@@ -85,11 +85,15 @@ classify corroborators → declare residue → classify gap → assign escape ti
 check dimension coverage → extract values; per-dimension hard-fail rules are
 synthesized (never copied) for the freeze step.
 
-**B-E refinement (model-judged, D12 — the Generator's authoring step).** The
-deterministic chain emits template-level signals; for every standard clause
-that landed in the "unmatched standard" / "model-judged" fallbacks, the
-Generator performs B-E: decompose the clause into observable signals, ONE per
-clause, each carrying:
+**B-E refinement (model-judged, D12 — the Generator's authoring step).**
+B-E is executed by the LOCAL model via `scripts/befine.py` — endpoint per
+`docs/references/ds4-flash-GUIDE.md` (`LOCAL_MODEL_URL` / `LOCAL_MODEL_NAME` /
+`LOCAL_MODEL_API_KEY`, env-overridable). If the endpoint is unreachable or the
+response malformed → HALT (exit 2, node UNCHANGED): no fallback to the
+session model. The deterministic chain emits template-level signals; for
+every standard clause that landed in the "unmatched standard" / "model-judged"
+fallbacks, the Generator performs B-E: decompose the clause into observable
+signals, ONE per clause, each carrying:
 - `id` — item-XX-SNN sequence (F1..Fn / E1..En convention acceptable)
 - `description` — an OBSERVABLE pattern (no evaluative adjectives — AUTH-1):
   name what a proposer could find in a transcript and what a gate could
@@ -103,8 +107,8 @@ clause, each carrying:
 Signals that stay conclusion-only are `checkable: False` (quarantined to S2).
 Refined signals REPLACE the deterministic fallbacks (never duplicate them);
 the deterministic lexical/ordered signals stay. Every intervention is
-recorded: `{"step": "b-e-refine", "item": <id>, "rationale": ...}` in
-compile-decisions.jsonl. The refined node must pass
+recorded: `{"step": "b-e-refine", "item": <id>, "model": <LOCAL_MODEL_NAME>,
+"rationale": ...}` in compile-decisions.jsonl. The refined node must pass
 `scripts/run_compile.py evaluate` before freezing. The target shape follows
 `docs/retrospectives/item-18-example-v2.yaml` (4 FAIL + 3 EXCELLENCE
 clause-traced signals with gate_checkable_test).
