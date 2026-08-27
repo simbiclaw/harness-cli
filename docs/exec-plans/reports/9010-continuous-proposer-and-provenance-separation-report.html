@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>9010 Execution Report — Continuous Proposer &amp; Provenance Separation</title>
+<style>
+  :root{--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--info:#3b82f6;
+    --bg:#f8fafc;--card:#fff;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;}
+  @media (prefers-color-scheme: dark){:root{--bg:#0f172a;--card:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--border:#334155;}}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;}
+  .header{background:linear-gradient(135deg,#1e293b 0%,#334155 100%);color:#fff;padding:28px 36px;}
+  .header h1{font-size:25px;font-weight:600;margin-bottom:8px;}
+  .header .subtitle{font-size:15px;opacity:.85;margin-bottom:12px;}
+  .header-meta{display:flex;gap:28px;font-size:14px;opacity:.9;flex-wrap:wrap;}
+  .dashboard{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;padding:24px 36px;}
+  .metric-card{background:var(--card);border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.1);border-left:4px solid var(--info);}
+  .metric-card.success{border-left-color:var(--success);}
+  .metric-card.warning{border-left-color:var(--warning);}
+  .metric-label{font-size:12px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;}
+  .metric-value{font-size:30px;font-weight:700;margin-top:8px;}
+  .metric-sub{font-size:12px;color:var(--muted);margin-top:4px;}
+  .main-content{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:0 36px 24px;}
+  .section{background:var(--card);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.1);overflow:hidden;}
+  .full{margin:0 36px 24px;}
+  .section-header{background:rgba(148,163,184,.12);padding:14px 20px;font-weight:600;font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);}
+  .section-body{padding:20px;}
+  .timeline{list-style:none;}
+  .timeline-item{display:flex;gap:16px;padding:13px 0;border-bottom:1px solid var(--border);}
+  .timeline-item:last-child{border-bottom:none;}
+  .marker{width:26px;height:26px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;font-weight:700;color:#fff;}
+  .timeline-item.done .marker{background:var(--success);}
+  .timeline-item.deferred .marker{background:var(--warning);}
+  .timeline-title{font-weight:600;margin-bottom:2px;}
+  .timeline-meta{font-size:13px;color:var(--muted);}
+  .decision{padding:14px 16px;background:rgba(148,163,184,.08);border-radius:8px;margin-bottom:12px;border-left:3px solid var(--info);}
+  .decision.tier-c{border-left-color:var(--danger);}
+  .decision-title{font-weight:600;margin-bottom:4px;font-size:14px;}
+  .badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;letter-spacing:.5px;vertical-align:middle;margin-left:6px;}
+  .badge.c{background:var(--danger);color:#fff;}
+  .badge.b{background:var(--info);color:#fff;}
+  .decision-rationale{font-size:13px;color:var(--muted);}
+  ul.plain{list-style:none;}
+  ul.plain li{padding:10px 0;border-bottom:1px solid var(--border);font-size:14px;}
+  ul.plain li:last-child{border-bottom:none;}
+  .tag{font-weight:700;color:var(--warning);}
+  .warnbox{margin:0 36px 24px;padding:16px 20px;background:rgba(245,158,11,.12);border:1px solid var(--warning);border-radius:10px;font-size:14px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  td,th{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;}
+  th{color:var(--muted);font-weight:600;}
+  code{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:rgba(148,163,184,.15);padding:1px 5px;border-radius:4px;}
+  .footer{text-align:center;color:var(--muted);font-size:12px;padding:20px;}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>9010 — Continuous Proposer, Divergence Diagnostic &amp; Provenance Separation</h1>
+  <div class="subtitle">Making the proposer's self-report a real scalar, fenced so it can never dispose.</div>
+  <div class="header-meta">
+    <span>Status: <strong>Completed (buildable scope)</strong></span>
+    <span>Completed: 2026-08-27</span>
+    <span>Branch: claude/process-derivation-pipeline-docs-nim69g</span>
+  </div>
+</div>
+
+<div class="dashboard">
+  <div class="metric-card success"><div class="metric-label">Milestones</div><div class="metric-value">6 / 7</div><div class="metric-sub">M6 deferred (hardware-blocked)</div></div>
+  <div class="metric-card success"><div class="metric-label">Acceptance tests</div><div class="metric-value">32</div><div class="metric-sub">passing across 7 files</div></div>
+  <div class="metric-card"><div class="metric-label">Tier C decisions</div><div class="metric-value">6</div><div class="metric-sub">logged with rationale</div></div>
+  <div class="metric-card success"><div class="metric-label">Structural gates</div><div class="metric-value">green</div><div class="metric-sub">layering · deps · flip-gate</div></div>
+  <div class="metric-card"><div class="metric-label">Diff vs main</div><div class="metric-value">+3,123</div><div class="metric-sub">29 files · 13 commits</div></div>
+</div>
+
+<div class="warnbox">
+  <strong>⚠ M6 (Pinned capacity measurement) is deferred, not done.</strong> It requires a throughput run against the <em>production</em> model on target hardware; real model hosts are proxy-blocked here, and its acceptance test rejects any non-representative artifact. The milestone was <strong>not flipped</strong> — a fake CONFIRMED verdict or a hand-authored throughput number is exactly what the harness prevents. The harness <code>run.py</code> is committed and waiting for one run (drop <code>--synthetic</code>).
+</div>
+
+<div class="main-content">
+  <div class="section">
+    <div class="section-header">Milestone timeline</div>
+    <div class="section-body">
+      <ul class="timeline">
+        <li class="timeline-item done"><div class="marker">✓</div><div><div class="timeline-title">M0 — Stack-agnostic logprob capability probe</div><div class="timeline-meta">Verified · real llama.cpp probe · top-k ceiling 256, G=20, expectation≠argmax</div></div></li>
+        <li class="timeline-item done"><div class="marker">✓</div><div><div class="timeline-title">M1 — Batch-shaped local Provider, KV-cache reuse</div><div class="timeline-meta">Verified · KV reuse proven against real llama.cpp; core ✗ model_client</div></div></li>
+        <li class="timeline-item done"><div class="marker">✓</div><div><div class="timeline-title">M2 — Continuous proposed_score, quarantined</div><div class="timeline-meta">Verified · I7 quarantine + I5 replay; ordered-scale bug caught by the test</div></div></li>
+        <li class="timeline-item done"><div class="marker">✓</div><div><div class="timeline-title">M3 — Divergence into the drift detector</div><div class="timeline-meta">Verified · one demotion pathway; I8-safe by shape (no disposer field)</div></div></li>
+        <li class="timeline-item done"><div class="marker">✓</div><div><div class="timeline-title">M4 — Escape sampler tranche split</div><div class="timeline-meta">Verified · random-only enforced by type; measured bias (0.108 vs 0.092)</div></div></li>
+        <li class="timeline-item done"><div class="marker">✓</div><div><div class="timeline-title">M5 — I8 provenance-separation fixture</div><div class="timeline-meta">Verified · live scan of core/**; injected leak fails it</div></div></li>
+        <li class="timeline-item deferred"><div class="marker">⏸</div><div><div class="timeline-title">M6 — Pinned capacity measurement</div><div class="timeline-meta">Deferred · blocked on production-model access; test red by design</div></div></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">Key decisions</div>
+    <div class="section-body">
+      <div class="decision tier-c"><div class="decision-title">Swap D21 serving stack: MLX/Apple Silicon → llama.cpp/x86_64 <span class="badge c">Tier C</span></div><div class="decision-rationale">Human-directed; the environment had no MLX. The io boundary makes it a loader swap, not an architecture change.</div></div>
+      <div class="decision tier-c"><div class="decision-title">Adopt <code>llama-cpp-python</code> as an optional extra <span class="badge c">Tier C</span></div><div class="decision-rationale">Dep-vetted; downloads check unverifiable behind the proxy (human override).</div></div>
+      <div class="decision"><div class="decision-title">proposed_score = expectation over the <em>ordered</em> letter scale <span class="badge b">correction</span></div><div class="decision-rationale">M2's test caught magnitude-ranking that destroyed the score axis; fix reached back into M1's capture.</div></div>
+      <div class="decision"><div class="decision-title">Source D19 from the low-level full-logit vector</div><div class="decision-rationale">M0 measured that llama.cpp's high-level logprobs API caps unpredictably below N.</div></div>
+      <div class="decision"><div class="decision-title">Split original M0 → capability probe (M0) + pinned capacity (M6)</div><div class="decision-rationale">Different blockers: capability is weight-independent and ran; capacity needs the production model.</div></div>
+      <div class="decision"><div class="decision-title">Enforce I8 as a disposer-sink invariant, not a name-count</div><div class="decision-rationale">M4's escape_sampler legitimately reads proposed_score for ordering; the real invariant is no logit→disposer sink.</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="section full">
+  <div class="section-header">The recurring pattern — structure over vigilance</div>
+  <div class="section-body">
+    <table>
+      <tr><th>Milestone</th><th>Invariant</th><th>Enforced by</th><th>Adversarial check</th></tr>
+      <tr><td>M3</td><td>Divergence never demotes / disposes</td><td><code>DriftAssessment</code> has no disposer field</td><td>Second-demoter leak fails the test</td></tr>
+      <tr><td>M4</td><td>Escape rate reads only the unbiased sample</td><td><code>compute_escape_rate</code> takes only <code>RandomTranche</code></td><td>Prioritized tranche → TypeError</td></tr>
+      <tr><td>M5</td><td>No logit-derived value reaches a disposer sink</td><td>Parse-time scan of <code>core/**</code></td><td><code>routing = proposed_score</code> fails the live scan</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="section full">
+  <div class="section-header">Technical debt carried forward</div>
+  <div class="section-body">
+    <ul class="plain">
+      <li><span class="tag">M6</span> — pinned capacity measurement, blocked on production-model access; harness ready.</li>
+      <li><span class="tag">Provisional stand-ins</span> — <code>QuarantinedFindingGraph</code>/<code>EvaluationResult</code>/<code>replay_hash</code>/<code>derive_evaluation</code>, <code>assess_drift</code>, and <code>compute_escape_rate</code> stand in for 9002's unstarted schemas (Q2).</li>
+      <li><span class="tag">Letter-scale mapping</span> — first-g placeholder scale pending the config layer (Q3).</li>
+      <li><span class="tag">Dep-vet</span> — <code>llama-cpp-python</code> downloads check PASS on human override; confirm &gt;1000/week off-proxy.</li>
+      <li><span class="tag">Q8</span> — notes-vs-flip-gate contradiction worked around per-milestone; promotion-rule violation #1.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="section full">
+  <div class="section-header">Lessons</div>
+  <div class="section-body">
+    <ul class="plain">
+      <li>Name the executor environment in the plan, not just the target hardware — the M0 stall traced entirely to that gap.</li>
+      <li>Author the capability/capacity split from the start; it only became visible after M0 had been flipped once.</li>
+      <li>Test-first paid off twice: it caught the ordered-scale bug (M2) and made every I8 fixture verifiable by injecting the exact violation it forbids.</li>
+      <li>"Structure over vigilance" recurred independently in M3/M4/M5 — worth naming as an explicit harness principle alongside the Gate-Checkability Audit.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="footer">Generated 2026-08-27 · source: <code>docs/exec-plans/completed/9010-continuous-proposer-and-provenance-separation.md</code></div>
+</body>
+</html>
