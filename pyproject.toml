@@ -20,6 +20,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# The local proposer's serving stack (9010 D21, swapped to llama.cpp).
+# Lazily imported by src/argus/io/local_proposer.py; only installs that run
+# the real model need it. Dep-vet: docs/decisions/dep-vet-llama-cpp-python.md
+proposer = [
+    "llama-cpp-python>=0.3",
+]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",

@@ -24,6 +24,7 @@ The four `FindingGraph` schema deltas this work needs — `proposer_id`, `alignm
 
 **File Scope:**
 - `src/argus/io/local_proposer.py` (new)
+- `pyproject.toml` (modify — declare the proposer extra)
 - `src/argus/io/logprob_scoring.py` (new)
 - `src/argus/types/proposer_diagnostics.py` (new)
 - `src/argus/core/divergence.py` (new)
@@ -65,7 +66,7 @@ Land `src/argus/io/local_proposer.py`: a Provider for the local open-weight mode
 `Notes:` Patch label N1. Depends on 9002 M6 (the proposer boundary this Provider implements) having shipped; that dependency is cross-plan and so is stated here rather than in the machine-readable `Requires` field, which addresses only in-plan milestones. Blocked on Q1 (the serving dependencies are new top-level deps) and Q3 (endpoint and model hash are config). Proposer identity is part of the evaluation record, not an ambient setting.
 Requires: M0
 Allowed Reads: src/argus/io/**, src/argus/types/**, docs/retrospectives/**
-Allowed Writes: src/argus/io/local_proposer.py, tests/test_local_proposer.py, docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation-notes/M1.md, docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation.md
+Allowed Writes: src/argus/io/local_proposer.py, tests/test_local_proposer.py, pyproject.toml, docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation-notes/M1.md, docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation.md
 Risk Tier: C
 
 ### M2 — Continuous per-dimension proposed_score, quarantined
@@ -130,7 +131,7 @@ Risk Tier: B
 ## 4. Progress
 
 - [x] M0: Stack-agnostic logprob capability probe  (done 2026-08-27, verified at output.json; MLX→llama.cpp swap)
-- [ ] M1: Batch-shaped local Provider with KV-cache reuse  (created 2026-08-26)
+- [x] M1: Batch-shaped local Provider with KV-cache reuse  (done 2026-08-27, verified; KV reuse proven against real llama.cpp)
 - [ ] M2: Continuous per-dimension proposed_score, quarantined  (created 2026-08-26)
 - [ ] M3: Divergence diagnostic into the §6 drift detector  (created 2026-08-26)
 - [ ] M4: Escape sampler tranche split  (created 2026-08-26)
@@ -180,6 +181,12 @@ Source: .claude/tests/test_milestone_constraints.py:44
 D21 as authored pinned the proposer to a local open-weight model on Apple Silicon served via MLX. The execution environment is x86_64 Linux without MLX, so M0 could not run and the plan stalled at its first milestone. The human directed swapping the stack to llama.cpp (`llama-cpp-python`), which runs on x86_64 and exposes per-token logits. M0 was then run for real against it.
 Rationale: the swap is a human decision recorded here for provenance, not one this plan made on its own; llama.cpp answers B2.a (top-k exposure is an API property) and the capacity questions on the available hardware, and the io-boundary interface (M1) keeps the specific runtime a swap behind the Provider so the plan's architecture is unchanged by which local engine serves it.
 Source: docs/decisions/dep-vet-llama-cpp-python.md
+
+### Decision: M1 injects the model and defines provisional local types, since 9002's schemas do not exist yet
+
+M1 depends cross-plan on 9002's proposer boundary and `Finding`/`FindingGraph` schemas, which are unstarted. Rather than block, the Provider takes its model by a `LogitModel` protocol (dependency injection) and returns a provisional `FindingSet` with an empty `findings` list; the g-wide per-dimension logit slice it captures is the raw material M2 scores. `ProposerConfig` lives in `io/` as a parameter object, not in `config/`.
+Rationale: injection makes the KV-cache contract observable against a fake model with no GGUF in CI and keeps the specific stack swappable, and an empty `findings` list is honest — extraction against the real schema is 9002 M6's job, not M1's. The `config/` landing is Tier C (Q3) and deferred, so a frozen dataclass passed at construction avoids touching a sensitive layer before that resolves. `findings` and `ProposerConfig` are replaced/relocated when 9002 lands.
+Source: docs/exec-plans/active/9002-implement-argus-eval-pipeline.md
 
 ### Decision: source D19's continuous score from the low-level full-logit vector, not the high-level logprobs API
 
