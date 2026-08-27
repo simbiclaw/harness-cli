@@ -133,7 +133,7 @@ Risk Tier: B
 - [x] M0: Stack-agnostic logprob capability probe  (done 2026-08-27, verified at output.json; MLX→llama.cpp swap)
 - [x] M1: Batch-shaped local Provider with KV-cache reuse  (done 2026-08-27, verified; KV reuse proven against real llama.cpp)
 - [x] M2: Continuous per-dimension proposed_score, quarantined  (done 2026-08-27, verified; quarantine + replay invariants)
-- [ ] M3: Divergence diagnostic into the §6 drift detector  (created 2026-08-26)
+- [x] M3: Divergence diagnostic into the §6 drift detector  (done 2026-08-27, verified; one demotion pathway, I8-safe)
 - [ ] M4: Escape sampler tranche split  (created 2026-08-26)
 - [ ] M5: I8 fixture: provenance separation, standing red and green  (created 2026-08-26)
 - [ ] M6: Pinned capacity measurement  (created 2026-08-27, split from M0; blocked on model access)
@@ -181,6 +181,12 @@ Source: .claude/tests/test_milestone_constraints.py:44
 D21 as authored pinned the proposer to a local open-weight model on Apple Silicon served via MLX. The execution environment is x86_64 Linux without MLX, so M0 could not run and the plan stalled at its first milestone. The human directed swapping the stack to llama.cpp (`llama-cpp-python`), which runs on x86_64 and exposes per-token logits. M0 was then run for real against it.
 Rationale: the swap is a human decision recorded here for provenance, not one this plan made on its own; llama.cpp answers B2.a (top-k exposure is an API property) and the capacity questions on the available hardware, and the io-boundary interface (M1) keeps the specific runtime a swap behind the Provider so the plan's architecture is unchanged by which local engine serves it.
 Source: docs/decisions/dep-vet-llama-cpp-python.md
+
+### Decision: M3 enforces the single-demotion-pathway property structurally, via a three-field assessment type
+
+D20 says divergence "feeds the existing §6 drift detector as an additional input, not a separate channel", and I8 forbids it touching routing, coverage, auto-final, or score/adjust. The provisional `DriftAssessment` carries exactly three fields — `demote`, `calibration_injection`, `reason` — and `assess_drift` sets `demote` from κ alone; a widening divergence sets only `calibration_injection`.
+Rationale: making the type carry no disposer field means divergence has nothing it could write to change a machine decision, so I8 holds by construction rather than by a reviewer noticing — the test asserts both the behavior (widening divergence never demotes) and the structure (no forbidden field). 9002 M5.5 lands the real detector; the durable part here is the divergence math, and the stand-in is replaced then.
+Source: docs/retrospectives/process-derivation-pipeline-spec-v5-patch-1.md:61
 
 ### Decision: the proposed_score is the expectation over the ORDERED letter scale, correcting M1's capture
 
