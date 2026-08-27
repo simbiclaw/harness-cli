@@ -1,4 +1,4 @@
-"""Escape sampler tranche split (9010 M4, core, pure).
+"""Escape sampler tranche split (9020 M4, core, pure).
 
 The escape-rate estimator (D11) needs an unbiased sample of auto-passed calls.
 The continuous proposed score (M2) lets us prioritize which auto-passed calls a

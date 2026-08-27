@@ -1,4 +1,4 @@
-"""Continuous proposed_score computation (9010 M2, io).
+"""Continuous proposed_score computation (9020 M2, io).
 
 Turns the g-wide logit slice M1's Provider captured per dimension into a
 continuous `proposed_score`: the expectation over the softmax of those logits,

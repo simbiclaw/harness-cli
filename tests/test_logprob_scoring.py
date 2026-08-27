@@ -1,11 +1,11 @@
-"""Acceptance tests for 9010 M2 — continuous per-dimension proposed_score (io).
+"""Acceptance tests for 9020 M2 — continuous per-dimension proposed_score (io).
 
 The scorer turns M1's captured g-wide logit slice into a continuous
 proposed_score: the expectation over the softmax, not the argmax. It records
 the G actually used per evaluation, so the number stays interpretable across a
 capability change (M0's fallback contract).
 
-See docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation.md
+See docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation.md
 """
 
 from __future__ import annotations

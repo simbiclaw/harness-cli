@@ -1,4 +1,4 @@
-"""Divergence diagnostic (9010 M3, core, pure).
+"""Divergence diagnostic (9020 M3, core, pure).
 
 `|proposed_score − derived_score|` per dimension per call, aggregated over the
 same windows as κ — one drift clock, two instruments (D20). Divergence enters

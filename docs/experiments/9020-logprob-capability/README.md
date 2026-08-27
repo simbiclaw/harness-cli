@@ -1,4 +1,4 @@
-# 9010-logprob-capability
+# 9020-logprob-capability
 
 This experiment tested whether the local serving stack exposes top-k logprobs at a chosen token position with k ≥ 20, and what a hunt pass and a score pass cost. **The answer is: yes — the low-level logit vector exposes the full vocabulary (ceiling 256 on the test model), G=20 is achievable, and the expectation over the softmax is a real scalar distinct from the argmax. Throughput was measured but is non-representative (synthetic model).**
 
@@ -18,8 +18,8 @@ Real HuggingFace models are unreachable — the agent proxy allows only `pypi.or
 
 Reproduce:
 
-    python3 docs/experiments/9010-logprob-capability/build_tiny_gguf.py   # writes /home/user/models/tiny-llama-random.gguf
-    python3 docs/experiments/9010-logprob-capability/run.py \
+    python3 docs/experiments/9020-logprob-capability/build_tiny_gguf.py   # writes /home/user/models/tiny-llama-random.gguf
+    python3 docs/experiments/9020-logprob-capability/run.py \
         --model /home/user/models/tiny-llama-random.gguf \
         --model-id tiny-llama-random --synthetic --quantization F32 \
         --n-ctx 4096 --hunt-tokens 256 --samples 3

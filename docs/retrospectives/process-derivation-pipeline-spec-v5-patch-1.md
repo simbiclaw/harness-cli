@@ -3,8 +3,8 @@
 **Patches:** `process-derivation-pipeline-spec-v5.html`
 **Date:** 2026-08-25
 **Status:** draft
-**Source:** LLM-as-a-Verifier (arXiv:2607.05391v2) analysis + 9010 requirements interview
-**Exec-plan:** 9010 (next free; 9002–9009 consumed)
+**Source:** LLM-as-a-Verifier (arXiv:2607.05391v2) analysis + 9020 requirements interview
+**Exec-plan:** 9020 (next free; 9002–9009 consumed)
 
 ---
 
@@ -184,9 +184,9 @@ rubric-epoch change from a manifest-epoch change from a proposer change.
 
 ---
 
-## Milestones for 9010
+## Milestones for 9020
 
-9010 is a standalone plan declaring a dependency on 9002, not an amendment to it. 9002 is
+9020 is a standalone plan declaring a dependency on 9002, not an amendment to it. 9002 is
 authored with M0–M7 all unstarted; injecting scope into an open plan is the pattern
 `9004-execution-mistakes.md` identifies as a root cause.
 

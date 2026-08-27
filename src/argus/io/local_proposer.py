@@ -1,4 +1,4 @@
-"""Local open-weight proposer Provider (9010 M1).
+"""Local open-weight proposer Provider (9020 M1).
 
 The proposer is the ONLY component that talks to a model client; it lives in
 `io/`, never `core/` — that fence is what keeps the pure stages pure (I1).

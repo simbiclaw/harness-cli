@@ -1,4 +1,4 @@
-# 9010 — Continuous Proposer, Divergence Diagnostic, and Provenance Separation
+# 9020 — Continuous Proposer, Divergence Diagnostic, and Provenance Separation
 
 ## 1. Purpose
 
@@ -8,7 +8,7 @@ The user-visible outcome is not a different score. It is that a reviewer's queue
 
 ## 2. Big Picture
 
-This plan is a standalone dependent of 9002, not an amendment to it. 9002 is authored with M0–M7 all unstarted; injecting scope into an open plan is the pattern `docs/retrospectives/9004-execution-mistakes.md` identifies as a root cause of execution failure. 9010 therefore declares its own milestones and executes after the 9002 milestones it names have shipped.
+This plan is a standalone dependent of 9002, not an amendment to it. 9002 is authored with M0–M7 all unstarted; injecting scope into an open plan is the pattern `docs/retrospectives/9004-execution-mistakes.md` identifies as a root cause of execution failure. 9020 therefore declares its own milestones and executes after the 9002 milestones it names have shipped.
 
 The work lands on both sides of the seam, and the seam is the whole point. On the propose side (`src/argus/io/`), a new local open-weight Provider replaces the hosted-model deployment contract, exposes a batch-shaped interface, reuses the transcript KV cache across scoring passes, and computes a continuous `proposed_score` as the expectation over the distribution of scoring-token logits rather than the argmax of one sampled token. On the dispose side (`src/argus/core/`), exactly one new pure module consumes that number: a divergence aggregator that computes `|proposed_score − derived_score|` per dimension per call and feeds it into the §6 drift detector as an additional input to the existing demotion pathway. A second new pure module splits the escape sampler into a random tranche (the only decorrelated window into auto-passed calls, and the only input `compute_escape_rate()` may consume) and a prioritized tranche ordered by proposer signal, excluded from the estimate.
 
@@ -37,10 +37,10 @@ The four `FindingGraph` schema deltas this work needs — `proposer_id`, `alignm
 - `tests/test_divergence.py` (new)
 - `tests/test_escape_sampler.py` (new)
 - `tests/test_i8_provenance_separation.py` (new)
-- `docs/experiments/9010-logprob-capability/**` (new)
+- `docs/experiments/9020-logprob-capability/**` (new)
 - `docs/retrospectives/process-derivation-pipeline-spec-v5-patch-1.md` (read only)
 - `docs/retrospectives/soft-criteria-authoring-spec-v4-patch-3.md` (read only)
-- `docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation.md` (modify — this plan)
+- `docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation.md` (modify — this plan)
 
 ## 3. Milestones
 
@@ -48,13 +48,13 @@ The source patch labels these N0–N5 to keep them distinct from 9002's M0–M7.
 
 ### M0 — Stack-agnostic logprob capability probe
 
-Split from the original M0 (see Decision Log and M6 for the capacity half). This half answers B2.a, a question about the serving stack's API and not about any weights or hardware: does the stack expose top-k logprobs at a chosen token position, at what k, and by which path. The answer is weight-independent, so it is answerable against whatever stack D21 settles on — implemented here for llama.cpp on x86_64 (swapped from MLX per human direction). The committed artifact `docs/experiments/9010-logprob-capability/output.json` records `topk_available`, the observed `topk_ceiling`, the reliable `ceiling_source`, the `g_used` this plan will therefore use, and an `expectation_demo` proving D19's continuous score is computable and distinct from argmax. If no top-k is exposed at all, D19 reduces to argmax scores, only D20 survives, and M2 is rewritten before it starts.
+Split from the original M0 (see Decision Log and M6 for the capacity half). This half answers B2.a, a question about the serving stack's API and not about any weights or hardware: does the stack expose top-k logprobs at a chosen token position, at what k, and by which path. The answer is weight-independent, so it is answerable against whatever stack D21 settles on — implemented here for llama.cpp on x86_64 (swapped from MLX per human direction). The committed artifact `docs/experiments/9020-logprob-capability/output.json` records `topk_available`, the observed `topk_ceiling`, the reliable `ceiling_source`, the `g_used` this plan will therefore use, and an `expectation_demo` proving D19's continuous score is computable and distinct from argmax. If no top-k is exposed at all, D19 reduces to argmax scores, only D20 survives, and M2 is rewritten before it starts.
 
 `Acceptance Test:` `tests/test_logprob_capability.py::test_capability_record_is_complete` — the artifact parses and declares `topk_available` and `g_used`, with a positive `topk_ceiling` when available; a record missing capability fields fails. `tests/test_logprob_capability.py::test_g_used_within_measured_ceiling` — the recorded `g_used` never exceeds the measured top-k ceiling (and is 1 when no top-k is exposed). `tests/test_logprob_capability.py::test_expectation_is_computable` — the artifact demonstrates an expectation over the distribution distinct from the argmax, i.e. D19 is real.
 
 `Notes:` Patch label N0 (capability half). Resolves carried-open B2.a. The declared fallback is not "give up": set G to whatever k the stack exposes and **record G per evaluation**, so the number stays interpretable across a capability change. This half is stack-agnostic in the QUESTION, not the harness — `run.py` is the llama.cpp implementation of the probe, and a different stack swaps the loader behind the same artifact schema. Nothing here depends on the production model or the target hardware, so this milestone completed in the authoring environment.
 Allowed Reads: docs/retrospectives/**, src/argus/io/**
-Allowed Writes: docs/experiments/9010-logprob-capability/**, tests/test_logprob_capability.py, docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation-notes/M0.md, docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation.md
+Allowed Writes: docs/experiments/9020-logprob-capability/**, tests/test_logprob_capability.py, docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation-notes/M0.md, docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation.md
 Risk Tier: B
 
 ### M1 — Batch-shaped local Provider with KV-cache reuse
@@ -66,7 +66,7 @@ Land `src/argus/io/local_proposer.py`: a Provider for the local open-weight mode
 `Notes:` Patch label N1. Depends on 9002 M6 (the proposer boundary this Provider implements) having shipped; that dependency is cross-plan and so is stated here rather than in the machine-readable `Requires` field, which addresses only in-plan milestones. Blocked on Q1 (the serving dependencies are new top-level deps) and Q3 (endpoint and model hash are config). Proposer identity is part of the evaluation record, not an ambient setting.
 Requires: M0
 Allowed Reads: src/argus/io/**, src/argus/types/**, docs/retrospectives/**
-Allowed Writes: src/argus/io/local_proposer.py, tests/test_local_proposer.py, pyproject.toml, docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation-notes/M1.md, docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation.md
+Allowed Writes: src/argus/io/local_proposer.py, tests/test_local_proposer.py, pyproject.toml, docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation-notes/M1.md, docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation.md
 Risk Tier: C
 
 ### M2 — Continuous per-dimension proposed_score, quarantined
@@ -78,7 +78,7 @@ Land `src/argus/io/logprob_scoring.py`, which computes a `proposed_score` as the
 `Notes:` Patch label N2. Contingent on M0: if the stack exposes no top-k, this milestone is rewritten to argmax-only before it starts. Blocked on Q2 — the quarantined block is an on-disk format change, and the `FindingGraph` field additions land in a 9002-owned file. The reason to adopt a number that never ships is threefold, in descending value: it makes the M3 divergence diagnostic a real scalar rather than a tie-saturated near-binary; it lets the hunt pass order its budget toward likely violation mass; and it prioritizes escape sampling within the constraint of M4.
 Requires: M0, M1
 Allowed Reads: src/argus/io/**, src/argus/types/**, docs/retrospectives/**
-Allowed Writes: src/argus/io/logprob_scoring.py, src/argus/types/proposer_diagnostics.py, src/argus/io/local_proposer.py, tests/test_logprob_scoring.py, tests/test_proposer_diagnostics.py, docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation-notes/M2.md, docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation.md
+Allowed Writes: src/argus/io/logprob_scoring.py, src/argus/types/proposer_diagnostics.py, src/argus/io/local_proposer.py, tests/test_logprob_scoring.py, tests/test_proposer_diagnostics.py, docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation-notes/M2.md, docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation.md
 Risk Tier: C
 
 ### M3 — Divergence diagnostic into the §6 drift detector
@@ -90,7 +90,7 @@ Land `src/argus/core/divergence.py`: a pure function computing `|proposed_score 
 `Notes:` Patch label N3. Depends on 9002 M5.5 (the §6 drift detector and CriterionHealth) having shipped — cross-plan, stated here rather than in `Requires`. This is the one place a logit-derived quantity is permitted to be read at all, and M5 is the fixture that proves it is the only one.
 Requires: M2
 Allowed Reads: src/argus/core/**, src/argus/types/**, docs/retrospectives/**
-Allowed Writes: src/argus/core/divergence.py, tests/test_divergence.py, docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation-notes/M3.md, docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation.md
+Allowed Writes: src/argus/core/divergence.py, tests/test_divergence.py, docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation-notes/M3.md, docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation.md
 Risk Tier: B
 
 ### M4 — Escape sampler tranche split
@@ -101,7 +101,7 @@ Land `src/argus/core/escape_sampler.py`. The escape-rate estimator requires an u
 
 `Notes:` Patch label N4. Depends on 9002 M5.5 (`compute_escape_rate()`) having shipped — cross-plan, stated here rather than in `Requires`, and note that enforcing the random-tranche-only rule by type means a signature change in a 9002-owned file, which is why this milestone cannot start before 9002 completes. Blocked on Q3: the split ratio and the absolute floor are config. The companion patch 3 makes `escape-random` cases the scarce, load-bearing provenance for manifest curation — the value of this milestone is mostly downstream of this plan.
 Allowed Reads: src/argus/core/**, src/argus/types/**, docs/retrospectives/**
-Allowed Writes: src/argus/core/escape_sampler.py, tests/test_escape_sampler.py, docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation-notes/M4.md, docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation.md
+Allowed Writes: src/argus/core/escape_sampler.py, tests/test_escape_sampler.py, docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation-notes/M4.md, docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation.md
 Risk Tier: C
 
 ### M5 — I8 fixture: provenance separation, standing red and green
@@ -113,7 +113,7 @@ No new application code. A standing fixture pair that makes the anticipated fail
 `Notes:` Patch label N5. The fixture lives in `tests/`, not `.claude/tests/` — see the Decision Log. Written after M2 because it needs a real quarantined block to point at, and it must pass before M3's reader is trusted.
 Requires: M2
 Allowed Reads: src/argus/**, docs/retrospectives/**
-Allowed Writes: tests/test_i8_provenance_separation.py, docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation-notes/M5.md, docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation.md
+Allowed Writes: tests/test_i8_provenance_separation.py, docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation-notes/M5.md, docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation.md
 Risk Tier: B
 
 ### M6 — Pinned capacity measurement
@@ -125,7 +125,7 @@ The capacity half split from the original M0. Where M0 asked a weight-independen
 `Notes:` Patch label N0 (capacity half). Blocked on model access and target hardware, not on code — real GGUF hosts are proxy-blocked in the authoring environment, so this milestone stays red until a run on the target box against the pinned model. It has no code dependents: it informs Q4's serving-shape decision (already deferred) and confirms M2's per-dimension resolution is affordable at volume, but no other milestone's implementation waits on it. That is why the plan proceeds M0 → M2..M5 on the capability result while this milestone is pending.
 Requires: M0
 Allowed Reads: docs/retrospectives/**, src/argus/io/**
-Allowed Writes: docs/experiments/9010-logprob-capability/**, tests/test_capacity_measurement.py, docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation-notes/M6.md, docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation.md
+Allowed Writes: docs/experiments/9020-logprob-capability/**, tests/test_capacity_measurement.py, docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation-notes/M6.md, docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation.md
 Risk Tier: B
 
 ## 4. Progress
@@ -204,7 +204,7 @@ Source: docs/retrospectives/process-derivation-pipeline-spec-v5-patch-1.md:61
 
 M2's first implementation, and M1's `_top_g`, both truncated the per-dimension logits by magnitude. That is wrong for a letter scale: position i is score-letter i, so the score axis is ordered and sorting destroys it. `continuous_proposed_score` now takes the first g logits in scale order, and M1's capture was changed from `_top_g` (sorted) to `_scale_slice` (first g in order). The acceptance test `test_expectation_not_argmax` caught the discrepancy before the flip.
 Rationale: D19 defines the score as the expectation over the distribution of scoring-token logits on a single-token letter scale — the letters are the scale and their order is the score, so an expectation over magnitude-ranked positions would be a meaningless quantity. The real deployment maps the specific letter-token vocab ids; that mapping is a config concern (Q3), so the first-g slice is the provisional ordered scale until then. This is why `src/argus/io/local_proposer.py` (an M1 file) is in M2's Allowed Writes.
-Source: docs/experiments/9010-logprob-capability/output.json
+Source: docs/experiments/9020-logprob-capability/output.json
 
 ### Decision: M1 injects the model and defines provisional local types, since 9002's schemas do not exist yet
 
@@ -216,7 +216,7 @@ Source: docs/exec-plans/active/9002-implement-argus-eval-pipeline.md
 
 M0 measured that llama.cpp exposes logprobs two ways, and they differ sharply. The high-level `create_completion(logprobs=N)` caps below N and returns a distribution-dependent count (requested 20 → 12; requested 256 → 129). The low-level logit vector (`Llama.scores`, `logits_all=True`) exposes the full vocabulary. D19's per-dimension expectation must be computed from the low-level vector.
 Rationale: the high-level API cannot reliably deliver G=20 distinct entries, so building D19 on it would silently truncate the distribution the expectation is taken over; the low-level path is measured to expose the full width and the artifact demonstrates the expectation is a real scalar distinct from argmax.
-Source: docs/experiments/9010-logprob-capability/output.json
+Source: docs/experiments/9020-logprob-capability/output.json
 
 ### Decision: treat the speculative-decoding layer as throughput, not judgment
 
@@ -242,7 +242,7 @@ The source patch labels these milestones N0–N5 to keep them visually distinct 
 Rationale: the milestone parser matches `### M(\d+)` only, so N-labelled milestones are silently skipped — including by the check that every milestone has an Acceptance Test — which would leave this plan unenforced by exactly the harness it is written for.
 Source: .claude/tests/test_milestone_constraints.py:37
 
-### Decision: declare only files 9010 creates; shared 9002 files enter scope on 9002's completion
+### Decision: declare only files 9020 creates; shared 9002 files enter scope on 9002's completion
 
 `src/argus/types/schemas.py`, `src/argus/io/proposer.py`, and `src/argus/core/escape_rate.py` all need edits from this work and are all declared by 9002. They are described in the Big Picture and in milestone Notes but excluded from the File Scope block.
 Rationale: the collision detector compares active plans statically and would fail on the overlap, but the dependency here is temporal rather than contended — every milestone that touches a 9002-owned file is gated on that 9002 milestone having shipped, at which point 9002 moves to completed/ and the paths are uncontended.
@@ -262,9 +262,15 @@ Source: docs/retrospectives/soft-criteria-authoring-spec-v4-patch-2.md:1
 
 ### Decision: every milestone's Allowed Writes carries its own notes file and the plan
 
-The six `Allowed Writes` lines as first authored listed only the milestone's product files. Each now also lists `docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation-notes/M<N>.md` and the plan file itself.
+The six `Allowed Writes` lines as first authored listed only the milestone's product files. Each now also lists `docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation-notes/M<N>.md` and the plan file itself.
 Rationale: the pre-execution gate blocks any write outside the current milestone's declared patterns, and every milestone is required by convention to log implementation notes and keep the plan current — so as authored, each milestone forbade the two writes it is obliged to make. Fixed across all six rather than only M0, because the next five sessions would each hit the same wall.
 Source: .claude/hooks/pre_execution_gate.py:126-146
+
+### Decision: renumber the plan 9010 → 9020, rewriting branch history to keep the commit-message gate green
+
+The human directed renumbering the plan from 9010 to 9020 after it had completed. All filenames, content references, and the two source-patch forward-references were updated; the unrelated `9010-promote-loop-closure` fixture in `.claude/tests/test_promotion_rule_enforcement.py` was left untouched. Because all 14 branch commits name the old `9010-…md` stem in their `Plan:` trailers, and `test_commit_messages.py` resolves trailers by filename, the rename orphaned every trailer. A new commit cannot fix prior commit messages, so the branch history was rewritten (`git filter-branch --msg-filter`) to read 9020 and force-pushed.
+Rationale: renumbering a plan whose history is already pushed necessarily rewrites those commits' trailers — the only alternatives were a 9010 redirect stub (reintroducing the number the rename removes) or grandfathering the SHAs in a sensitive test file (gaming the gate). The force-push was explicitly authorized by the human for this one push, per `docs/conventions/commit-hygiene.md`; it rewrites only this feature branch, never a shared one.
+Source: docs/conventions/commit-hygiene.md
 
 ## 6. Surprises & Discoveries
 
@@ -308,17 +314,17 @@ Source: .claude/hooks/pre_execution_gate.py:126-146
 
 **Q6: Is the companion patch 3 scope absorbed here or opened as its own plan?** — Deadline: 2026-09-16. Unresolved; blocks nothing in this plan. The companion adds `used_for`, `provenance`, `blind`, and `reason` to CalibrationManifest rows, adds prohibitions AUTH-11 through AUTH-13, adds the F4 tranche-balance check, relocates the manifest to `INTENTS/_meta/calibration-manifest.<epoch>.yaml` with independent epoch versioning, supersedes the §3.6b compile pattern, and applies the 27→25 item-count correction across both specs. Options: (a) a separate 9011 owned by the 9003 compiler line, which is where the schema and the compiler already live; (b) absorb into this plan, which widens it across the seam it exists to defend. Default if not decided by the deadline: (a).
 
-**Q7: Who runs the M0 spike, on which model, and by when?** — Awaiting Steering: resolved 2026-08-27. Run in this session against a synthetic tiny llama-arch GGUF (real HF models are proxy-blocked); capability and throughput are weight-independent, so the answer is valid, with throughput flagged non-representative of a production model. Originally blocked M1 and M2. The harness is committed and the acceptance test is waiting for its artifact; what is missing is one run on an M3 Ultra with MLX installed, invoked as documented in `docs/experiments/9010-logprob-capability/README.md`, plus a second run with `--drafter`/`--spec-mode`/`--spec-cap` to get the speculative-decoding delta. Running the spike is exploratory and does not itself adopt a dependency into `pyproject.toml`, so it does not presuppose Q1 — it informs it. Three decisions wait on the result: M2's scale (the value of G, and whether a continuous proposed score exists at all), Q4's serving shape (the batched-versus-single-stream numbers), and M1's KV-cache criterion (the score-pass cost is what makes per-dimension scoring affordable). Do not hand-author the artifact: the acceptance test rejects a future-dated `measured_at` and requires the stack identity, but no check can detect plausible fabricated throughput. Default if not decided by the deadline: re-scope M0 to a capability probe only, dropping the capacity half, so M2 is not blocked indefinitely by a box nobody has scheduled.
+**Q7: Who runs the M0 spike, on which model, and by when?** — Awaiting Steering: resolved 2026-08-27. Run in this session against a synthetic tiny llama-arch GGUF (real HF models are proxy-blocked); capability and throughput are weight-independent, so the answer is valid, with throughput flagged non-representative of a production model. Originally blocked M1 and M2. The harness is committed and the acceptance test is waiting for its artifact; what is missing is one run on an M3 Ultra with MLX installed, invoked as documented in `docs/experiments/9020-logprob-capability/README.md`, plus a second run with `--drafter`/`--spec-mode`/`--spec-cap` to get the speculative-decoding delta. Running the spike is exploratory and does not itself adopt a dependency into `pyproject.toml`, so it does not presuppose Q1 — it informs it. Three decisions wait on the result: M2's scale (the value of G, and whether a continuous proposed score exists at all), Q4's serving shape (the batched-versus-single-stream numbers), and M1's KV-cache criterion (the score-pass cost is what makes per-dimension scoring affordable). Do not hand-author the artifact: the acceptance test rejects a future-dated `measured_at` and requires the stack identity, but no check can detect plausible fabricated throughput. Default if not decided by the deadline: re-scope M0 to a capability probe only, dropping the capacity half, so M2 is not blocked indefinitely by a box nobody has scheduled.
 
 **Q8: Reconcile implementation-notes-during-execution with the checkbox-flip gate.** — Deadline: 2026-09-30. Unresolved; blocks nothing, but it will recur on every milestone of every plan. `implementation-notes.md` and `pev-loop.md` require notes written during execution; `test_pev_checkbox_flip_gate.py::test_unflipped_milestones_should_not_have_confirmed_notes` rejects notes for any unflipped milestone, matching all four badge types. Options: (a) narrow the test's staleness signal so in-flight notes are legal — for instance keying on a verdict badge the PEV verifier writes at flip time rather than on any entry, which is the distinction the test's own docstring describes; (b) amend the conventions to say notes are written at flip time, which loses the during-execution deviation log the convention exists to provide; (c) leave both and let each milestone relocate its notes as M0 did. Tier C — `.claude/tests/**` is a sensitive path. Default if not decided by the deadline: (a).
 
 ## 8. Outcomes & Retrospective
 
-**Report:** [`docs/exec-plans/reports/9010-continuous-proposer-and-provenance-separation-report.html`](../reports/9010-continuous-proposer-and-provenance-separation-report.html)
+**Report:** [`docs/exec-plans/reports/9020-continuous-proposer-and-provenance-separation-report.html`](../reports/9020-continuous-proposer-and-provenance-separation-report.html)
 
 **What shipped.** Six of seven milestones, verified and flipped: M0 (stack-agnostic capability probe), M1 (batch-shaped local Provider with KV-cache reuse), M2 (continuous quarantined proposed_score), M3 (divergence into the drift detector), M4 (escape-sampler tranche split), and M5 (the standing I8 fixture). 32 acceptance tests pass across the seven test files; the layered architecture, dep, decision-log, and flip-gate structural tests are green. The one milestone not shipped is M6 (pinned capacity measurement), deferred rather than faked — see below. Against the original plan, the substantive scope landed intact; the two structural changes were the human-directed stack swap (D21: MLX/Apple Silicon → llama.cpp/x86_64, so the plan could actually run on the available hardware) and the split of the original M0 into a weight-independent capability probe (M0) and a hardware-pinned capacity measurement (M6).
 
-**M6 is deferred, and deliberately not flipped.** M6 needs a throughput run against the *production* model on the target serving hardware. Real model hosts are blocked by the agent proxy (only pypi.org and files.pythonhosted.org are reachable), and its acceptance test is written to reject any `throughput_representative: false` artifact — so a synthetic run cannot satisfy it. Flipping M6 would have required either a fake CONFIRMED verdict or a hand-authored throughput number, both of which the harness exists to prevent. The honest state is an unflipped, deferred milestone with a runnable harness (`docs/experiments/9010-logprob-capability/run.py`, drop `--synthetic`) waiting for one run. This plan is therefore complete for its buildable scope; M6 is carried forward as the single follow-up, and whoever has the hardware can flip it in place or spin it into a successor plan.
+**M6 is deferred, and deliberately not flipped.** M6 needs a throughput run against the *production* model on the target serving hardware. Real model hosts are blocked by the agent proxy (only pypi.org and files.pythonhosted.org are reachable), and its acceptance test is written to reject any `throughput_representative: false` artifact — so a synthetic run cannot satisfy it. Flipping M6 would have required either a fake CONFIRMED verdict or a hand-authored throughput number, both of which the harness exists to prevent. The honest state is an unflipped, deferred milestone with a runnable harness (`docs/experiments/9020-logprob-capability/run.py`, drop `--synthetic`) waiting for one run. This plan is therefore complete for its buildable scope; M6 is carried forward as the single follow-up, and whoever has the hardware can flip it in place or spin it into a successor plan.
 
 **What took longer or surprised us.** Three things. First, the environment mismatch: the plan assumed an Apple Silicon MLX box, and the executor had x86_64 Linux with no MLX, which stalled M0 entirely until the human redirected to llama.cpp — a reminder that a plan naming a target box should also name which executor has it. Second, M0's probe surfaced a real capability limit nobody had documented: llama.cpp's high-level `create_completion(logprobs=N)` caps unpredictably below N and returns a distribution-dependent count, so D19's continuous score had to be sourced from the low-level full-logit vector instead — a design constraint that reached forward into M2. Third, M2's acceptance test caught a genuine bug before the flip: both M2's first scorer and M1's capture had magnitude-ranked the logits, which destroys the ordered letter scale, and the fix reached back into M1's already-flipped file (handled by adding it to M2's Allowed Writes with a Decision Log entry rather than editing silently).
 

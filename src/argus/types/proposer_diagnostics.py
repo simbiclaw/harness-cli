@@ -1,4 +1,4 @@
-"""Proposer diagnostics: the quarantined proposed_score block (9010 M2).
+"""Proposer diagnostics: the quarantined proposed_score block (9020 M2).
 
 This module carries the QUARANTINED half of the proposer's output — the
 continuous per-dimension `proposed_score` and the G it was computed at. The

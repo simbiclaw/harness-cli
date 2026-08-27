@@ -1,4 +1,4 @@
-"""Acceptance tests for 9010 M0 — stack-agnostic logprob capability probe.
+"""Acceptance tests for 9020 M0 — stack-agnostic logprob capability probe.
 
 M0 answers B2.a: does the serving stack expose top-k logprobs at a token
 position, at what k, and by which path. This is a property of the runtime API,
@@ -8,7 +8,7 @@ model — is M6, in tests/test_capacity_measurement.py; it is NOT checked here.
 
 A missing artifact FAILS rather than skips: M0 cannot flip on an empty promise.
 
-See docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation.md
+See docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation.md
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-EXPERIMENT_DIR = REPO_ROOT / "docs" / "experiments" / "9010-logprob-capability"
+EXPERIMENT_DIR = REPO_ROOT / "docs" / "experiments" / "9020-logprob-capability"
 ARTIFACT = EXPERIMENT_DIR / "output.json"
 RUN_SCRIPT = EXPERIMENT_DIR / "run.py"
 

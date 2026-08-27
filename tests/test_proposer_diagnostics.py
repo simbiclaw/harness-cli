@@ -1,4 +1,4 @@
-"""Acceptance tests for 9010 M2 — proposed_score quarantine (I7) and I5 replay.
+"""Acceptance tests for 9020 M2 — proposed_score quarantine (I7) and I5 replay.
 
 These use provisional stand-ins for 9002's FindingGraph/EvaluationResult
 (clearly marked in the module) to demonstrate two invariants:
@@ -8,7 +8,7 @@ These use provisional stand-ins for 9002's FindingGraph/EvaluationResult
 - I5 replay: two graphs with identical grounded findings but different
   proposed_scores (and proposer_id) re-derive an identical EvaluationResult.
 
-See docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation.md
+See docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation.md
 """
 
 from __future__ import annotations

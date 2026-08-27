@@ -1,4 +1,4 @@
-"""Acceptance tests for 9010 M3 — divergence diagnostic into the §6 drift detector.
+"""Acceptance tests for 9020 M3 — divergence diagnostic into the §6 drift detector.
 
 Divergence is |proposed_score − derived_score| per dimension per call,
 aggregated over the same windows as κ — one drift clock, two instruments. It
@@ -10,7 +10,7 @@ proven here structurally: the assessment type carries no such field.
 
 Uses a provisional drift detector (9002 M5.5 is unstarted), clearly marked.
 
-See docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation.md
+See docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation.md
 """
 
 from __future__ import annotations

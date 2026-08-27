@@ -1,4 +1,4 @@
-"""Acceptance tests for 9010 M6 — pinned capacity measurement.
+"""Acceptance tests for 9020 M6 — pinned capacity measurement.
 
 M6 is the capacity half split from the original M0. Where M0 asks a
 weight-independent API question, M6 asks a hardware- and model-pinned one:
@@ -10,7 +10,7 @@ representative artifact.
 These tests fail on a synthetic run BY DESIGN: that is what keeps M6 honestly
 pending until a real measurement exists. A missing artifact also fails.
 
-See docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation.md
+See docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation.md
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-ARTIFACT = REPO_ROOT / "docs" / "experiments" / "9010-logprob-capability" / "output.json"
+ARTIFACT = REPO_ROOT / "docs" / "experiments" / "9020-logprob-capability" / "output.json"
 
 REQUIRED_CALL_TYPES = ("hunt", "score")
 

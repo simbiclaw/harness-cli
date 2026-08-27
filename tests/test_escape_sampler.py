@@ -1,4 +1,4 @@
-"""Acceptance tests for 9010 M4 — escape sampler tranche split (D22).
+"""Acceptance tests for 9020 M4 — escape sampler tranche split (D22).
 
 The escape-rate estimator needs an unbiased sample of auto-passed calls. The
 continuous proposed score lets us prioritize which auto-passed calls humans
@@ -12,7 +12,7 @@ would bias the very number the estimator depends on. So the sampler splits:
 The random-tranche-only rule is enforced by TYPE, not convention:
 compute_escape_rate() rejects anything that is not a RandomTranche.
 
-See docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation.md
+See docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation.md
 """
 
 from __future__ import annotations

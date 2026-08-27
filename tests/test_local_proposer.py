@@ -1,4 +1,4 @@
-"""Acceptance tests for 9010 M1 — batch-shaped local Provider with KV-cache reuse.
+"""Acceptance tests for 9020 M1 — batch-shaped local Provider with KV-cache reuse.
 
 The Provider takes its model by dependency injection (a `LogitModel` protocol),
 so these tests exercise the real decode-call behavior against a fake model that
@@ -12,7 +12,7 @@ Four load-bearing properties:
   - sampling params (temperature, seed, drafter, mode, cap, G) are recorded;
   - the Provider is io, and core does not import it or the model client.
 
-See docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation.md
+See docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation.md
 """
 
 from __future__ import annotations

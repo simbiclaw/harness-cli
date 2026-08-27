@@ -3,7 +3,7 @@
 **Patches:** `soft-criteria-authoring-spec-v4.html`
 **Date:** 2026-08-25
 **Status:** draft
-**Source:** LLM-as-a-Verifier (arXiv:2607.05391v2) analysis + 9010 requirements interview
+**Source:** LLM-as-a-Verifier (arXiv:2607.05391v2) analysis + 9020 requirements interview
 **Follows:** Patch 1 (accepted 2026-07-10), Patch 2 (accepted 2026-07-16)
 **Companion:** `process-derivation-pipeline-spec-v5-patch-1.md` (D19–D22, I8)
 
@@ -179,7 +179,7 @@ ordering. The §3.6b pseudocode as written will produce stale or unresolvable si
 Patch 2's dependency-aware ordering is authoritative. §3.6b should be reduced to a pointer at it
 rather than carrying a contradicting loop — this patch does not restate the ordering algorithm.
 
-**Cross-reference for 9010:** Patch 2 Surprise 4 ("gate-checkable signals routinely hide model
+**Cross-reference for 9020:** Patch 2 Surprise 4 ("gate-checkable signals routinely hide model
 dependencies") and companion invariant **I8** are the same boundary observed from two directions
 — once in compiled Item signals, once in proposer scores. Both hold that a quantity is only
 gate-checkable if a deterministic check can confirm its referent. The B-F Gate-Checkability

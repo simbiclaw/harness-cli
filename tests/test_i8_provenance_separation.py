@@ -1,4 +1,4 @@
-"""Standing I8 fixture — provenance separation (9010 M5).
+"""Standing I8 fixture — provenance separation (9020 M5).
 
 I8: logit-derived continuity is proposer-internal and MUST NOT reach any
 disposer input — specifically no logit-derived quantity may feed `severity_map`,
@@ -18,7 +18,7 @@ Pairs with the companion patch's Gate-Checkability Audit: a quantity is only
 gate-checkable if a deterministic check can confirm its referent — observed
 once in compiled item signals, once here in proposer scores.
 
-See docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation.md
+See docs/exec-plans/active/9020-continuous-proposer-and-provenance-separation.md
 """
 
 from __future__ import annotations

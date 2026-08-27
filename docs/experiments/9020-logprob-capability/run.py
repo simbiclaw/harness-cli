@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""9010 M0 — logprob capability spike and capacity measurement (llama.cpp).
+"""9020 M0 — logprob capability spike and capacity measurement (llama.cpp).
 
 D21 originally pinned the proposer to Apple Silicon + MLX. The execution
 environment is x86_64 Linux, so the human directed swapping the serving stack
@@ -25,7 +25,7 @@ M0 scores nothing. Throughput is therefore valid ONLY for the measured model
 size and is flagged `representative: false`; a production model's rate must be
 measured on a production model. The capability answer carries over unchanged.
 
-    python3 docs/experiments/9010-logprob-capability/run.py \
+    python3 docs/experiments/9020-logprob-capability/run.py \
         --model /path/to/model.gguf --hunt-tokens 256 --samples 3
 
 This script never fabricates a measurement. If the stack or model is
@@ -95,7 +95,7 @@ def load_stack(model_path: str, n_ctx: int, n_threads: int):
     if not Path(model_path).exists():
         raise ProbeFailure(
             f"model not found at {model_path!r}. Pass a GGUF via --model. "
-            f"docs/experiments/9010-logprob-capability/build_tiny_gguf.py "
+            f"docs/experiments/9020-logprob-capability/build_tiny_gguf.py "
             f"synthesizes a tiny one when no real model is reachable."
         )
 
