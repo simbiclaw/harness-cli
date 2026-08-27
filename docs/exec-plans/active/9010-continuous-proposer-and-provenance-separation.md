@@ -108,7 +108,7 @@ Risk Tier: C
 
 No new application code. A standing fixture pair that makes the anticipated failure a test failure rather than a design discussion. The red case wires a logit-derived quantity into `severity_map` and must be structurally rejected. The green case confirms `severity_map` resolves only through the Calibration Manifest. The same fixture extends to the other disposer inputs I8 names: `deduction`, coverage, criterion health, and routing. This is the enforcement point that pairs with the companion patch's Gate-Checkability Audit — both hold that a quantity is only gate-checkable if a deterministic check can confirm its referent, observed once in compiled item signals and once in proposer scores.
 
-`Acceptance Test:` `tests/test_i8_provenance_separation.py::test_i8_red` — a logit-derived quantity reaching `severity_map` is structurally rejected. `tests/test_i8_provenance_separation.py::test_i8_green` — `severity_map` resolves only through the calibration manifest. `tests/test_i8_provenance_separation.py::test_i8_covers_all_disposer_inputs` — the same rejection holds for `deduction`, coverage, criterion health, and routing. `tests/test_i8_provenance_separation.py::test_divergence_is_the_only_permitted_reader` — `src/argus/core/divergence.py` is the sole core module that reads a logit-derived quantity.
+`Acceptance Test:` `tests/test_i8_provenance_separation.py::test_i8_red` — a logit-derived quantity reaching `severity_map` is structurally rejected. `tests/test_i8_provenance_separation.py::test_i8_green` — `severity_map` resolves only through the calibration manifest. `tests/test_i8_provenance_separation.py::test_i8_covers_all_disposer_inputs` — the same rejection holds for `deduction`, coverage, criterion health, and routing. `tests/test_i8_provenance_separation.py::test_divergence_is_the_only_permitted_reader` — no core module feeds a logit-derived quantity into a disposer sink, and the only core readers are `divergence.py` (drift input) and `escape_sampler.py` (review ordering) — both non-disposer (see Decision Log; refined from the literal "sole reader" after M4 added a legitimate ordering read).
 
 `Notes:` Patch label N5. The fixture lives in `tests/`, not `.claude/tests/` — see the Decision Log. Written after M2 because it needs a real quarantined block to point at, and it must pass before M3's reader is trusted.
 Requires: M2
@@ -135,7 +135,7 @@ Risk Tier: B
 - [x] M2: Continuous per-dimension proposed_score, quarantined  (done 2026-08-27, verified; quarantine + replay invariants)
 - [x] M3: Divergence diagnostic into the §6 drift detector  (done 2026-08-27, verified; one demotion pathway, I8-safe)
 - [x] M4: Escape sampler tranche split  (done 2026-08-27, verified; random-tranche-only enforced by type)
-- [ ] M5: I8 fixture: provenance separation, standing red and green  (created 2026-08-26)
+- [x] M5: I8 fixture: provenance separation, standing red and green  (done 2026-08-27, verified; live scan guards core)
 - [ ] M6: Pinned capacity measurement  (created 2026-08-27, split from M0; blocked on model access)
 
 ## 5. Decision Log
@@ -181,6 +181,12 @@ Source: .claude/tests/test_milestone_constraints.py:44
 D21 as authored pinned the proposer to a local open-weight model on Apple Silicon served via MLX. The execution environment is x86_64 Linux without MLX, so M0 could not run and the plan stalled at its first milestone. The human directed swapping the stack to llama.cpp (`llama-cpp-python`), which runs on x86_64 and exposes per-token logits. M0 was then run for real against it.
 Rationale: the swap is a human decision recorded here for provenance, not one this plan made on its own; llama.cpp answers B2.a (top-k exposure is an API property) and the capacity questions on the available hardware, and the io-boundary interface (M1) keeps the specific runtime a swap behind the Provider so the plan's architecture is unchanged by which local engine serves it.
 Source: docs/decisions/dep-vet-llama-cpp-python.md
+
+### Decision: I8's fixture enforces the disposer-sink invariant, not a literal "sole reader" of logit-derived values
+
+The plan's M5 named `test_divergence_is_the_only_permitted_reader` as "divergence is the sole core module that reads a logit-derived quantity". M4's `escape_sampler` legitimately reads `proposed_score` to order the prioritized human-review tranche — a non-disposer use I8 permits. So the literal wording is false post-M4, while the invariant I8 actually states — no logit-derived quantity may feed `severity_map`, `deduction`, coverage, criterion health, or routing — holds. The fixture asserts that disposer-sink property directly across `src/argus/core/**`, and allowlists exactly `{divergence.py, escape_sampler.py}` as readers.
+Rationale: enforcing the real I8 sink property (verified by injecting a `routing = proposed_score` leak into a temp core module, which the live scan catches) is stronger and truer than a name-count that M4 already violated for a good reason; the allowlist makes any NEW reader a test failure that forces a reviewed Decision Log entry, so the guard stays live as 9002's disposer stages land.
+Source: docs/retrospectives/process-derivation-pipeline-spec-v5-patch-1.md:78
 
 ### Decision: partition the random tranche by a hash of call_id, and enforce random-only by type
 
