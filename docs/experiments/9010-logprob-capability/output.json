@@ -1,0 +1,75 @@
+{
+  "schema_version": 2,
+  "measured_at": "2026-08-27T08:41:19Z",
+  "host": {
+    "platform": "Linux-6.18.44-fc-v21-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "processor": "x86_64"
+  },
+  "stack": {
+    "runtime": "llama-cpp-python",
+    "runtime_version": "0.3.35",
+    "model_id": "tiny-llama-random",
+    "model_path": "/home/user/models/tiny-llama-random.gguf",
+    "model_hash": "unrecorded",
+    "synthetic_weights": true,
+    "quantization": "F32"
+  },
+  "topk_available": true,
+  "topk_ceiling": 256,
+  "topk_probe": {
+    "topk_available": true,
+    "topk_ceiling": 256,
+    "ceiling_source": "low_level_full_logits",
+    "vocab_size": 256,
+    "high_level_logprobs": {
+      "requested_to_returned": {
+        "5": 3,
+        "10": 5,
+        "20": 12,
+        "50": 32,
+        "256": 129
+      },
+      "reliable_at_target_g": false,
+      "note": "The high-level create_completion(logprobs=N) API caps below N and the returned count varies with the distribution. D19's G must be sourced from the low-level full-logit vector, not this API."
+    },
+    "note": "Ceiling is the width of the full logit vector the low-level API exposes at a scoring position."
+  },
+  "target_g": 20,
+  "g_used": 20,
+  "expectation_demo": {
+    "g_used": 20,
+    "expectation_index": 9.3782,
+    "argmax_index": 13,
+    "differs_from_argmax": true,
+    "note": "expectation over the full softmax; the D19 continuous score"
+  },
+  "throughput": {
+    "hunt": {
+      "single_stream_tok_s": 1688.383,
+      "single_stream_samples_tok_s": [
+        893.227,
+        2044.44,
+        2127.481
+      ],
+      "output_tokens": 256,
+      "samples": 3,
+      "batched_tok_s": null,
+      "batched_unavailable_reason": "single in-process Llama instance is single-stream; batched decode requires the llama-server continuous batcher, measured under M1/Q4"
+    },
+    "score": {
+      "single_stream_tok_s": 3623.416,
+      "single_stream_samples_tok_s": [
+        353.918,
+        4167.969,
+        6348.36
+      ],
+      "output_tokens": 1,
+      "samples": 3,
+      "batched_tok_s": null,
+      "batched_unavailable_reason": "single in-process Llama instance is single-stream; batched decode requires the llama-server continuous batcher, measured under M1/Q4"
+    }
+  },
+  "throughput_representative": false,
+  "throughput_caveat": "measured on a synthetic random-weight model; decode rate is valid for this model size only and does not represent a production model"
+}

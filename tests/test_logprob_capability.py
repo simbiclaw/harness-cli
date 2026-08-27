@@ -1,21 +1,12 @@
-"""Acceptance tests for 9010 M0 — logprob capability spike and capacity measurement.
+"""Acceptance tests for 9010 M0 — stack-agnostic logprob capability probe.
 
-M0's deliverable is a committed measurement artifact at
-`docs/experiments/9010-logprob-capability/output.json`, produced by running
-`run.py` on the target serving box (Apple Silicon, MLX). These tests validate
-that the artifact is complete and internally consistent. They do not re-run the
-measurement — the measurement needs hardware no CI runner has.
+M0 answers B2.a: does the serving stack expose top-k logprobs at a token
+position, at what k, and by which path. This is a property of the runtime API,
+not of weights or hardware, so it is answerable against whatever stack D21
+settles on (llama.cpp here). The capacity half — throughput on the production
+model — is M6, in tests/test_capacity_measurement.py; it is NOT checked here.
 
-A missing artifact FAILS rather than skips. M0's checkbox cannot flip until the
-measurement has actually been taken, and a skip would let it flip on an empty
-promise. The failure message names the script that produces the artifact.
-
-Two invariants carry the milestone (see the plan's M0 Acceptance Test line):
-
-- `test_capability_record_is_complete` — the artifact declares `topk_available`,
-  `g_used`, and per-call-type throughput; a record missing any of the three fails.
-- `test_g_used_within_measured_ceiling` — the recorded `g_used` never exceeds the
-  measured top-k ceiling.
+A missing artifact FAILS rather than skips: M0 cannot flip on an empty promise.
 
 See docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation.md
 """
@@ -35,25 +26,16 @@ EXPERIMENT_DIR = REPO_ROOT / "docs" / "experiments" / "9010-logprob-capability"
 ARTIFACT = EXPERIMENT_DIR / "output.json"
 RUN_SCRIPT = EXPERIMENT_DIR / "run.py"
 
-# Call types the plan names: a long-generation hunt pass and a single-token
-# score pass. They are distinct call types with distinct configs (D21), so
-# throughput is recorded per type rather than as one number.
-REQUIRED_CALL_TYPES = ("hunt", "score")
-
 ISO8601 = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$")
 
 MISSING_ARTIFACT = (
     f"No measurement artifact at {ARTIFACT.relative_to(REPO_ROOT)}.\n"
-    f"M0 is a measurement milestone: run "
-    f"{RUN_SCRIPT.relative_to(REPO_ROOT)} on the target serving box and commit "
-    f"the artifact it writes. Do not hand-author this file — the plan's whole "
-    f"point is that the capacity arithmetic is an estimate and must be replaced "
-    f"by measurement before the serving shape is fixed."
+    f"Run {RUN_SCRIPT.relative_to(REPO_ROOT)} to produce it. Do not hand-author "
+    f"it — the capability answer must come from a real probe of the stack."
 )
 
 
 def load_artifact() -> dict:
-    """Return the parsed measurement artifact, or fail with a pointer to run.py."""
     if not ARTIFACT.exists():
         pytest.fail(MISSING_ARTIFACT)
     try:
@@ -67,72 +49,27 @@ def _positive_number(value: object) -> bool:
 
 
 def test_capability_record_is_complete():
-    """The artifact declares top-k availability, the G used, and throughput per call type."""
+    """The artifact declares top-k availability, the G used, and its provenance."""
     record = load_artifact()
     failures: list[str] = []
 
-    # --- Top-k exposure (resolves carried-open B2.a) ---
     if "topk_available" not in record:
-        failures.append("missing 'topk_available' — B2.a is what M0 exists to resolve")
+        failures.append("missing 'topk_available' — B2.a is what M0 resolves")
     elif not isinstance(record["topk_available"], bool):
         failures.append("'topk_available' must be a bool, not a guess or a string")
     elif record["topk_available"] and not _positive_number(record.get("topk_ceiling")):
         failures.append(
-            "'topk_available' is true but 'topk_ceiling' is not a positive number — "
-            "record the k that was actually observed"
+            "'topk_available' is true but 'topk_ceiling' is not a positive number"
         )
 
-    # --- G actually used ---
     if "g_used" not in record:
         failures.append("missing 'g_used'")
     elif not _positive_number(record["g_used"]):
         failures.append("'g_used' must be a positive number")
 
-    # --- Per-call-type throughput ---
-    throughput = record.get("throughput")
-    if not isinstance(throughput, dict):
-        failures.append("missing 'throughput' object")
-    else:
-        for call_type in REQUIRED_CALL_TYPES:
-            entry = throughput.get(call_type)
-            if not isinstance(entry, dict):
-                failures.append(f"missing throughput for call type '{call_type}'")
-                continue
-            if not _positive_number(entry.get("single_stream_tok_s")):
-                failures.append(
-                    f"throughput.{call_type}.single_stream_tok_s must be a positive number"
-                )
-            if not _positive_number(entry.get("output_tokens")):
-                failures.append(
-                    f"throughput.{call_type}.output_tokens must be a positive number"
-                )
-            if not _positive_number(entry.get("samples")):
-                failures.append(
-                    f"throughput.{call_type}.samples must be a positive number — "
-                    f"one timed run is an anecdote"
-                )
-            # Q4 (serving shape) turns on the batched number, so its absence
-            # must be explicit rather than silent.
-            if "batched_tok_s" not in entry:
-                failures.append(
-                    f"throughput.{call_type} must carry 'batched_tok_s' (null is "
-                    f"allowed with a reason) — Q4 turns on this measurement"
-                )
-            elif entry["batched_tok_s"] is None:
-                if not str(entry.get("batched_unavailable_reason", "")).strip():
-                    failures.append(
-                        f"throughput.{call_type}.batched_tok_s is null without a "
-                        f"'batched_unavailable_reason'"
-                    )
-            elif not _positive_number(entry["batched_tok_s"]):
-                failures.append(
-                    f"throughput.{call_type}.batched_tok_s must be a positive number or null"
-                )
-
-    # --- Provenance: a G is uninterpretable without the stack that produced it ---
     stack = record.get("stack")
     if not isinstance(stack, dict):
-        failures.append("missing 'stack' object — G is not portable across stacks")
+        failures.append("missing 'stack' object — a capability is not portable across stacks")
     else:
         for field in ("runtime", "model_id"):
             if not str(stack.get(field, "")).strip():
@@ -140,11 +77,8 @@ def test_capability_record_is_complete():
 
     measured_at = record.get("measured_at", "")
     if not ISO8601.match(str(measured_at)):
-        failures.append(
-            f"'measured_at' must be an ISO-8601 UTC timestamp, got {measured_at!r}"
-        )
+        failures.append(f"'measured_at' must be ISO-8601 UTC, got {measured_at!r}")
     else:
-        # A measurement dated in the future is a hand-authored artifact.
         stamped = datetime.strptime(
             str(measured_at).split(".")[0], "%Y-%m-%dT%H:%M:%SZ"
         )
@@ -155,46 +89,51 @@ def test_capability_record_is_complete():
 
 
 def test_g_used_within_measured_ceiling():
-    """G never exceeds the k the stack was observed to expose.
-
-    The declared fallback is not "give up": set G to whatever k the stack
-    exposes and record it, so the number stays interpretable across a
-    capability change. If no top-k is exposed at all, D19 reduces to argmax
-    scores — g_used == 1 — and only D20 survives.
-    """
+    """G never exceeds the k the stack was observed to expose."""
     record = load_artifact()
     g_used = record.get("g_used")
     assert _positive_number(g_used), f"'g_used' must be a positive number, got {g_used!r}"
 
     if not record.get("topk_available"):
         assert g_used == 1, (
-            f"no top-k exposure was observed, so the proposer falls back to argmax "
-            f"scores and g_used must be 1, not {g_used}. D19 reduces to argmax and "
-            f"M2 is rewritten before it starts."
+            f"no top-k exposure, so the proposer falls back to argmax and g_used "
+            f"must be 1, not {g_used}. D19 reduces to argmax; M2 is rewritten."
         )
         return
 
     ceiling = record.get("topk_ceiling")
-    assert _positive_number(ceiling), (
-        f"'topk_available' is true but 'topk_ceiling' is {ceiling!r}"
-    )
+    assert _positive_number(ceiling), f"'topk_available' true but ceiling {ceiling!r}"
     assert g_used <= ceiling, (
-        f"g_used={g_used} exceeds the measured top-k ceiling {ceiling}. "
-        f"Extraction would silently truncate the distribution the expectation "
-        f"is computed over."
+        f"g_used={g_used} exceeds measured ceiling {ceiling}; extraction would "
+        f"silently truncate the distribution the expectation is taken over."
     )
     assert g_used >= 2, (
-        f"g_used={g_used} with top-k available: a scale of one point is argmax "
-        f"wearing a continuous name."
+        f"g_used={g_used} with top-k available: a one-point scale is argmax in "
+        f"a continuous costume."
+    )
+
+
+def test_expectation_is_computable():
+    """The artifact shows D19's continuous score is real: an expectation over the
+    distribution, distinct from the argmax. This is the whole reason to adopt a
+    finer proposed score.
+    """
+    record = load_artifact()
+    demo = record.get("expectation_demo")
+    assert isinstance(demo, dict), "missing 'expectation_demo' block"
+    assert "error" not in demo, f"expectation_demo recorded an error: {demo.get('error')}"
+    for field in ("expectation_index", "argmax_index", "differs_from_argmax"):
+        assert field in demo, f"expectation_demo missing '{field}'"
+    assert isinstance(demo["differs_from_argmax"], bool)
+    # On a real distribution the expectation and argmax differ; that difference
+    # is exactly the resolution D19 buys over an argmax score.
+    assert demo["differs_from_argmax"] is True, (
+        "expectation equals argmax — either the probe is degenerate or the scale "
+        "is too coarse to distinguish them; D19 buys nothing in that case."
     )
 
 
 def test_run_script_exists_and_compiles():
-    """The measurement harness is committed and syntactically runnable.
-
-    The artifact is only trustworthy if the script that produced it is in the
-    repo and can be re-run to reproduce it.
-    """
     assert RUN_SCRIPT.exists(), (
         f"Missing {RUN_SCRIPT.relative_to(REPO_ROOT)} — the artifact must be "
         f"reproducible, not hand-authored."
