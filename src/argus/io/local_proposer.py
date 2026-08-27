@@ -155,7 +155,7 @@ class LocalProposer:
             suffix_tokens = model.tokenize(suffix, add_bos=False)
             model.eval(suffix_tokens)
             logits_row = model.scores[model.n_tokens - 1]
-            dimension_logits[dim] = _top_g(list(logits_row), g)
+            dimension_logits[dim] = _scale_slice(list(logits_row), g)
             # Rewind to the transcript prefix so the next dimension reuses it.
             model.n_tokens = prefix_len
 
@@ -167,13 +167,18 @@ class LocalProposer:
         )
 
 
-def _top_g(logits: list[float], g: int) -> list[float]:
-    """The g highest logits at a position, descending. Never wider than the vocab.
+def _scale_slice(logits: list[float], g: int) -> list[float]:
+    """The first g logits, in scale order — the g letter-scale token positions.
 
-    M2 computes the expectation over these; the width is capped at G (M0's
-    measured, recorded value) so extraction cannot silently over-read.
+    NOT the top-g by magnitude: the score scale is ordered (position i is
+    score-letter i), so M2's expectation must run over the scale in order.
+    Sorting by magnitude would destroy the score axis. The width is capped at G
+    (M0's measured, recorded value) so extraction cannot silently over-read.
+    Provisional: a real deployment maps the specific letter-token vocab ids
+    here; that mapping is a config concern deferred to Q3. The first-g slice is
+    the placeholder scale until then.
     """
-    return sorted(logits, reverse=True)[:g]
+    return logits[:g]
 
 
 class LlamaLogitModel:

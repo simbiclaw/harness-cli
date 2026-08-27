@@ -78,7 +78,7 @@ Land `src/argus/io/logprob_scoring.py`, which computes a `proposed_score` as the
 `Notes:` Patch label N2. Contingent on M0: if the stack exposes no top-k, this milestone is rewritten to argmax-only before it starts. Blocked on Q2 — the quarantined block is an on-disk format change, and the `FindingGraph` field additions land in a 9002-owned file. The reason to adopt a number that never ships is threefold, in descending value: it makes the M3 divergence diagnostic a real scalar rather than a tie-saturated near-binary; it lets the hunt pass order its budget toward likely violation mass; and it prioritizes escape sampling within the constraint of M4.
 Requires: M0, M1
 Allowed Reads: src/argus/io/**, src/argus/types/**, docs/retrospectives/**
-Allowed Writes: src/argus/io/logprob_scoring.py, src/argus/types/proposer_diagnostics.py, tests/test_logprob_scoring.py, tests/test_proposer_diagnostics.py, docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation-notes/M2.md, docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation.md
+Allowed Writes: src/argus/io/logprob_scoring.py, src/argus/types/proposer_diagnostics.py, src/argus/io/local_proposer.py, tests/test_logprob_scoring.py, tests/test_proposer_diagnostics.py, docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation-notes/M2.md, docs/exec-plans/active/9010-continuous-proposer-and-provenance-separation.md
 Risk Tier: C
 
 ### M3 — Divergence diagnostic into the §6 drift detector
@@ -132,7 +132,7 @@ Risk Tier: B
 
 - [x] M0: Stack-agnostic logprob capability probe  (done 2026-08-27, verified at output.json; MLX→llama.cpp swap)
 - [x] M1: Batch-shaped local Provider with KV-cache reuse  (done 2026-08-27, verified; KV reuse proven against real llama.cpp)
-- [ ] M2: Continuous per-dimension proposed_score, quarantined  (created 2026-08-26)
+- [x] M2: Continuous per-dimension proposed_score, quarantined  (done 2026-08-27, verified; quarantine + replay invariants)
 - [ ] M3: Divergence diagnostic into the §6 drift detector  (created 2026-08-26)
 - [ ] M4: Escape sampler tranche split  (created 2026-08-26)
 - [ ] M5: I8 fixture: provenance separation, standing red and green  (created 2026-08-26)
@@ -181,6 +181,12 @@ Source: .claude/tests/test_milestone_constraints.py:44
 D21 as authored pinned the proposer to a local open-weight model on Apple Silicon served via MLX. The execution environment is x86_64 Linux without MLX, so M0 could not run and the plan stalled at its first milestone. The human directed swapping the stack to llama.cpp (`llama-cpp-python`), which runs on x86_64 and exposes per-token logits. M0 was then run for real against it.
 Rationale: the swap is a human decision recorded here for provenance, not one this plan made on its own; llama.cpp answers B2.a (top-k exposure is an API property) and the capacity questions on the available hardware, and the io-boundary interface (M1) keeps the specific runtime a swap behind the Provider so the plan's architecture is unchanged by which local engine serves it.
 Source: docs/decisions/dep-vet-llama-cpp-python.md
+
+### Decision: the proposed_score is the expectation over the ORDERED letter scale, correcting M1's capture
+
+M2's first implementation, and M1's `_top_g`, both truncated the per-dimension logits by magnitude. That is wrong for a letter scale: position i is score-letter i, so the score axis is ordered and sorting destroys it. `continuous_proposed_score` now takes the first g logits in scale order, and M1's capture was changed from `_top_g` (sorted) to `_scale_slice` (first g in order). The acceptance test `test_expectation_not_argmax` caught the discrepancy before the flip.
+Rationale: D19 defines the score as the expectation over the distribution of scoring-token logits on a single-token letter scale — the letters are the scale and their order is the score, so an expectation over magnitude-ranked positions would be a meaningless quantity. The real deployment maps the specific letter-token vocab ids; that mapping is a config concern (Q3), so the first-g slice is the provisional ordered scale until then. This is why `src/argus/io/local_proposer.py` (an M1 file) is in M2's Allowed Writes.
+Source: docs/experiments/9010-logprob-capability/output.json
 
 ### Decision: M1 injects the model and defines provisional local types, since 9002's schemas do not exist yet
 

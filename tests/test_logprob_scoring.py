@@ -34,16 +34,20 @@ def test_expectation_not_argmax():
     assert abs(score - argmax) > 0.5
 
 
-def test_g_truncates_to_top_g():
-    """Only the g highest logits enter the expectation; a wider vocab is ignored."""
-    # index 9 has the largest logit but falls outside the top-2.
+def test_g_truncates_to_first_g_scale_positions():
+    """Only the first g scale positions enter the expectation; the rest are ignored.
+
+    The scale is ordered, so truncation drops the tail of the scale, not the
+    magnitude-weak logits. A large logit past position g-1 has no effect.
+    """
+    # index 9 has the largest logit but lies past the first 2 scale positions.
     logits = [5.0, 4.9] + [0.0] * 7 + [10.0]
-    score_all = continuous_proposed_score(logits, g=len(logits))
     score_top2 = continuous_proposed_score(logits, g=2)
-    # With g=2 only indices 0 and 1 survive, so the expectation is ~0.5, far
-    # from the g=all expectation which is pulled toward index 9.
+    # Only positions 0 and 1 survive; their logits are near-equal so the
+    # expectation is ~0.5 and the far index-9 spike is ignored entirely.
     assert score_top2 < 1.0
-    assert score_all > score_top2
+    score_all = continuous_proposed_score(logits, g=len(logits))
+    assert score_all > score_top2  # the index-9 mass now pulls it up
 
 
 def test_g_recorded_per_evaluation():
