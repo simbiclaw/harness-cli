@@ -134,7 +134,7 @@ Risk Tier: B
 - [x] M1: Batch-shaped local Provider with KV-cache reuse  (done 2026-08-27, verified; KV reuse proven against real llama.cpp)
 - [x] M2: Continuous per-dimension proposed_score, quarantined  (done 2026-08-27, verified; quarantine + replay invariants)
 - [x] M3: Divergence diagnostic into the §6 drift detector  (done 2026-08-27, verified; one demotion pathway, I8-safe)
-- [ ] M4: Escape sampler tranche split  (created 2026-08-26)
+- [x] M4: Escape sampler tranche split  (done 2026-08-27, verified; random-tranche-only enforced by type)
 - [ ] M5: I8 fixture: provenance separation, standing red and green  (created 2026-08-26)
 - [ ] M6: Pinned capacity measurement  (created 2026-08-27, split from M0; blocked on model access)
 
@@ -181,6 +181,12 @@ Source: .claude/tests/test_milestone_constraints.py:44
 D21 as authored pinned the proposer to a local open-weight model on Apple Silicon served via MLX. The execution environment is x86_64 Linux without MLX, so M0 could not run and the plan stalled at its first milestone. The human directed swapping the stack to llama.cpp (`llama-cpp-python`), which runs on x86_64 and exposes per-token logits. M0 was then run for real against it.
 Rationale: the swap is a human decision recorded here for provenance, not one this plan made on its own; llama.cpp answers B2.a (top-k exposure is an API property) and the capacity questions on the available hardware, and the io-boundary interface (M1) keeps the specific runtime a swap behind the Provider so the plan's architecture is unchanged by which local engine serves it.
 Source: docs/decisions/dep-vet-llama-cpp-python.md
+
+### Decision: partition the random tranche by a hash of call_id, and enforce random-only by type
+
+D22 needs the random tranche decorrelated from the proposer signal and the estimator fed only that tranche. Rather than an RNG (which would need seed plumbing and threaten replay), the split takes the calls with the smallest `sha256(call_id)` — a key independent of `proposed_score` — so the tranche is decorrelated and deterministic. `compute_escape_rate` accepts a `RandomTranche` type and raises `TypeError` on a `PrioritizedTranche` or a raw list.
+Rationale: a hash partition is decorrelated-by-construction and byte-stable on replay, where a seeded RNG is decorrelated only in expectation and adds state; and making the estimator's input a distinct type means the D22 bias cannot enter by a careless call site rather than by a reviewer catching it — the same structure-over-vigilance discipline as M3's assessment type. The measured gap between the random-tranche rate and the prioritized-tranche miss fraction confirms the gate guards a real bias, not a hypothetical one.
+Source: docs/retrospectives/process-derivation-pipeline-spec-v5-patch-1.md:147
 
 ### Decision: M3 enforces the single-demotion-pathway property structurally, via a three-field assessment type
 
