@@ -1,147 +1,478 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>9020 Execution Report — Continuous Proposer &amp; Provenance Separation</title>
-<style>
-  :root{--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--info:#3b82f6;
-    --bg:#f8fafc;--card:#fff;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;}
-  @media (prefers-color-scheme: dark){:root{--bg:#0f172a;--card:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--border:#334155;}}
-  *{margin:0;padding:0;box-sizing:border-box;}
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;}
-  .header{background:linear-gradient(135deg,#1e293b 0%,#334155 100%);color:#fff;padding:28px 36px;}
-  .header h1{font-size:25px;font-weight:600;margin-bottom:8px;}
-  .header .subtitle{font-size:15px;opacity:.85;margin-bottom:12px;}
-  .header-meta{display:flex;gap:28px;font-size:14px;opacity:.9;flex-wrap:wrap;}
-  .dashboard{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;padding:24px 36px;}
-  .metric-card{background:var(--card);border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.1);border-left:4px solid var(--info);}
-  .metric-card.success{border-left-color:var(--success);}
-  .metric-card.warning{border-left-color:var(--warning);}
-  .metric-label{font-size:12px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;}
-  .metric-value{font-size:30px;font-weight:700;margin-top:8px;}
-  .metric-sub{font-size:12px;color:var(--muted);margin-top:4px;}
-  .main-content{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:0 36px 24px;}
-  .section{background:var(--card);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.1);overflow:hidden;}
-  .full{margin:0 36px 24px;}
-  .section-header{background:rgba(148,163,184,.12);padding:14px 20px;font-weight:600;font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);}
-  .section-body{padding:20px;}
-  .timeline{list-style:none;}
-  .timeline-item{display:flex;gap:16px;padding:13px 0;border-bottom:1px solid var(--border);}
-  .timeline-item:last-child{border-bottom:none;}
-  .marker{width:26px;height:26px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;font-weight:700;color:#fff;}
-  .timeline-item.done .marker{background:var(--success);}
-  .timeline-item.deferred .marker{background:var(--warning);}
-  .timeline-title{font-weight:600;margin-bottom:2px;}
-  .timeline-meta{font-size:13px;color:var(--muted);}
-  .decision{padding:14px 16px;background:rgba(148,163,184,.08);border-radius:8px;margin-bottom:12px;border-left:3px solid var(--info);}
-  .decision.tier-c{border-left-color:var(--danger);}
-  .decision-title{font-weight:600;margin-bottom:4px;font-size:14px;}
-  .badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;letter-spacing:.5px;vertical-align:middle;margin-left:6px;}
-  .badge.c{background:var(--danger);color:#fff;}
-  .badge.b{background:var(--info);color:#fff;}
-  .decision-rationale{font-size:13px;color:var(--muted);}
-  ul.plain{list-style:none;}
-  ul.plain li{padding:10px 0;border-bottom:1px solid var(--border);font-size:14px;}
-  ul.plain li:last-child{border-bottom:none;}
-  .tag{font-weight:700;color:var(--warning);}
-  .warnbox{margin:0 36px 24px;padding:16px 20px;background:rgba(245,158,11,.12);border:1px solid var(--warning);border-radius:10px;font-size:14px;}
-  table{width:100%;border-collapse:collapse;font-size:13px;}
-  td,th{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;}
-  th{color:var(--muted);font-weight:600;}
-  code{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:rgba(148,163,184,.15);padding:1px 5px;border-radius:4px;}
-  .footer{text-align:center;color:var(--muted);font-size:12px;padding:20px;}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExecPlan Execution Report - 9020</title>
+    <style>
+        :root {
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+            --color-info: #3b82f6;
+            --color-bg: #f8fafc;
+            --color-card: #ffffff;
+            --color-text: #1e293b;
+            --color-text-secondary: #64748b;
+            --color-border: #e2e8f0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: white;
+            padding: 24px 32px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+        .header-meta { display: flex; gap: 24px; font-size: 14px; opacity: 0.9; }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            padding: 24px 32px;
+        }
+        .metric-card {
+            background: var(--color-card);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--color-info);
+        }
+        .metric-card.success { border-left-color: var(--color-success); }
+        .metric-card.warning { border-left-color: var(--color-warning); }
+        .metric-card.danger { border-left-color: var(--color-danger); }
+        .metric-label { font-size: 12px; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .metric-value { font-size: 32px; font-weight: 700; margin-top: 8px; }
+        .metric-sub { font-size: 13px; color: var(--color-text-secondary); margin-top: 4px; }
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            padding: 0 32px 32px;
+        }
+        .section {
+            background: var(--color-card);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .section-header {
+            background: #f1f5f9;
+            padding: 16px 20px;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--color-text-secondary);
+            border-bottom: 1px solid var(--color-border);
+        }
+        .section-body { padding: 20px; }
+        .timeline { list-style: none; }
+        .timeline-item {
+            display: flex;
+            gap: 16px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .timeline-item:last-child { border-bottom: none; }
+        .timeline-marker {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--color-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        .timeline-item.completed .timeline-marker { background: var(--color-success); color: white; }
+        .timeline-item.blocked .timeline-marker { background: var(--color-danger); color: white; }
+        .timeline-content { flex: 1; }
+        .timeline-title { font-weight: 600; margin-bottom: 4px; }
+        .timeline-meta { font-size: 13px; color: var(--color-text-secondary); }
+        .decision-item {
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 3px solid var(--color-info);
+        }
+        .decision-item.tier-c { border-left-color: var(--color-warning); background: #fffbeb; }
+        .decision-title { font-weight: 600; margin-bottom: 8px; }
+        .decision-rationale { font-size: 13px; color: var(--color-text-secondary); }
+        .decision-source { font-size: 12px; color: var(--color-text-secondary); margin-top: 8px; font-style: italic; }
+        .alert {
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        .alert-warning { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
+        .alert-danger { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+        .alert-info { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+        .full-width { grid-column: 1 / -1; }
+        .debt-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .debt-severity {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .debt-severity.high { background: #fecaca; color: #991b1b; }
+        .debt-severity.medium { background: #fed7aa; color: #9a3412; }
+        .debt-severity.low { background: #dbeafe; color: #1e40af; }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status-completed { background: #d1fae5; color: #065f46; }
+        .status-deferred { background: #fee2e2; color: #991b1b; }
+        .status-pending { background: #e0e7ff; color: #3730a3; }
+        .cost-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .cost-table th, .cost-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--color-border); }
+        .cost-table td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+        .note { font-size: 12px; color: var(--color-text-secondary); font-style: italic; margin-top: 8px; }
+        .footer {
+            text-align: center;
+            padding: 24px;
+            color: var(--color-text-secondary);
+            font-size: 13px;
+        }
+    </style>
 </head>
 <body>
-<div class="header">
-  <h1>9020 — Continuous Proposer, Divergence Diagnostic &amp; Provenance Separation</h1>
-  <div class="subtitle">Making the proposer's self-report a real scalar, fenced so it can never dispose.</div>
-  <div class="header-meta">
-    <span>Status: <strong>Completed (buildable scope)</strong></span>
-    <span>Completed: 2026-08-27</span>
-    <span>Branch: claude/process-derivation-pipeline-docs-nim69g</span>
-  </div>
-</div>
+    <!-- Header -->
+    <header class="header">
+        <h1>📋 Continuous Proposer, Divergence Diagnostic &amp; Provenance Separation</h1>
+        <div class="header-meta">
+            <span>ID: 9020</span>
+            <span>Status: <span class="status-badge status-completed">Completed (buildable scope)</span></span>
+            <span>Duration: 1 days</span>
+            <span>Completed: 2026-08-27</span>
+        </div>
+    </header>
 
-<div class="dashboard">
-  <div class="metric-card success"><div class="metric-label">Milestones</div><div class="metric-value">6 / 7</div><div class="metric-sub">M6 deferred (hardware-blocked)</div></div>
-  <div class="metric-card success"><div class="metric-label">Acceptance tests</div><div class="metric-value">32</div><div class="metric-sub">passing across 7 files</div></div>
-  <div class="metric-card"><div class="metric-label">Tier C decisions</div><div class="metric-value">6</div><div class="metric-sub">logged with rationale</div></div>
-  <div class="metric-card success"><div class="metric-label">Structural gates</div><div class="metric-value">green</div><div class="metric-sub">layering · deps · flip-gate</div></div>
-  <div class="metric-card"><div class="metric-label">Diff vs main</div><div class="metric-value">+3,123</div><div class="metric-sub">29 files · 13 commits</div></div>
-</div>
-
-<div class="warnbox">
-  <strong>⚠ M6 (Pinned capacity measurement) is deferred, not done.</strong> It requires a throughput run against the <em>production</em> model on target hardware; real model hosts are proxy-blocked here, and its acceptance test rejects any non-representative artifact. The milestone was <strong>not flipped</strong> — a fake CONFIRMED verdict or a hand-authored throughput number is exactly what the harness prevents. The harness <code>run.py</code> is committed and waiting for one run (drop <code>--synthetic</code>).
-</div>
-
-<div class="main-content">
-  <div class="section">
-    <div class="section-header">Milestone timeline</div>
-    <div class="section-body">
-      <ul class="timeline">
-        <li class="timeline-item done"><div class="marker">✓</div><div><div class="timeline-title">M0 — Stack-agnostic logprob capability probe</div><div class="timeline-meta">Verified · real llama.cpp probe · top-k ceiling 256, G=20, expectation≠argmax</div></div></li>
-        <li class="timeline-item done"><div class="marker">✓</div><div><div class="timeline-title">M1 — Batch-shaped local Provider, KV-cache reuse</div><div class="timeline-meta">Verified · KV reuse proven against real llama.cpp; core ✗ model_client</div></div></li>
-        <li class="timeline-item done"><div class="marker">✓</div><div><div class="timeline-title">M2 — Continuous proposed_score, quarantined</div><div class="timeline-meta">Verified · I7 quarantine + I5 replay; ordered-scale bug caught by the test</div></div></li>
-        <li class="timeline-item done"><div class="marker">✓</div><div><div class="timeline-title">M3 — Divergence into the drift detector</div><div class="timeline-meta">Verified · one demotion pathway; I8-safe by shape (no disposer field)</div></div></li>
-        <li class="timeline-item done"><div class="marker">✓</div><div><div class="timeline-title">M4 — Escape sampler tranche split</div><div class="timeline-meta">Verified · random-only enforced by type; measured bias (0.108 vs 0.092)</div></div></li>
-        <li class="timeline-item done"><div class="marker">✓</div><div><div class="timeline-title">M5 — I8 provenance-separation fixture</div><div class="timeline-meta">Verified · live scan of core/**; injected leak fails it</div></div></li>
-        <li class="timeline-item deferred"><div class="marker">⏸</div><div><div class="timeline-title">M6 — Pinned capacity measurement</div><div class="timeline-meta">Deferred · blocked on production-model access; test red by design</div></div></li>
-      </ul>
+    <!-- Dashboard Metrics -->
+    <div class="dashboard">
+        <div class="metric-card success">
+            <div class="metric-label">Plan Health</div>
+            <div class="metric-value">86%</div>
+            <div class="metric-sub">6/7 shipped, M6 deferred</div>
+        </div>
+        <div class="metric-card success">
+            <div class="metric-label">Milestones</div>
+            <div class="metric-value">6/7</div>
+            <div class="metric-sub">M6 deferred (hardware-blocked)</div>
+        </div>
+        <div class="metric-card ">
+            <div class="metric-label">Tier C Decisions</div>
+            <div class="metric-value">3</div>
+            <div class="metric-sub">Tier-C milestones; all logged</div>
+        </div>
+        <div class="metric-card success">
+            <div class="metric-label">Verification</div>
+            <div class="metric-value">6/6</div>
+            <div class="metric-sub">Adversarial verified</div>
+        </div>
+        <div class="metric-card warning">
+            <div class="metric-label">Token Cost</div>
+            <div class="metric-value">n/a</div>
+            <div class="metric-sub">not instrumented this session</div>
+        </div>
     </div>
-  </div>
 
-  <div class="section">
-    <div class="section-header">Key decisions</div>
-    <div class="section-body">
-      <div class="decision tier-c"><div class="decision-title">Swap D21 serving stack: MLX/Apple Silicon → llama.cpp/x86_64 <span class="badge c">Tier C</span></div><div class="decision-rationale">Human-directed; the environment had no MLX. The io boundary makes it a loader swap, not an architecture change.</div></div>
-      <div class="decision tier-c"><div class="decision-title">Adopt <code>llama-cpp-python</code> as an optional extra <span class="badge c">Tier C</span></div><div class="decision-rationale">Dep-vetted; downloads check unverifiable behind the proxy (human override).</div></div>
-      <div class="decision"><div class="decision-title">proposed_score = expectation over the <em>ordered</em> letter scale <span class="badge b">correction</span></div><div class="decision-rationale">M2's test caught magnitude-ranking that destroyed the score axis; fix reached back into M1's capture.</div></div>
-      <div class="decision"><div class="decision-title">Source D19 from the low-level full-logit vector</div><div class="decision-rationale">M0 measured that llama.cpp's high-level logprobs API caps unpredictably below N.</div></div>
-      <div class="decision"><div class="decision-title">Split original M0 → capability probe (M0) + pinned capacity (M6)</div><div class="decision-rationale">Different blockers: capability is weight-independent and ran; capacity needs the production model.</div></div>
-      <div class="decision"><div class="decision-title">Enforce I8 as a disposer-sink invariant, not a name-count</div><div class="decision-rationale">M4's escape_sampler legitimately reads proposed_score for ordering; the real invariant is no logit→disposer sink.</div></div>
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Left Column: Timeline -->
+        <div class="section">
+            <div class="section-header">📅 Milestone Timeline</div>
+            <div class="section-body">
+                <ul class="timeline">
+                    
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">✓</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M0 — Stack-agnostic logprob capability probe</div>
+                            <div class="timeline-meta">
+                                2026-08-27 • — • VERIFIED (real llama.cpp; ceiling 256, G=20)
+                            </div>
+                        </div>
+                    </li>
+                    
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">✓</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M1 — Batch-shaped local Provider, KV-cache reuse</div>
+                            <div class="timeline-meta">
+                                2026-08-27 • — • VERIFIED (KV reuse on real llama.cpp)
+                            </div>
+                        </div>
+                    </li>
+                    
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">✓</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M2 — Continuous proposed_score, quarantined</div>
+                            <div class="timeline-meta">
+                                2026-08-27 • — • VERIFIED (I7 quarantine, I5 replay)
+                            </div>
+                        </div>
+                    </li>
+                    
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">✓</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M3 — Divergence into the drift detector</div>
+                            <div class="timeline-meta">
+                                2026-08-27 • — • VERIFIED (one demotion pathway, I8-safe)
+                            </div>
+                        </div>
+                    </li>
+                    
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">✓</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M4 — Escape sampler tranche split</div>
+                            <div class="timeline-meta">
+                                2026-08-27 • — • VERIFIED (random-only by type)
+                            </div>
+                        </div>
+                    </li>
+                    
+                    <li class="timeline-item completed">
+                        <div class="timeline-marker">✓</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M5 — I8 provenance-separation fixture</div>
+                            <div class="timeline-meta">
+                                2026-08-27 • — • VERIFIED (live scan of core/**)
+                            </div>
+                        </div>
+                    </li>
+                    
+                    <li class="timeline-item rejected">
+                        <div class="timeline-marker">⏸</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M6 — Pinned capacity measurement</div>
+                            <div class="timeline-meta">
+                                — • — • DEFERRED (blocked on production-model access)
+                            </div>
+                        </div>
+                    </li>
+                    
+                </ul>
+            </div>
+        </div>
+
+        <!-- Right Column: Decisions -->
+        <div class="section">
+            <div class="section-header">🎯 Key Decisions</div>
+            <div class="section-body">
+                
+                <div class="alert alert-warning">
+                    <strong>⚠️ Awaiting Steering:</strong> 6 unresolved decisions
+                </div>
+                
+
+                
+                <div class="decision-item tier-c">
+                    <div class="decision-title">Swap D21 serving stack: MLX/Apple Silicon → llama.cpp/x86_64</div>
+                    <div class="decision-rationale">Human-directed; the environment had no MLX. The io boundary makes it a loader swap, not an architecture change.</div>
+                    <div class="decision-source">Source: docs/decisions/dep-vet-llama-cpp-python.md</div>
+                </div>
+                
+                <div class="decision-item tier-c">
+                    <div class="decision-title">Adopt llama-cpp-python as an optional 'proposer' extra</div>
+                    <div class="decision-rationale">Dep-vetted; downloads check unverifiable behind the proxy (human override), lazily imported.</div>
+                    <div class="decision-source">Source: docs/decisions/dep-vet-llama-cpp-python.md</div>
+                </div>
+                
+                <div class="decision-item ">
+                    <div class="decision-title">proposed_score = expectation over the ORDERED letter scale</div>
+                    <div class="decision-rationale">M2's acceptance test caught magnitude-ranking that destroyed the score axis; the fix reached back into M1's capture.</div>
+                    <div class="decision-source">Source: docs/experiments/9020-logprob-capability/output.json</div>
+                </div>
+                
+                <div class="decision-item ">
+                    <div class="decision-title">Source D19 from the low-level full-logit vector</div>
+                    <div class="decision-rationale">M0 measured that llama.cpp's high-level logprobs API caps unpredictably below N.</div>
+                    <div class="decision-source">Source: docs/experiments/9020-logprob-capability/output.json</div>
+                </div>
+                
+                <div class="decision-item ">
+                    <div class="decision-title">Split original M0 → capability probe (M0) + pinned capacity (M6)</div>
+                    <div class="decision-rationale">Different blockers: capability is weight-independent and ran here; capacity needs the production model on target hardware.</div>
+                    <div class="decision-source">Source: .claude/tests/test_milestone_constraints.py</div>
+                </div>
+                
+                <div class="decision-item ">
+                    <div class="decision-title">Enforce I8 as a disposer-sink invariant, not a name-count of readers</div>
+                    <div class="decision-rationale">M4's escape_sampler legitimately reads proposed_score for ordering; the real invariant is no logit→disposer sink.</div>
+                    <div class="decision-source">Source: docs/retrospectives/process-derivation-pipeline-spec-v5-patch-1.md</div>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- Full Width: Cost & Timing -->
+        <div class="section full-width">
+            <div class="section-header">💰 Token 消耗与成本</div>
+            <div class="section-body">
+                <table class="cost-table">
+                    <tr><th>来源</th><th>Token 数</th><th>说明</th></tr>
+                    
+                    <tr><td>This session</td><td>not instrumented</td><td>no per-agent token measurement was captured</td></tr>
+                    
+                    <tr style="font-weight: 700; border-top: 2px solid var(--color-text);"><td>Total</td><td>n/a</td><td>reported honestly rather than estimated</td></tr>
+                    
+                </table>
+                <div class="note">
+                    Token usage was not instrumented in this session; the cost row is left honest rather than filled with a fabricated estimate.
+                </div>
+            </div>
+        </div>
+
+        <!-- Full Width: Surprises -->
+        <div class="section full-width">
+            <div class="section-header">⚡ Surprises & Discoveries</div>
+            <div class="section-body">
+                
+                <div class="alert alert-warning">
+                    <strong>Environment mismatch:</strong> The plan assumed Apple Silicon + MLX; the executor was x86_64 Linux with no MLX, stalling M0 until the human redirected to llama.cpp.
+                    <br><em>Impact: Name the executor environment in the plan, not just the target hardware.</em>
+                </div>
+                
+                <div class="alert alert-info">
+                    <strong>Capability limit:</strong> llama.cpp's high-level create_completion(logprobs=N) caps below N with a distribution-dependent count; D19 had to read the low-level full-logit vector.
+                    <br><em>Impact: Constrained M2's implementation.</em>
+                </div>
+                
+                <div class="alert alert-info">
+                    <strong>Test caught a real bug:</strong> M2's acceptance test caught magnitude-ranked logits that destroyed the ordered letter scale, before the flip; the fix reached back into M1.
+                    <br><em>Impact: Test-first paid for itself.</em>
+                </div>
+                
+                <div class="alert alert-info">
+                    <strong>Structure over vigilance:</strong> M3 (fieldless assessment), M4 (distinct RandomTranche type), M5 (parse-time sink scan) each made an invariant impossible to violate rather than something to remember.
+                    <br><em>Impact: Worth naming as an explicit harness principle.</em>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- Full Width: Technical Debt -->
+        <div class="section full-width">
+            <div class="section-header">🔧 Technical Debt</div>
+            <div class="section-body">
+                
+                <div class="debt-item">
+                    <div>
+                        <strong>M6 — pinned capacity measurement</strong>
+                        <div style="font-size: 13px; color: var(--color-text-secondary);">Blocked on production-model access; harness ready (drop --synthetic).</div>
+                    </div>
+                    <span class="debt-severity high">high</span>
+                </div>
+                
+                <div class="debt-item">
+                    <div>
+                        <strong>Provisional 9002 stand-ins</strong>
+                        <div style="font-size: 13px; color: var(--color-text-secondary);">QuarantinedFindingGraph / EvaluationResult / assess_drift / compute_escape_rate replace unstarted 9002 schemas (Q2).</div>
+                    </div>
+                    <span class="debt-severity medium">medium</span>
+                </div>
+                
+                <div class="debt-item">
+                    <div>
+                        <strong>Letter-scale token-id mapping</strong>
+                        <div style="font-size: 13px; color: var(--color-text-secondary);">first-g placeholder scale pending the config layer (Q3).</div>
+                    </div>
+                    <span class="debt-severity medium">medium</span>
+                </div>
+                
+                <div class="debt-item">
+                    <div>
+                        <strong>Dep-vet downloads check</strong>
+                        <div style="font-size: 13px; color: var(--color-text-secondary);">llama-cpp-python PASS on human override; confirm >1000/week off-proxy.</div>
+                    </div>
+                    <span class="debt-severity low">low</span>
+                </div>
+                
+                <div class="debt-item">
+                    <div>
+                        <strong>Notes-vs-flip-gate contradiction (Q8)</strong>
+                        <div style="font-size: 13px; color: var(--color-text-secondary);">Worked around per-milestone; promotion-rule violation #1.</div>
+                    </div>
+                    <span class="debt-severity medium">medium</span>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- Full Width: Lessons Learned -->
+        <div class="section full-width">
+            <div class="section-header">📚 Lessons Learned</div>
+            <div class="section-body">
+                
+                <div style="padding: 12px 0; border-bottom: 1px solid var(--color-border);">
+                    <strong>Name the executor, not just the target hardware</strong>
+                    <p style="font-size: 13px; color: var(--color-text-secondary); margin-top: 4px;">The entire M0 stall traced to a plan that named an Apple Silicon box without saying which executor had it.</p>
+                    
+                </div>
+                
+                <div style="padding: 12px 0; border-bottom: 1px solid var(--color-border);">
+                    <strong>Author the capability/capacity split up front</strong>
+                    <p style="font-size: 13px; color: var(--color-text-secondary); margin-top: 4px;">It was obvious in hindsight and only surfaced after M0 had been flipped once.</p>
+                    
+                </div>
+                
+                <div style="padding: 12px 0; border-bottom: 1px solid var(--color-border);">
+                    <strong>Structure over vigilance</strong>
+                    <p style="font-size: 13px; color: var(--color-text-secondary); margin-top: 4px;">Encode invariants in shape/type/parse so violations fail automatically; recurred in M3/M4/M5 and pairs with the Gate-Checkability Audit.</p>
+                    
+                    <span class="status-badge" style="background: #e0e7ff; color: #3730a3; margin-top: 8px; display: inline-block;">
+                        ⬆️ Promotion Candidate: harness principle
+                    </span>
+                    
+                </div>
+                
+                <div style="padding: 12px 0; border-bottom: 1px solid var(--color-border);">
+                    <strong>Notes-during-execution vs the flip gate</strong>
+                    <p style="font-size: 13px; color: var(--color-text-secondary); margin-top: 4px;">The two harness rules contradict for in-flight milestones; a second occurrence should move the rule into code.</p>
+                    
+                    <span class="status-badge" style="background: #e0e7ff; color: #3730a3; margin-top: 8px; display: inline-block;">
+                        ⬆️ Promotion Candidate: structural test fix (Q8)
+                    </span>
+                    
+                </div>
+                
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
-<div class="section full">
-  <div class="section-header">The recurring pattern — structure over vigilance</div>
-  <div class="section-body">
-    <table>
-      <tr><th>Milestone</th><th>Invariant</th><th>Enforced by</th><th>Adversarial check</th></tr>
-      <tr><td>M3</td><td>Divergence never demotes / disposes</td><td><code>DriftAssessment</code> has no disposer field</td><td>Second-demoter leak fails the test</td></tr>
-      <tr><td>M4</td><td>Escape rate reads only the unbiased sample</td><td><code>compute_escape_rate</code> takes only <code>RandomTranche</code></td><td>Prioritized tranche → TypeError</td></tr>
-      <tr><td>M5</td><td>No logit-derived value reaches a disposer sink</td><td>Parse-time scan of <code>core/**</code></td><td><code>routing = proposed_score</code> fails the live scan</td></tr>
-    </table>
-  </div>
-</div>
-
-<div class="section full">
-  <div class="section-header">Technical debt carried forward</div>
-  <div class="section-body">
-    <ul class="plain">
-      <li><span class="tag">M6</span> — pinned capacity measurement, blocked on production-model access; harness ready.</li>
-      <li><span class="tag">Provisional stand-ins</span> — <code>QuarantinedFindingGraph</code>/<code>EvaluationResult</code>/<code>replay_hash</code>/<code>derive_evaluation</code>, <code>assess_drift</code>, and <code>compute_escape_rate</code> stand in for 9002's unstarted schemas (Q2).</li>
-      <li><span class="tag">Letter-scale mapping</span> — first-g placeholder scale pending the config layer (Q3).</li>
-      <li><span class="tag">Dep-vet</span> — <code>llama-cpp-python</code> downloads check PASS on human override; confirm &gt;1000/week off-proxy.</li>
-      <li><span class="tag">Q8</span> — notes-vs-flip-gate contradiction worked around per-milestone; promotion-rule violation #1.</li>
-    </ul>
-  </div>
-</div>
-
-<div class="section full">
-  <div class="section-header">Lessons</div>
-  <div class="section-body">
-    <ul class="plain">
-      <li>Name the executor environment in the plan, not just the target hardware — the M0 stall traced entirely to that gap.</li>
-      <li>Author the capability/capacity split from the start; it only became visible after M0 had been flipped once.</li>
-      <li>Test-first paid off twice: it caught the ordered-scale bug (M2) and made every I8 fixture verifiable by injecting the exact violation it forbids.</li>
-      <li>"Structure over vigilance" recurred independently in M3/M4/M5 — worth naming as an explicit harness principle alongside the Gate-Checkability Audit.</li>
-    </ul>
-  </div>
-</div>
-
-<div class="footer">Generated 2026-08-27 · source: <code>docs/exec-plans/completed/9020-continuous-proposer-and-provenance-separation.md</code></div>
+    <div class="footer">
+        生成于 2026-08-27 &bull;
+        耗时 ~22 小时 &bull;
+        15 次提交 &bull;
+        30 个文件 (3,290+, 0−) &bull;
+        Token: n/a 实测 / n/a 估算 &bull;
+        <a href="../completed/9020-continuous-proposer-and-provenance-separation.md">查看计划文件</a> &bull;
+        <a href="../completed/9020-continuous-proposer-and-provenance-separation-notes/">查看验证记录</a>
+    </div>
 </body>
 </html>
