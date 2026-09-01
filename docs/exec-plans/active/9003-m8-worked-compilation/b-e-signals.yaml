@@ -1,0 +1,917 @@
+# B-E refinement — session-model authored signals (2026-08-31).
+#
+# Human steering (this session): "instead of LAN model, employ session model".
+# This file is the Generator's B-E authoring record: per SKILL.md D12, every
+# standard clause that fell into the deterministic "model-judged" fallbacks is
+# decomposed into ONE observable signal per clause. Refined signals REPLACE
+# the fallbacks; deterministic lexical signals (N-S01) stay. Descriptions are
+# observable patterns (AUTH-1 — no evaluative adjectives); decomposed_from
+# quotes the exact pass/fail_standard clause; checkable/audit_result follow
+# the Q1/Q2 gate-checkable test (model_only = quarantined to S2).
+# Target shape: 9003-pilot-item18/frozen/item-18.yaml.
+#
+# extra_remove: deterministic non-fallback signals adjudicated away
+# (signal-split adjudication mandate) — each carries its reason.
+
+model: session (B-E via rubric-compiler skill, human-directed)
+
+items:
+  "1":
+    note: "F1 traces the outbound-identity clause; E1 the complete-greeting shape."
+    signals:
+      - id: "1-F1"
+        lane: fail
+        severity: major
+        description: "外呼电话中坐席首个话轮无身份表述（公司名/客服身份/工号），直接进入业务内容"
+        decomposed_from: "pass_standard: 如外呼电话，需清晰的表明身份，不用明确到人"
+        gate_checkable_test:
+          proposer_can_find_span: "定位外呼通话的坐席首话轮"
+          gate_can_verify: "检查首话轮是否含身份词（汇信/CA/客服/工号），全部缺失 → F1 激活"
+        checkable: true
+        audit_result: pass
+      - id: "1-E1"
+        lane: excellence
+        severity: minor
+        description: "坐席首话轮同时出现问候语、公司名与负责业务范围列举（对照营销话术1/13/14的开场模板）"
+        decomposed_from: "pass_standard: 有起接语 标准起接 \"您好。\""
+        gate_checkable_test:
+          proposer_can_find_span: "定位坐席首话轮"
+          gate_can_verify: "检查首话轮是否同时命中 问候语+公司名+业务范围词 三要素"
+        checkable: true
+        audit_result: pass
+  "2":
+    note: "F1-F3 trace fail clauses ①③④; E1 replaces the mis-split ordered 2-S03 (signal-split adjudication: the deterministic ordered heuristic cut mid-word)."
+    extra_remove:
+      - id: "2-S03"
+        reason: "deterministic ordered_relation mis-split (生/女士\"。称谓正确且前 before 一致) — not a real relation; adjudicated and replaced by 2-E1. ROOT CAUSE FIXED 2026-09-01 (M8 review, double-reproduced): signals.py now protects 先生/前后, so 2-S03 is no longer emitted and this entry is a defensive no-op — verified node content byte-identical either way."
+    signals:
+      - id: "2-F1"
+        lane: fail
+        severity: major
+        description: "整通电话坐席话轮无任何称谓词（X小姐/先生/女士/老师），且客户话轮中无拒绝告知姓氏的表述"
+        decomposed_from: "fail_standard: ①无称谓（除对方不愿告知外）"
+        gate_checkable_test:
+          proposer_can_find_span: "扫描坐席全部话轮的称谓词命中"
+          gate_can_verify: "称谓词命中数为0 且 无'不方便说/不用了'类拒答模式 → F1 激活"
+        checkable: true
+        audit_result: pass
+      - id: "2-F2"
+        lane: fail
+        severity: major
+        description: "同一通话中对同一来话人先后使用不同的姓氏或称谓组合（如前称陈先生、后称王先生）"
+        decomposed_from: "fail_standard: ③前后称谓不一致（如前面称呼正确，后面称呼错误）"
+        gate_checkable_test:
+          proposer_can_find_span: "提取坐席话轮中全部 姓+称谓 组合及其时间序"
+          gate_can_verify: "组合集合中存在两个不同姓氏 → F2 激活"
+        checkable: true
+        audit_result: pass
+      - id: "2-F3"
+        lane: fail
+        severity: minor
+        description: "坐席询问贵姓类问句在通话中出现超过2次"
+        decomposed_from: "fail_standard: ④>2次询问贵姓"
+        gate_checkable_test:
+          proposer_can_find_span: "定位含'贵姓/怎么称呼'的坐席问句"
+          gate_can_verify: "count(贵姓类问句) > 2 → F3 激活"
+        checkable: true
+        audit_result: pass
+      - id: "2-E1"
+        lane: excellence
+        severity: minor
+        description: "客户告知姓氏后，坐席后续称呼均为同一 姓+称谓 组合；市监来电场景使用老师称呼"
+        decomposed_from: "pass_standard: 称谓正确且前后一致。如遇市监电话需称呼其为老师"
+        gate_checkable_test:
+          proposer_can_find_span: "定位客户报姓话轮及其后全部坐席称呼"
+          gate_can_verify: "后续称呼组合唯一且与报姓一致 → E1 候选"
+        checkable: true
+        audit_result: pass
+  "3":
+    note: "F1 traces the repeat-asking clauses (②③ merged: same observable), F2 the query-method clause (KB-dependent, quarantined); E1 the re-search behavior. Node declares data_dependency (客服系统/知识库 not connected)."
+    data_dependency:
+      source: "客服系统查询记录 / 知识库条目"
+      connected: false
+      disposition: "defer_until_source_connected"
+    signals:
+      - id: "3-F1"
+        lane: fail
+        severity: major
+        description: "对同一地名或词组，坐席发起两次以上重复询问或逐字确认（县级及以上地名、常用区域场景）"
+        decomposed_from: "fail_standard: ②不清晰的词组还要反复询问企业；③对常用的地名、区域和清晰的词组还要反复询问企业"
+        gate_checkable_test:
+          proposer_can_find_span: "定位坐席对同一实体的询问话轮序列"
+          gate_can_verify: "count(同一实体的询问话轮) > 2 → F1 激活"
+        checkable: true
+        audit_result: pass
+      - id: "3-F2"
+        lane: fail
+        severity: major
+        description: "坐席声明的查询路径与知识库为该问题类型规定的查询路径不一致（需客服系统/知识库对照）"
+        decomposed_from: "fail_standard: ①查询方法错误"
+        gate_checkable_test:
+          proposer_can_find_span: "定位坐席描述查询操作的话轮"
+          gate_can_verify: "与知识库规定路径比对——数据源未接入，Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+      - id: "3-E1"
+        lane: excellence
+        severity: minor
+        description: "首次查询未命中后，坐席话轮出现更换搜索项或关键字的表述（换个方式查/用XX再查）并随后报出查询结果"
+        decomposed_from: "pass_standard: 能灵活的运用不同方式进行搜索，例如不同的搜索项、关键字等"
+        gate_checkable_test:
+          proposer_can_find_span: "定位未命中表述与再次查询表述的话轮对"
+          gate_can_verify: "再查询表述出现于未命中表述之后且随后有结果报出 → E1 候选"
+        checkable: true
+        audit_result: pass
+        evidence_shape: { shape: ordered_relation, first: "未命中表述", second: "更换方式再查询" }
+  "4":
+    note: "F1 traces the un-announced hold clause; F2 the recall-script half of the pass standard; E1 the complete hold sequence."
+    signals:
+      - id: "4-F1"
+        lane: fail
+        severity: major
+        description: "坐席进入查询/确认操作前无候线语，且随后出现超过30秒的无话音段"
+        decomposed_from: "fail_standard: 电话中明确需要候线却未采用候线的方法导致电话空白"
+        gate_checkable_test:
+          proposer_can_find_span: "定位静音段及其前的坐席话轮"
+          gate_can_verify: "静音段>30秒 且 前话轮无候线语命中 → F1 激活"
+        checkable: true
+        audit_result: pass
+      - id: "4-F2"
+        lane: fail
+        severity: minor
+        description: "候线结束后坐席话轮无召回语要素（称谓/致谢等待/您的问题是），直接继续业务内容"
+        decomposed_from: "pass_standard: 召回语（X先生/小姐，您好。非常感谢您的耐心等待，您的问题是这样的...)"
+        gate_checkable_test:
+          proposer_can_find_span: "定位候线段结束后的首个坐席话轮"
+          gate_can_verify: "该话轮无召回语要素命中 → F2 激活"
+        checkable: true
+        audit_result: pass
+      - id: "4-E1"
+        lane: excellence
+        severity: minor
+        description: "候线语（含原因说明）→ 30秒内召回 → 致谢等待 按序完整出现"
+        decomposed_from: "pass_standard: 转接、候线操作规范；用语规范。转接、候线时长不超过30秒"
+        gate_checkable_test:
+          proposer_can_find_span: "定位候线语、静音段、召回语三段"
+          gate_can_verify: "顺序正确且静音时长≤30秒 → E1 候选"
+        checkable: true
+        audit_result: pass
+        evidence_shape: { shape: ordered_relation, first: "候线语", second: "召回语" }
+  "5":
+    note: "F1/F2 trace the missing/incomplete-closing clauses; E1 the full closing sequence."
+    signals:
+      - id: "5-F1"
+        lane: fail
+        severity: major
+        description: "通话结束段坐席话轮无'再见'，或结束语被挂断截断（结束语话轮不完整）"
+        decomposed_from: "fail_standard: 结束语无或不完整；时间允许范围内未报读结束语"
+        gate_checkable_test:
+          proposer_can_find_span: "定位通话最后的坐席话轮"
+          gate_can_verify: "'再见'未命中或话轮在词中截断 → F1 激活"
+        checkable: true
+        audit_result: pass
+      - id: "5-F2"
+        lane: fail
+        severity: minor
+        description: "坐席给出结束语前无'还有其他问题'类确认问句"
+        decomposed_from: "pass_standard: 每通电话在讲结束语之前，与企业确认是否还有其他问题，无问题后转结束语"
+        gate_checkable_test:
+          proposer_can_find_span: "定位结束语话轮及其前的坐席问句"
+          gate_can_verify: "结束语之前无其他问题确认问句 → F2 激活"
+        checkable: true
+        audit_result: pass
+        evidence_shape: { shape: ordered_relation, first: "其他问题确认", second: "结束语" }
+      - id: "5-E1"
+        lane: excellence
+        severity: minor
+        description: "结束序列完整按序出现：其他问题确认 → 满意度评价引导 → 再见"
+        decomposed_from: "pass_standard: 请稍后请对本次服务做个评价，满意请按1，再见！"
+        gate_checkable_test:
+          proposer_can_find_span: "定位结束段三要素话轮"
+          gate_can_verify: "三要素齐备且顺序正确 → E1 候选"
+        checkable: true
+        audit_result: pass
+  "8":
+    note: "F1 traces the unprofessional-vocabulary clause; F2 the >2 filler repetition; F3 the acoustic-mumbling clause (acoustic facet needed, quarantined); E1 the clean-speech pass shape."
+    signals:
+      - id: "8-F1"
+        lane: fail
+        severity: major
+        description: "坐席使用非规范业务称呼之一：U盘（指usb-key）、年检（指年报）、工商（指市监）、工商局发证"
+        decomposed_from: "fail_standard: 表达未能体现专业性，过于随便或口语化，如直呼usb-key为\"U盘\"、年报为\"年检\"、市监为\"工商\"、工商局发证等"
+        gate_checkable_test:
+          proposer_can_find_span: "扫描坐席话轮的非规范称呼词命中"
+          gate_can_verify: "非规范称呼词表任一命中 → F1 激活"
+        checkable: true
+        audit_result: pass
+      - id: "8-F2"
+        lane: fail
+        severity: minor
+        description: "同一口语词（的话/那个/的哦/的呢/这个）在坐席话轮中密集重复出现超过2次"
+        decomposed_from: "fail_standard: 密集重复出现口语>2次，如\"的哦\"、\"的呢\"、\"那个\"、\"这个\"、\"的话\"等"
+        gate_checkable_test:
+          proposer_can_find_span: "统计口语词在相邻坐席话轮内的出现次数"
+          gate_can_verify: "任一口语词计数 > 2 → F2 激活"
+        checkable: true
+        audit_result: pass
+      - id: "8-F3"
+        lane: fail
+        severity: minor
+        description: "坐席话音存在被标注为含糊或拖音的段（需声学指标：语速/元音时长/能量特征提取）"
+        decomposed_from: "fail_standard: 口齿含糊不清"
+        gate_checkable_test:
+          proposer_can_find_span: "声学 facet 标注的含糊/拖音时间段（模型+声学联合提取）"
+          gate_can_verify: "声学指标未接入判定管线，Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+      - id: "8-E1"
+        lane: excellence
+        severity: minor
+        description: "全通话口语词零命中且业务称呼全部使用规范词（usb-key/年报/市监）"
+        decomposed_from: "pass_standard: 表达清晰明朗，口齿清楚，不含糊，不拖音，能让客户听明白；无过多口语"
+        gate_checkable_test:
+          proposer_can_find_span: "扫描全部坐席话轮"
+          gate_can_verify: "口语词计数=0 且 非规范称呼词计数=0 → E1 候选"
+        checkable: true
+        audit_result: pass
+  "9":
+    note: "F1 traces the pace-mismatch clause (customer complaint is lexical, the pace half needs the acoustic facet); F2 the overlap clause (measurable from structural transcription timing); E1 the pace-adaptation pass shape."
+    signals:
+      - id: "9-F1"
+        lane: fail
+        severity: major
+        description: "客户话轮出现'需要慢一点/听不清'类表述，且其前坐席话轮语速测量值高于配置区间（需声学语速指标）"
+        decomposed_from: "fail_standard: 客户语速很慢，客服语速快，客户表达了\"需要慢一点\""
+        gate_checkable_test:
+          proposer_can_find_span: "定位客户'慢一点/听不清'话轮（词法）并取其前坐席话轮"
+          gate_can_verify: "语速测量依赖声学指标接入，Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+      - id: "9-F2"
+        lane: fail
+        severity: minor
+        description: "由坐席起始的话音重叠段出现多于1次（接话过急造成的略有重叠，结构转写时间轴可计）"
+        decomposed_from: "fail_standard: ③电话中虽未出现抢话，可是多次出现由于接话太急等原因造成的略有重叠"
+        gate_checkable_test:
+          proposer_can_find_span: "从结构转写时间轴提取坐席起始的重叠段"
+          gate_can_verify: "count(坐席起始重叠段) > 1 → F2 激活"
+        checkable: true
+        audit_result: pass
+      - id: "9-E1"
+        lane: excellence
+        severity: minor
+        description: "客户要求放慢后，坐席后续话轮语速测量值较此前下降（前后对比，需声学语速指标）"
+        decomposed_from: "pass_standard: 语速适中，能配合客户的速度"
+        gate_checkable_test:
+          proposer_can_find_span: "定位客户放慢请求话轮及其前后坐席话轮"
+          gate_can_verify: "语速前后对比依赖声学指标接入，Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+  "10":
+    note: "F1/F2 trace the 你-overuse and rhetorical-question clauses; E1 the consistent-您 pass shape."
+    signals:
+      - id: "10-F1"
+        lane: fail
+        severity: major
+        description: "坐席话轮中'你'的出现次数多于'您'（经常出现'你'）"
+        decomposed_from: "fail_standard: 表达不够礼貌，如经常出现\"你\"等"
+        gate_checkable_test:
+          proposer_can_find_span: "统计坐席全部话轮的 你/您 计数"
+          gate_can_verify: "count(你) > count(您) → F1 激活"
+        checkable: true
+        audit_result: pass
+      - id: "10-F2"
+        lane: fail
+        severity: minor
+        description: "坐席话轮出现反问句式模式（'我不是说过了吗/你怎么不'类），且场景不属于关系紧密网点来电"
+        decomposed_from: "fail_standard: 出现轻微反问句式（支持客服如遇关系紧密的网点除外）"
+        gate_checkable_test:
+          proposer_can_find_span: "定位反问句式模式命中的坐席话轮"
+          gate_can_verify: "反问模式命中且无网点白名单标记 → F2 激活"
+        checkable: true
+        audit_result: pass
+      - id: "10-E1"
+        lane: excellence
+        severity: minor
+        description: "全通话坐席对客户的第二人称均为'您'，请求句均带'请'字"
+        decomposed_from: "pass_standard: 在整段对话中均能使用礼貌用语并适时使用，例如：您好，您，请稍等"
+        gate_checkable_test:
+          proposer_can_find_span: "扫描坐席全部第二人称与请求句"
+          gate_can_verify: "count(你)=0 且 请求句均含'请' → E1 候选"
+        checkable: true
+        audit_result: pass
+  "11":
+    note: "F1 traces the rush-to-hang-up clause; F2 the perfunctory-response clause; F3 the cold-tone clause (acoustic prosody, quarantined); E1 the warm-service pass shape (acoustic, quarantined)."
+    signals:
+      - id: "11-F1"
+        lane: fail
+        severity: major
+        description: "客户仍在陈述问题或追问时，坐席话轮出现结束引导（'没别的问题就先这样'类）并随即进入结束语"
+        decomposed_from: "fail_standard: 表现出急于挂断电话"
+        gate_checkable_test:
+          proposer_can_find_span: "定位客户未决问题话轮与其后坐席结束引导话轮"
+          gate_can_verify: "结束引导出现于客户未决问题话轮之后 → F1 激活"
+        checkable: true
+        audit_result: pass
+        evidence_shape: { shape: ordered_relation, first: "客户未决问题", second: "坐席结束引导" }
+      - id: "11-F2"
+        lane: fail
+        severity: major
+        description: "客户提问后坐席连续以单词回应（嗯/哦/对）超过2次且无展开说明话轮"
+        decomposed_from: "fail_standard: 对待客户爱理不理；表达、处理敷衍"
+        gate_checkable_test:
+          proposer_can_find_span: "定位客户问句后的坐席回应序列"
+          gate_can_verify: "连续单词回应计数 > 2 且其间无长回应话轮 → F2 激活"
+        checkable: true
+        audit_result: pass
+      - id: "11-F3"
+        lane: fail
+        severity: minor
+        description: "坐席语调能量/音高变化测量值低于配置阈值（prosody_warmth，需声学指标接入）"
+        decomposed_from: "fail_standard: 沟通语调冷漠、机械化、无精打采，不能体现微笑服务"
+        gate_checkable_test:
+          proposer_can_find_span: "声学 facet 标注的低韵律段"
+          gate_can_verify: "prosody_warmth 指标未接入判定管线，Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+      - id: "11-E1"
+        lane: excellence
+        severity: minor
+        description: "坐席对客户每次陈述均有展开回应，且语调测量值处于配置区间（需声学指标接入）"
+        decomposed_from: "pass_standard: 整个沟通过程中精神状态饱满且始终保持热情，体现微笑服务"
+        gate_checkable_test:
+          proposer_can_find_span: "对齐客户陈述与坐席回应对，取声学段测量"
+          gate_can_verify: "语调指标未接入判定管线，Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+  "12":
+    note: "F1/F2 trace the interruption clauses; E1 the polite-interruption pass shape."
+    signals:
+      - id: "12-F1"
+        lane: fail
+        severity: major
+        description: "坐席在客户话轮未结束时开始说话形成重叠并接管话轮，且无'非常抱歉，打断您一下'类致歉语"
+        decomposed_from: "fail_standard: 出现和客户抢话现象；出现压话"
+        gate_checkable_test:
+          proposer_can_find_span: "从时间轴提取坐席起始重叠并接管的段"
+          gate_can_verify: "接管段前后无致歉语命中 → F1 激活"
+        checkable: true
+        audit_result: pass
+      - id: "12-F2"
+        lane: fail
+        severity: minor
+        description: "客户话音插入坐席话轮后，坐席无停顿继续原内容超过配置时长（插话点后坐席话轮不中断）"
+        decomposed_from: "fail_standard: 当企业有意打断客服的表达的时候，不予理睬"
+        gate_checkable_test:
+          proposer_can_find_span: "定位客户插话点及其后坐席话轮时长"
+          gate_can_verify: "插话点后坐席持续话音超过阈值且无停顿/询问 → F2 激活"
+        checkable: true
+        audit_result: pass
+      - id: "12-E1"
+        lane: excellence
+        severity: minor
+        description: "确需打断时，致歉语出现在坐席接管话轮之前"
+        decomposed_from: "pass_standard: 当确实需要时，适当礼貌的打断用户，例如：非常抱歉，打断您一下"
+        gate_checkable_test:
+          proposer_can_find_span: "定位致歉语与接管话轮"
+          gate_can_verify: "致歉语在接管之前出现 → E1 候选"
+        checkable: true
+        audit_result: pass
+        evidence_shape: { shape: ordered_relation, first: "致歉语", second: "接管话轮" }
+  "13":
+    note: "F1 traces the delayed-response clause (timing measurable); F2 the repeat-question clause; F3 the off-target-answer clauses ④⑤ (semantic, quarantined); E1 the attentive-listening pass shape."
+    signals:
+      - id: "13-F1"
+        lane: fail
+        severity: major
+        description: "客户长陈述期间或呼叫坐席时，坐席超过配置时长无回应话音（回应间隔从时间轴测量）"
+        decomposed_from: "fail_standard: ①出现不及时回应；例如企业描述时间稍长的时候，客服一直非常沉默或当企业呼叫客服的时候未及时回应"
+        gate_checkable_test:
+          proposer_can_find_span: "定位客户长陈述段/呼叫段及其后坐席首个回应时刻"
+          gate_can_verify: "回应间隔 > 配置阈值 → F1 激活"
+        checkable: true
+        audit_result: pass
+      - id: "13-F2"
+        lane: fail
+        severity: major
+        description: "坐席对客户已答复过的同一信息再次发问（同一问题模式在坐席话轮重复出现）"
+        decomposed_from: "fail_standard: ②客服人员反复询问企业同一问题（当无法判断为客服原因造成时除外）"
+        gate_checkable_test:
+          proposer_can_find_span: "提取坐席问句及客户在先答复的实体对"
+          gate_can_verify: "同一实体问句在客户答复后再次出现 → F2 激活"
+        checkable: true
+        audit_result: pass
+      - id: "13-F3"
+        lane: fail
+        severity: major
+        description: "坐席回应内容与客户前一话轮的问题指向不同主题（答非所问，需语义判断）"
+        decomposed_from: "fail_standard: ④由于没有注意倾听，答非所问，与客户沟通严重脱节。⑤由于没有注意倾听，答非所问，出现服务断片"
+        gate_checkable_test:
+          proposer_can_find_span: "定位客户问句与坐席相邻回应话轮对"
+          gate_can_verify: "主题一致性为语义判断，Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+      - id: "13-E1"
+        lane: excellence
+        severity: minor
+        description: "客户每段陈述后坐席在配置时长内出现回应，且回应中复述了客户要点词"
+        decomposed_from: "pass_standard: 认真专心倾听客户的话"
+        gate_checkable_test:
+          proposer_can_find_span: "对齐客户陈述段与坐席回应话轮"
+          gate_can_verify: "回应及时且含客户话轮中的要点词复现 → E1 候选"
+        checkable: true
+        audit_result: pass
+  "14":
+    note: "F1 traces the colleague-disparagement clause (semantic, quarantined); F2 the ill-timed-laughter clause (acoustic laughter + context, quarantined); E1 the positive-alternative pass shape."
+    signals:
+      - id: "14-F1"
+        lane: fail
+        severity: major
+        description: "坐席话轮出现对其他同事的否定表述（'他说错了/别听他的'类，指向具体同事）"
+        decomposed_from: "fail_standard: ⑤沟通中诋毁或直接否定其他同事"
+        gate_checkable_test:
+          proposer_can_find_span: "定位提及其他同事的坐席话轮"
+          gate_can_verify: "否定指向的判定需语义理解，Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+      - id: "14-F2"
+        lane: fail
+        severity: minor
+        description: "客户陈述问题或不满期间坐席出现笑声段（声学笑声检测+上下文判断）"
+        decomposed_from: "fail_standard: ③不合时宜的发笑"
+        gate_checkable_test:
+          proposer_can_find_span: "声学 facet 标注的坐席笑声段及其上下文"
+          gate_can_verify: "笑声段与客户问题陈述段重叠的判定需声学+语义联合，Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+      - id: "14-E1"
+        lane: excellence
+        severity: minor
+        description: "拒绝/受限场景中坐席使用替代表述（'您可以通过…/我帮您确认后回复'类）且禁语零命中"
+        decomposed_from: "pass_standard: 表达委婉，善于使用正面言辞"
+        gate_checkable_test:
+          proposer_can_find_span: "定位受限场景话轮及坐席回应"
+          gate_can_verify: "替代表述命中且禁语计数=0 → E1 候选"
+        checkable: true
+        audit_result: pass
+  "15":
+    note: "F1 traces the verbose clause (semantic repetition, quarantined); F2 the ambiguity clause via the customer-confusion observable; E1 the stepwise-clarity pass shape."
+    signals:
+      - id: "15-F1"
+        lane: fail
+        severity: major
+        description: "坐席对同一信息点的表述在无新增信息词的情况下重复超过2次（重复度需语义判断）"
+        decomposed_from: "fail_standard: 表达复杂啰嗦；缺乏针对性"
+        gate_checkable_test:
+          proposer_can_find_span: "定位同一信息点的坐席重复表述序列"
+          gate_can_verify: "语义重复度判定，Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+      - id: "15-F2"
+        lane: fail
+        severity: major
+        description: "坐席同一说明后，客户出现两次以上'什么意思/没听懂/再说一遍'类求解释表述"
+        decomposed_from: "fail_standard: 语言组织有歧义或不易理解，无法将正确信息快速传达给企业"
+        gate_checkable_test:
+          proposer_can_find_span: "定位坐席说明话轮及其后客户求解释话轮"
+          gate_can_verify: "count(同一说明后的求解释表述) ≥ 2 → F2 激活"
+        checkable: true
+        audit_result: pass
+      - id: "15-E1"
+        lane: excellence
+        severity: minor
+        description: "坐席对处理办法以分步列举模式呈现（第一步/然后/最后），且客户单次即出现确认表述（明白/好的）而无求解释"
+        decomposed_from: "pass_standard: 描述或解释中能抓住重点，简单，不罗嗦"
+        gate_checkable_test:
+          proposer_can_find_span: "定位分步列举话轮及其后客户回应"
+          gate_can_verify: "分步模式命中且其后无求解释表述 → E1 候选"
+        checkable: true
+        audit_result: pass
+  "16":
+    note: "F1 traces the mis-identification clause via the customer-correction observable; F2 the roundabout-guidance clause (semantic, quarantined); E1 the restate-confirm pass shape."
+    signals:
+      - id: "16-F1"
+        lane: fail
+        severity: major
+        description: "坐席进入操作指导后，客户出现'不是这个问题/我说的不是这个'类纠正表述"
+        decomposed_from: "fail_standard: 没有理解用户的需求、问题"
+        gate_checkable_test:
+          proposer_can_find_span: "定位坐席指导话轮后的客户纠正话轮"
+          gate_can_verify: "纠正表述出现于指导开始之后 → F1 激活"
+        checkable: true
+        audit_result: pass
+        evidence_shape: { shape: ordered_relation, first: "坐席开始指导", second: "客户纠正表述" }
+      - id: "16-F2"
+        lane: fail
+        severity: major
+        description: "坐席对问题的定性在通话中变更超过一次（先按A问题指导后改B问题），且变更前客户未补充新信息（辨识过程曲折，需语义判断）"
+        decomposed_from: "fail_standard: 由于没有快速理解导致指导绕弯，浪费时间（辨识过程比较曲折）"
+        gate_checkable_test:
+          proposer_can_find_span: "定位坐席问题定性表述的序列"
+          gate_can_verify: "定性变更是否由客户新信息引起需语义判断，Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+      - id: "16-E1"
+        lane: excellence
+        severity: minor
+        description: "坐席给出方案前复述客户问题并获得客户肯定（复述→客户确认序列）"
+        decomposed_from: "pass_standard: 根据用户提供的信息，掌握用户的问题或需求"
+        gate_checkable_test:
+          proposer_can_find_span: "定位坐席复述话轮与客户确认话轮"
+          gate_can_verify: "复述在方案之前且其后有客户肯定表述 → E1 候选"
+        checkable: true
+        audit_result: pass
+        evidence_shape: { shape: ordered_relation, first: "问题复述+客户确认", second: "方案给出" }
+  "17":
+    note: "F1 traces the dead-air thresholds (measurable); F2 the customer-led clause; F3 the guidance-desync clause (semantic, quarantined); E1 the pace-keeping pass shape. Replaces both deterministic fallbacks."
+    signals:
+      - id: "17-F1"
+        lane: fail
+        severity: major
+        description: "通话中出现非客服原因超过30秒、或客服原因超过15秒的无话音段（静音测量）"
+        decomposed_from: "fail_standard: 非客服原因导致30秒以上空白或者由于客服原因导致15秒以上空白"
+        gate_checkable_test:
+          proposer_can_find_span: "从时间轴提取静音段及其归因侧"
+          gate_can_verify: "非客服静音>30s 或 客服静音>15s → F1 激活"
+        checkable: true
+        audit_result: pass
+      - id: "17-F2"
+        lane: fail
+        severity: major
+        description: "客户偏离主题后，先由客户发起回到问题确认，期间无坐席引导回主题的话轮"
+        decomposed_from: "fail_standard: 客户问题偏离主题时，不能有效控制或引导，甚至由客户主动与客服人员确认问题；电话中被客户主导"
+        gate_checkable_test:
+          proposer_can_find_span: "定位偏题段及回到主题的发起方话轮"
+          gate_can_verify: "回题发起方为客户且期间坐席无引导话轮 → F2 激活"
+        checkable: false
+        audit_result: model_only
+      - id: "17-F3"
+        lane: fail
+        severity: minor
+        description: "坐席连续给出下一步指令而客户仍在报告上一步结果（指令-反馈顺序错位，需语义对齐）"
+        decomposed_from: "fail_standard: 指导和客户操作脱节；沟通中，不关注客户的理解程度，只顾着自己说"
+        gate_checkable_test:
+          proposer_can_find_span: "对齐坐席指令序列与客户反馈序列"
+          gate_can_verify: "错位判定需语义对齐，Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+      - id: "17-E1"
+        lane: excellence
+        severity: minor
+        description: "操作期间坐席持续出现进度获取/告知话轮（'您现在看到什么/我这边显示'类），相邻间隔不超过配置时长"
+        decomposed_from: "pass_standard: 操作沟通密切紧凑（能解释获取对方进度或告知对方进度），能有效控制电话节奏"
+        gate_checkable_test:
+          proposer_can_find_span: "定位进度类话轮序列及间隔"
+          gate_can_verify: "进度话轮间隔均≤配置时长 → E1 候选"
+        checkable: true
+        audit_result: pass
+  "19":
+    note: "F1 traces the wrong-knowledge clause (KB-dependent, quarantined + node data_dependency); F2 the uncorrected-misconception clause (domain judgment, quarantined); F3 the password-advice duty; E1 the disclosure pass shape."
+    data_dependency:
+      source: "产品/业务知识库（KB 条目与版本）"
+      connected: false
+      disposition: "defer_until_source_connected"
+    signals:
+      - id: "19-F1"
+        lane: fail
+        severity: major
+        description: "坐席陈述的业务事实与知识库对应条目不一致（需知识库连接逐条比对）"
+        decomposed_from: "fail_standard: 给客户提供了错误的产品、业务和操作知识信息；或对已培训的知识信息不清楚"
+        gate_checkable_test:
+          proposer_can_find_span: "定位坐席业务事实陈述话轮"
+          gate_can_verify: "与 KB 条目比对——数据源未接入，Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+      - id: "19-F2"
+        lane: fail
+        severity: major
+        description: "客户话轮出现与业务事实相悖的表述（如'证书有存储功能'），坐席后续话轮无纠正性表述（相悖判定需领域知识）"
+        decomposed_from: "fail_standard: 企业对相关业务信息概念不清且容易造成对方后期的误解，客服未纠正；例如：企业觉得证书有存储功能，客服未纠正"
+        gate_checkable_test:
+          proposer_can_find_span: "定位客户误解表述与其后坐席话轮"
+          gate_can_verify: "误解识别需领域知识判断，Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+      - id: "19-F3"
+        lane: fail
+        severity: minor
+        description: "涉及密码的处理完成后，坐席话轮无'修改密码'建议表述"
+        decomposed_from: "fail_standard: 隐含密码，问题处理完了之后必须告知企业为了信息安全，建议用户及时修改密码"
+        gate_checkable_test:
+          proposer_can_find_span: "定位密码场景的处理完成段"
+          gate_can_verify: "该段后坐席话轮无修改密码表述 → F3 激活"
+        checkable: true
+        audit_result: pass
+      - id: "19-E1"
+        lane: excellence
+        severity: minor
+        description: "系统填写场景坐席出现'以市监审核为准'表述、资料审核场景出现'以市监要求为准'表述、密码场景出现修改密码建议"
+        decomposed_from: "fail_standard: 涉及到系统填写的，要告知以市监审核为准；涉及到资料审核的，要告知以市监要求为准"
+        gate_checkable_test:
+          proposer_can_find_span: "按场景定位坐席告知话轮"
+          gate_can_verify: "场景命中时对应告知语出现 → E1 候选"
+        checkable: true
+        audit_result: pass
+  "20":
+    note: "F1 traces the ignored-trigger clause against the 营销触发.md T-set; F2 the negative-guidance clause; E1 the trigger→service correctness pass shape. Companion 营销触发.md pinned (S1)."
+    signals:
+      - id: "20-F1"
+        lane: fail
+        severity: major
+        description: "客户话轮命中营销触发词表（营销触发.md T001-T014）后，坐席后续话轮未出现对应的推荐产品/服务词"
+        decomposed_from: "fail_standard: 对用户表达中明显的潜在营销机会置之不理；未主动推荐客户使用本公司的相关产品"
+        gate_checkable_test:
+          proposer_can_find_span: "定位触发词命中的客户话轮"
+          gate_can_verify: "触发后坐席话轮无对应服务词命中 → F1 激活"
+        checkable: true
+        audit_result: pass
+        evidence_shape: { shape: ordered_relation, first: "触发词命中", second: "推荐产品词" }
+      - id: "20-F2"
+        lane: fail
+        severity: major
+        description: "客户咨询子证书/个体户证书年费内到期问题时，坐席出现'不需收费'类直接答复且无引导推介表述"
+        decomposed_from: "fail_standard: 企业来电咨询子证书和个体户证书年费内证书到期问题的，客服未正向引导，例如直接告知不需收费之类的"
+        gate_checkable_test:
+          proposer_can_find_span: "定位到期咨询场景话轮"
+          gate_can_verify: "'不需收费'类命中且无推介表述 → F2 激活"
+        checkable: true
+        audit_result: pass
+      - id: "20-E1"
+        lane: excellence
+        severity: minor
+        description: "触发命中后坐席推荐的产品与营销触发.md 该触发规定的服务一致（trigger→service 映射比对）"
+        decomposed_from: "pass_standard: 能准确快速抓取客户的潜在需求或可以给用户推荐我司产品、业务的机会，并有针对性的给用户推荐(如子证书，解锁推荐移动证书)"
+        gate_checkable_test:
+          proposer_can_find_span: "定位触发词与其后坐席推荐词"
+          gate_can_verify: "推荐词 ∈ 该触发的 service 集合 → E1 候选"
+        checkable: true
+        audit_result: pass
+  "21":
+    note: "F1 traces the passive-narration clause against the 营销话术.md benefit points; F2 the perfunctory clause (script-match is model-judged/correlated, quarantined); E1 the benefit-elaboration pass shape (quarantined). Replaces both fallbacks."
+    signals:
+      - id: "21-F1"
+        lane: fail
+        severity: major
+        description: "推荐话轮仅出现产品名而无该产品的利益点词（对照营销话术.md：功能一致/操作方便/交错使用等），并以'您自己考虑/看您自己'类表述收尾"
+        decomposed_from: "fail_standard: 采用的引导方式多为简单叙述，由用户自行考虑选择的方式"
+        gate_checkable_test:
+          proposer_can_find_span: "定位推荐话轮及其收尾表述"
+          gate_can_verify: "产品名命中且利益点词零命中且自选收尾命中 → F1 激活"
+        checkable: true
+        audit_result: pass
+      - id: "21-F2"
+        lane: fail
+        severity: major
+        description: "客户对推荐追问后，坐席后续话轮未新增营销话术.md 中该产品的其他利益点或话术变体（话术匹配为模型判断）"
+        decomposed_from: "fail_standard: 营销不够积极，敷衍了事，不管用户是否了解到业务好处，只是刻板或快速带过"
+        gate_checkable_test:
+          proposer_can_find_span: "定位客户追问话轮及其后坐席推荐话轮"
+          gate_can_verify: "与话术库的变体匹配为模型判断，Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+      - id: "21-E1"
+        lane: excellence
+        severity: minor
+        description: "推荐话轮展开了营销话术.md 中该产品的利益点，且回引了客户话轮中的场景细节（多人用证/KEY老化等，回引判定为模型判断）"
+        decomposed_from: "pass_standard: 灵活的运用不同的营销话术、方法；根据用户的情况变换，给出最合适的业务引导等"
+        gate_checkable_test:
+          proposer_can_find_span: "定位推荐话轮与客户场景细节话轮"
+          gate_can_verify: "场景细节回引判定为模型判断，Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+  "22":
+    note: "F1 traces the ignore/silence clause; F2 the repeated-disclaimer example clause; E1 the soothe-before-solve pass shape."
+    signals:
+      - id: "22-F1"
+        lane: fail
+        severity: major
+        description: "客户不满或抱怨表述后，坐席后续话轮无安抚要素（认同/道歉/着手处理表述），直接继续操作指导或沉默"
+        decomposed_from: "fail_standard: 不便时，置之不理，采取沉默、无视、推诿（撇清关系）的方式"
+        gate_checkable_test:
+          proposer_can_find_span: "定位客户不满表述及其后坐席话轮"
+          gate_can_verify: "安抚要素词零命中且回应为操作指导或静音 → F1 激活"
+        checkable: true
+        audit_result: pass
+        evidence_shape: { shape: ordered_relation, first: "客户不满表述", second: "安抚要素" }
+      - id: "22-F2"
+        lane: fail
+        severity: major
+        description: "客户归因我司产品后，坐席出现两次以上'这个肯定不是XX造成的'类否认表述且无替代解决表述"
+        decomposed_from: "fail_standard: 不妥当的则是重复表达\"这个肯定不是证书造成的\"等"
+        gate_checkable_test:
+          proposer_can_find_span: "定位客户归因话轮及坐席否认表述序列"
+          gate_can_verify: "count(否认表述) ≥ 2 且无解决表述 → F2 激活"
+        checkable: true
+        audit_result: pass
+      - id: "22-E1"
+        lane: excellence
+        severity: minor
+        description: "安抚话轮（认同/道歉）出现在解决方案话轮之前，且其后客户话轮不再出现不满表述"
+        decomposed_from: "pass_standard: 采取认同、道歉、陈述等手段引导和安抚用户，能有效地将用户的情绪向正面的方向引导"
+        gate_checkable_test:
+          proposer_can_find_span: "定位安抚话轮、方案话轮及其后客户话轮"
+          gate_can_verify: "安抚先于方案且其后不满表述零命中 → E1 候选"
+        checkable: true
+        audit_result: pass
+        evidence_shape: { shape: ordered_relation, first: "安抚话轮", second: "解决方案" }
+  "23":
+    note: "F1 traces the scope-deflection clause (scope judgment quarantined); F2 the repeat-referral observable; E1 the ownership pass shape."
+    signals:
+      - id: "23-F1"
+        lane: fail
+        severity: major
+        description: "客户问题属客服工作范围（范围判定需业务规则），坐席未给出处理步骤即出现转出表述（范围判定为模型判断）"
+        decomposed_from: "fail_standard: 没有经过思考衡量直接把本身工作范围内的问题随意推诿给其他客服"
+        gate_checkable_test:
+          proposer_can_find_span: "定位问题陈述话轮与坐席转出表述"
+          gate_can_verify: "工作范围归属需业务规则判断，Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+      - id: "23-F2"
+        lane: fail
+        severity: major
+        description: "坐席让客户直接联系其他具体客服的表述出现超过一次（'直接加他/联系之前那位'类）"
+        decomposed_from: "fail_standard: 例如指导中知道客户之前加过其他客服，多次让客户直接联系别的客服"
+        gate_checkable_test:
+          proposer_can_find_span: "定位转联他人表述的坐席话轮"
+          gate_can_verify: "count(转联他人表述) > 1 → F2 激活"
+        checkable: true
+        audit_result: pass
+      - id: "23-E1"
+        lane: excellence
+        severity: minor
+        description: "坐席对客户问题给出处理步骤，或亲自发起转接/升级流程（转接语+升级信息确认序列出现）"
+        decomposed_from: "pass_standard: 解决企业提出的已明确的客服工作范围内问题"
+        gate_checkable_test:
+          proposer_can_find_span: "定位处理步骤话轮或转接/升级序列"
+          gate_can_verify: "处理步骤或转接序列命中 → E1 候选"
+        checkable: true
+        audit_result: pass
+  "24":
+    note: "F1 traces the no-check-steps clause; F2 the replace-device example clause; F3 the unfulfilled-promise clause (needs post-call data, quarantined); E1 the check→diagnose→solve pass shape."
+    signals:
+      - id: "24-F1"
+        lane: fail
+        severity: major
+        description: "客户报告故障后，坐席给出结论或方案前无检查确认话轮（'您看一下/我查一下/试一下'类零命中）"
+        decomposed_from: "fail_standard: 无正确有效检查步骤，提供不妥当的处理方法或不正确的 问题处理方向"
+        gate_checkable_test:
+          proposer_can_find_span: "定位故障报告话轮与坐席首个方案话轮"
+          gate_can_verify: "两者之间检查引导表述零命中 → F1 激活"
+        checkable: true
+        audit_result: pass
+        evidence_shape: { shape: ordered_relation, first: "检查确认", second: "方案给出" }
+      - id: "24-F2"
+        lane: fail
+        severity: major
+        description: "坐席方案为让客户更换设备或重装了事（'换个手机/换台电脑/重装'类），且前无检查话轮"
+        decomposed_from: "fail_standard: 客户反馈使用APP出现问题时，客服不主动进行检查确认，或者让企业直接换手机、买手机"
+        gate_checkable_test:
+          proposer_can_find_span: "定位换设备类方案话轮"
+          gate_can_verify: "换设备表述命中且其前检查表述零命中 → F2 激活"
+        checkable: true
+        audit_result: pass
+      - id: "24-F3"
+        lane: fail
+        severity: major
+        description: "坐席话轮承诺办理事项（'帮您修改/帮您提交'类）但通话内无提交确认表述且无后续跟进安排表述（兑现需通话外数据）"
+        decomposed_from: "fail_standard: 问题没有处理掉又没有留下有效的处理方式（例如答应给企业修改发票邮寄地址，却没有提交修改）"
+        gate_checkable_test:
+          proposer_can_find_span: "定位承诺话轮及其后坐席话轮"
+          gate_can_verify: "兑现证据在通话外（工单/系统记录），Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+      - id: "24-E1"
+        lane: excellence
+        severity: minor
+        description: "检查步骤→症结定位表述→方案 顺序完整出现，且其后客户出现问题解决确认（'好了/可以了'类）"
+        decomposed_from: "pass_standard: 提供正确有效检查步骤且能正确判断用户问题症结，提供专业的处理方法或正确的 问题处理方向"
+        gate_checkable_test:
+          proposer_can_find_span: "定位检查、症结、方案、客户确认四段"
+          gate_can_verify: "四段齐备且顺序正确 → E1 候选"
+        checkable: true
+        audit_result: pass
+  "25":
+    note: "F1 traces the wrong-fee clause (fee-table dependent, quarantined + node data_dependency); F2 the missing-fee clause; F3 the incomplete-materials clause (KB list dependent, quarantined); E1 the three-element pass shape."
+    data_dependency:
+      source: "资费表 / 办理资料清单（知识库）"
+      connected: false
+      disposition: "defer_until_source_connected"
+    signals:
+      - id: "25-F1"
+        lane: fail
+        severity: major
+        description: "坐席陈述的费用数额与资费表不一致（需资费数据连接比对）"
+        decomposed_from: "fail_standard: 费用说明错误"
+        gate_checkable_test:
+          proposer_can_find_span: "定位坐席费用数额陈述话轮"
+          gate_can_verify: "与资费表比对——数据源未接入，Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+      - id: "25-F2"
+        lane: fail
+        severity: major
+        description: "业务办理引导场景中，坐席话轮出现办理步骤但无费用表述（印章定制场景除外）"
+        decomposed_from: "fail_standard: 费用说明错误或忘记说明"
+        gate_checkable_test:
+          proposer_can_find_span: "定位办理引导段的坐席话轮"
+          gate_can_verify: "办理步骤命中且费用类表述零命中且非印章定制场景 → F2 激活"
+        checkable: true
+        audit_result: pass
+      - id: "25-F3"
+        lane: fail
+        severity: minor
+        description: "坐席列举的办理资料项与知识库该业务的资料清单不一致或缺项（需资料清单连接）"
+        decomposed_from: "fail_standard: 需要携带的资料没有说完整；服务点地址说错"
+        gate_checkable_test:
+          proposer_can_find_span: "定位资料列举话轮"
+          gate_can_verify: "与资料清单比对——数据源未接入，Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+      - id: "25-E1"
+        lane: excellence
+        severity: minor
+        description: "引导话轮同时含办理渠道、费用数额（或费用归属声明）、资料列举三要素"
+        decomposed_from: "pass_standard: 业务引导正确，费用资料地址说明正确且完整"
+        gate_checkable_test:
+          proposer_can_find_span: "定位办理引导段"
+          gate_can_verify: "渠道+费用+资料三要素均命中 → E1 候选"
+        checkable: true
+        audit_result: pass
+  "26":
+    note: "F1 traces the abusive/rhetorical clauses (lexical patterns); F2 the tone/laughter clauses (acoustic+semantic, quarantined); F3 the sensitive-topic/reporting clauses (service-script dependent, quarantined); E1 the alertness pass shape (quarantined). depends_on 22 per S3."
+    signals:
+      - id: "26-F1"
+        lane: fail
+        severity: major
+        description: "坐席话轮命中不文明用语词表，或出现严重质问反问句式（'你到底会不会/我说了多少遍'类）"
+        decomposed_from: "fail_standard: 电话起接前、沟通中、挂断后辱骂或骚扰客户；出现强烈的不耐烦，严重质问、反问，抱怨客户等"
+        gate_checkable_test:
+          proposer_can_find_span: "扫描坐席话轮的不文明用语与严重反问模式"
+          gate_can_verify: "词表或句式模式任一命中 → F1 激活"
+        checkable: true
+        audit_result: pass
+      - id: "26-F2"
+        lane: fail
+        severity: major
+        description: "坐席出现讽刺性表述、非善意冷笑段或怪腔怪调段（声学+语义联合判断）"
+        decomposed_from: "fail_standard: 出现讽刺性语言、嘲笑、冷笑（非善意）、不文明用语等；怪腔怪调，阴阳怪气"
+        gate_checkable_test:
+          proposer_can_find_span: "声学 facet 标注的笑声/语调异常段及其文本"
+          gate_can_verify: "非善意判定需声学+语义联合，Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+      - id: "26-F3"
+        lane: fail
+        severity: major
+        description: "客户提出敏感性问题后，坐席答复偏离服务口径，或存在安全/情绪隐患行为而通话内无上报表述（口径库未接入）"
+        decomposed_from: "fail_standard: 针对敏感性问题，不能灵活使用服务口径，给客户错误解释或解释有偏差；做出存在安全或情绪隐患的行为，未及时上报"
+        gate_checkable_test:
+          proposer_can_find_span: "定位敏感问题话轮及坐席答复/上报表述"
+          gate_can_verify: "口径比对需口径库连接，Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+      - id: "26-E1"
+        lane: excellence
+        severity: minor
+        description: "客户隐藏不满线索（重复追问/语调变化）被坐席识别，随后出现安抚表述或上报表述（识别判定为模型判断）"
+        decomposed_from: "pass_standard: 对于客户隐藏的不满或所提的敏感性问题，能灵活应用服务口径等进行应答，并及时上报隐藏的安全隐患"
+        gate_checkable_test:
+          proposer_can_find_span: "定位隐藏不满线索段及其后坐席话轮"
+          gate_can_verify: "线索识别为模型判断，Q2 暂不可判"
+        checkable: false
+        audit_result: model_only
+  "27":
+    note: "F1 traces the unauthorized-disclosure clauses; F2 the unverified-lookup-disclosure clause; E1 the self-service-redirect pass shape."
+    signals:
+      - id: "27-F1"
+        lane: fail
+        severity: major
+        description: "坐席话轮向企业公布服务商/服务点人员手机号码，或公布88234732与证书业务部之外的公司内部电话"
+        decomposed_from: "fail_standard: 未经允许将服务商、服务点人员手机号码公布给企业；公司内部电话除了88234732（公司前台）和证书业务部同事电话外不能对外公布"
+        gate_checkable_test:
+          proposer_can_find_span: "定位坐席话轮中的电话号码串"
+          gate_can_verify: "号码串命中且不属于白名单（88234732/证书业务部） → F1 激活"
+        checkable: true
+        audit_result: pass
+      - id: "27-F2"
+        lane: fail
+        severity: major
+        description: "验证码/账号类咨询中，坐席在无核实问句（手机号码/单位名称确认）的情况下报出后台查询到的信息"
+        decomposed_from: "fail_standard: 年报联络员收不到验证码，来电咨询，客服在未核实对方手机号码和单位名称的前提下、后台查询后直接告诉对方"
+        gate_checkable_test:
+          proposer_can_find_span: "定位后台信息报出话轮及其前坐席问句"
+          gate_can_verify: "信息报出前核实问句零命中 → F2 激活"
+        checkable: true
+        audit_result: pass
+        evidence_shape: { shape: ordered_relation, first: "核实问句", second: "信息报出" }
+      - id: "27-E1"
+        lane: excellence
+        severity: minor
+        description: "客户询问经办人用户名/密码时，坐席引导其自行点击忘记密码找回或用证书登录查看"
+        decomposed_from: "pass_standard: 客服让用户自行点击忘记密码找回，或用证书登录查看用户名"
+        gate_checkable_test:
+          proposer_can_find_span: "定位账号信息询问话轮及坐席回应"
+          gate_can_verify: "自助找回引导表述命中且无直接报出 → E1 候选"
+        checkable: true
+        audit_result: pass

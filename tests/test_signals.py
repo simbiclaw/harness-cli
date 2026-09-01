@@ -12,6 +12,7 @@ compile_acoustic_framework, A2-ph compile_phrase_lexicon.
 from __future__ import annotations
 
 from argus.core.compiler.signals import (
+    _match_hou_marker,
     assign_facets,
     audit_gate_checkable,
     compile_acoustic_framework,
@@ -613,3 +614,68 @@ class TestPhraseLexicon:
         for entries in sections.values():
             for e in entries:
                 assert e["type"] == "phrase"
+
+
+class TestHonorificSpliceGuard:
+    """M8 review finding (2026-09-01, double-reproduced): the bare-后 ordered
+    marker spliced item 2's pass standard mid-word — 先 anchored inside 先生
+    ("X小姐/先生/女士") and 后 landed inside 前后 ("称谓正确且前后一致"),
+    yielding the corrupt pair ('生/女士"。称谓正确且前', '一致')."""
+
+    ITEM_2_PASS = '整通电话里礼貌的称呼来话人，如："X小姐/先生/女士"。称谓正确且前后一致。'
+
+    def test_honorific_and_qianhou_not_spliced(self):
+        signals = decompose_signals(
+            {
+                "id": "2",
+                "values": {"named_phrases": []},
+                "pass_standard": self.ITEM_2_PASS,
+                "fail_standard": "无称谓",
+            }
+        )
+        for signal in signals["excellence"]:
+            shape = signal.get("evidence_shape")
+            if not isinstance(shape, dict) or shape.get("shape") != "ordered_relation":
+                continue
+            for element in (shape.get("first"), shape.get("second")):
+                assert "先生" not in self.ITEM_2_PASS or element != '生/女士"。称谓正确且前'
+                assert not str(element).startswith("生"), f"先生 split at 先: {element!r}"
+                assert not str(element).endswith("前"), f"前后 split at 后: {element!r}"
+
+    def test_qianhou_is_protected_word(self):
+        """前后 is word-internal: its 后 is never the bare ordered marker."""
+        pair = _match_hou_marker("先确认前后一致后处理")
+        assert pair is None or "前" not in pair[0][-1:], pair
+
+
+class TestHonorificContextPredicate:
+    """M8 review round 2: protecting 先生 as a flat word was substring-broad —
+    it swallowed the verb forms 先生成 / 先生产 / 先生长 (先 + 生X), losing
+    legitimate ordered matches. 先生 is skipped as an anchor only in
+    honorific CONTEXT (delimiter/end after 生, or a vocative successor)."""
+
+    def test_verb_forms_keep_their_ordered_match(self):
+        assert _match_hou_marker("先生成后上传") == ("生成", "上传")
+        assert _match_hou_marker("先生产后检验") == ("生产", "检验")
+        assert _match_hou_marker("先生长后成熟") == ("生长", "成熟")
+
+    def test_plain_marker_still_matches(self):
+        assert _match_hou_marker("先确认后办理") == ("确认", "办理")
+
+    def test_honorific_contexts_still_skipped(self):
+        # delimiter successor (the real rubric's shape) and vocative successor
+        assert _match_hou_marker("X小姐/先生/女士。称谓正确且前后一致。") is None
+        assert _match_hou_marker("先生您好后请先确认") is None
+
+    def test_name_delimiter_predecessor_is_honorific(self):
+        """M8 review round 3: 先生 preceded by a name delimiter or a surname
+        placeholder is the honorific even when a CJK ideograph follows it —
+        the successor rule alone spliced these into ('生确认', '办理')."""
+        assert _match_hou_marker("X先生确认后办理") is None
+        assert _match_hou_marker("/先生确认后办理") is None
+        assert _match_hou_marker("、先生确认后办理") is None
+
+    def test_clause_initial_verb_form_still_matches(self):
+        """A CJK predecessor is NOT a name delimiter: 应先生成后上传 stays a
+        marker match (the bare-surname case 陈先生… is a documented residual)."""
+        assert _match_hou_marker("应先生成后上传") == ("生成", "上传")
