@@ -131,6 +131,44 @@ human arbitration rather than changed unilaterally. Proposed patch: stamp
 `intents_sha` from the epoch the *inputs* were resolved against and keep
 per-run publish provenance in `compile-decisions.jsonl` only.
 
+## Open classifier question — `gap_type` is stale on 12 of 25 nodes
+
+Found 2026-09-01 while checking the M8 review's item-25 challenge. `gap_type`
+is computed by `classify_gap` inside `build_node`, i.e. from the
+**deterministic** signal set, before B-E adds its authored signals.
+`apply_be.py` regenerates facets and residue but never recomputes it, so 12
+nodes carry a classification their own final signals contradict:
+
+| stored | recomputed from final signals | nodes |
+|---|---|---|
+| `perceiver` | `values` | 3, 9, 11, 13, 15, 16, 23, 24, 25 |
+| `proxy` | `values` | 17 |
+| `calibration_surface_form` | `values` | 21, 26 |
+
+**A naive recompute is the wrong fix.** `classify_gap` rule 3 returns
+`values` for any node carrying ≥1 gate-checkable signal, so recomputing
+post-B-E collapses essentially every node to `values` — exactly the
+over-valuing the review identified in the companion implementation. It would
+destroy the gap_type fidelity that distinguishes this node set.
+
+The two failure modes are the same bug seen from opposite sides:
+signal-counting cannot express a criterion's *nature*. Item 11 (语气亲切友善)
+is genuinely `perceiver` — two checkable proxies do not make warmth
+gate-checkable. Item 25 (费用/资料准确) is genuinely lookup-shaped — align.md
+calls it `lookup`, confidence 1.0, "None residue — fully checkable" — so
+`perceiver` misdescribes it, and the review's point is right that the
+disconnected source belongs in `data_dependency` (which clears on
+connection) rather than in `gap_type` (which does not).
+
+This is why align.md's per-item compilability column should arbitrate the
+classifier, as the review proposes. Two things block doing it here:
+the taxonomy has no `lookup` member, so mapping lookup-shaped criteria onto
+{values, perceiver, proxy, calibration_surface_form, coverage} is a schema-
+semantics decision; and `gap_type` drives `escape_tier` and agreement
+seeding on already-published nodes. Recorded for arbitration rather than
+changed unilaterally — and it should be applied once to both
+implementations, not twice divergently.
+
 ## Still absent (not DIY-able)
 
 - **First calibration manifest** (M7 channel). Deliberately NOT fabricated:
