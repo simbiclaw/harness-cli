@@ -90,7 +90,16 @@ Result, delivered to the external INTENTS tree:
    a CJK ideograph continues the verb. 前后 stays in `_NON_SPLIT_WORDS` (its
    后 guard is correct). Probe battery in
    `tests/test_signals.py::TestHonorificContextPredicate`; recompile still
-   yields byte-identical node content. **Recompiling all 25 nodes with the fixed core
+   yields byte-identical node content.
+
+   **Round-3 refinement:** the successor rule alone still spliced 先生 when
+   a CJK ideograph followed an address form — `X先生确认后办理` →
+   `('生确认', '办理')`. Added the name-delimiter/surname-placeholder
+   predecessor clause (`_NAME_DELIMITERS`). A CJK predecessor is
+   deliberately excluded so `应先生成后上传` stays a real marker match.
+   **Documented residual (shared by both implementations):** the bare
+   surname case `陈先生确认后办理` still splices — separating a surname from
+   a CJK auxiliary needs a lexicon neither side carries. **Recompiling all 25 nodes with the fixed core
    yields byte-identical signal content** (only `intents_sha` differs, see
    below) — the per-item adjudication was content-equivalent, so no
    published node was ever corrupt.

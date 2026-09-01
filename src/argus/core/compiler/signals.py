@@ -110,10 +110,18 @@ _NON_SPLIT_WORDS = ("售后", "后来", "后台", "随后", "最后", "然后", 
 # vocative ("先生您好") — never when a CJK ideograph continues the verb.
 _VOCATIVE_SUCCESSORS = ("您", "你")
 
+# Name delimiters that mark 先生 as an address form even when a CJK
+# ideograph follows it — "X先生确认后办理" is 陈/X + 先生, not 先 + 生确认
+# (M8 review round 3). A CJK predecessor is deliberately NOT a delimiter:
+# "应先生成后上传" is a real marker. The bare-surname case ("陈先生确认后
+# 办理") is a shared residual — separating it from a CJK auxiliary needs a
+# surname lexicon neither implementation carries.
+_NAME_DELIMITERS = ("/", "／", "、", "，", ",", "（", "(", "【", "[", "“", '"')
+
 
 def _is_honorific_xiansheng(text: str, index: int) -> bool:
     """True when the 先 at `index` opens the honorific 先生 rather than the
-    ordered marker (M8 review round 2)."""
+    ordered marker (M8 review rounds 2-3)."""
     if text[index : index + 2] != "先生":
         return False
     successor = text[index + 2 : index + 3]
@@ -121,7 +129,10 @@ def _is_honorific_xiansheng(text: str, index: int) -> bool:
         return True  # the standard ends at 先生 — vocative/address reading
     if successor in _VOCATIVE_SUCCESSORS:
         return True
-    return not ("\u4e00" <= successor <= "\u9fff")  # delimiter/punctuation
+    if not ("\u4e00" <= successor <= "\u9fff"):
+        return True  # delimiter/punctuation successor
+    predecessor = text[index - 1 : index] if index else ""
+    return predecessor in _NAME_DELIMITERS or (predecessor.isascii() and predecessor.isalpha())
 
 
 # Leading subject/auxiliary tokens stripped from an English first ordered

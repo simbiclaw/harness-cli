@@ -666,3 +666,16 @@ class TestHonorificContextPredicate:
         # delimiter successor (the real rubric's shape) and vocative successor
         assert _match_hou_marker("X小姐/先生/女士。称谓正确且前后一致。") is None
         assert _match_hou_marker("先生您好后请先确认") is None
+
+    def test_name_delimiter_predecessor_is_honorific(self):
+        """M8 review round 3: 先生 preceded by a name delimiter or a surname
+        placeholder is the honorific even when a CJK ideograph follows it —
+        the successor rule alone spliced these into ('生确认', '办理')."""
+        assert _match_hou_marker("X先生确认后办理") is None
+        assert _match_hou_marker("/先生确认后办理") is None
+        assert _match_hou_marker("、先生确认后办理") is None
+
+    def test_clause_initial_verb_form_still_matches(self):
+        """A CJK predecessor is NOT a name delimiter: 应先生成后上传 stays a
+        marker match (the bare-surname case 陈先生… is a documented residual)."""
+        assert _match_hou_marker("应先生成后上传") == ("生成", "上传")
