@@ -79,7 +79,18 @@ Result, delivered to the external INTENTS tree:
    `tests/test_signals.py::TestHonorificSpliceGuard`. Word choice is
    corpus-grounded: in the real rubric `先` occurs **only** as 先生 (3×) and
    the spliced word is 前后 (2×). Item 2's standard now correctly falls to
-   the model_based lane. **Recompiling all 25 nodes with the fixed core
+   the model_based lane.
+
+   **Round-2 refinement (same review):** flat word-protection of 先生 was
+   substring-broad — it also swallowed the verb forms 先生成 / 先生产 /
+   先生长 (先 + 生X), losing legitimate ordered matches outside this corpus.
+   Replaced with an honorific-CONTEXT predicate
+   (`_is_honorific_xiansheng`): 先生 blocks the anchor only when 生 is
+   followed by a delimiter/end-of-standard or a vocative (您/你), never when
+   a CJK ideograph continues the verb. 前后 stays in `_NON_SPLIT_WORDS` (its
+   后 guard is correct). Probe battery in
+   `tests/test_signals.py::TestHonorificContextPredicate`; recompile still
+   yields byte-identical node content. **Recompiling all 25 nodes with the fixed core
    yields byte-identical signal content** (only `intents_sha` differs, see
    below) — the per-item adjudication was content-equivalent, so no
    published node was ever corrupt.

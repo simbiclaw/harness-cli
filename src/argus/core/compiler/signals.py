@@ -92,15 +92,37 @@ _LEADING_CONNECTIVE_RE = re.compile(r"^(?:然后|再|后)+")
 # group1="A再" under the 然后 connector and must not keep the 再 glued on.
 _FIRST_CUT_RE = re.compile(r"再|然后|后")
 
-# Real words containing 先/再/后/然后 that a connective cut or marker anchor
-# must never split (B5): cutting 售后 at its 后 — or stripping the 后 off
-# 后台 — would corrupt the word. 前后 and 先生 join the set from the M8
-# review finding (2026-09-01, double-reproduced): item 2's standard
-# "X小姐/先生/女士"。称谓正确且前后一致 anchored 先 inside the honorific 先生
-# and cut 后 inside 前后, splicing the pair mid-word. Other 后-initial words
-# in the corpus (后续/后面/之后/稍后) are reachable only behind a real 先
-# marker and are left unprotected until one is demonstrated.
-_NON_SPLIT_WORDS = ("售后", "后来", "后台", "随后", "最后", "然后", "前后", "先生")
+# Real words containing 再/后/然后 that a connective cut must never split
+# (B5): cutting 售后 at its 后 — or stripping the 后 off 后台 — would
+# corrupt the word. 前后 joins the set from the M8 review finding
+# (2026-09-01, double-reproduced): item 2's standard 称谓正确且前后一致 cut
+# its 后 mid-word. Other 后-initial words in the corpus (后续/后面/之后/
+# 稍后) are reachable only behind a real 先 marker and stay unprotected
+# until one is demonstrated. 先生 is NOT listed here: flat word-protection
+# was substring-broad and swallowed the verb forms 先生成/先生产/先生长
+# (M8 review round 2) — the 先 anchor uses the context predicate below.
+_NON_SPLIT_WORDS = ("售后", "后来", "后台", "随后", "最后", "然后", "前后")
+
+# A 先 that opens the honorific 先生 is never the ordered marker, but 先生
+# is only the honorific in context: 先生成后上传 is 先 + 生成 (a real
+# ordered clause). The honorific reading holds when 生 is followed by a
+# delimiter or the end of the standard ("X小姐/先生/女士。"), or by a
+# vocative ("先生您好") — never when a CJK ideograph continues the verb.
+_VOCATIVE_SUCCESSORS = ("您", "你")
+
+
+def _is_honorific_xiansheng(text: str, index: int) -> bool:
+    """True when the 先 at `index` opens the honorific 先生 rather than the
+    ordered marker (M8 review round 2)."""
+    if text[index : index + 2] != "先生":
+        return False
+    successor = text[index + 2 : index + 3]
+    if not successor:
+        return True  # the standard ends at 先生 — vocative/address reading
+    if successor in _VOCATIVE_SUCCESSORS:
+        return True
+    return not ("\u4e00" <= successor <= "\u9fff")  # delimiter/punctuation
+
 
 # Leading subject/auxiliary tokens stripped from an English first ordered
 # element (F3): "agent must acknowledge" → "acknowledge".
@@ -516,8 +538,9 @@ def _match_ordered(standard: str) -> tuple[str, str] | None:
 def _match_hou_marker(standard: str) -> tuple[str, str] | None:
     """Match the bare-后 ordered marker 先<X>后<Y> position-by-position. A 后
     is never the marker when it belongs to 然后 (F1) or completes a protected
-    word, and the 先 anchor is likewise skipped when it is word-internal
-    (先生 — the M8 review finding) — 售后/后台/随后/最后/后来 (B6) — either as the word's tail
+    word, and the 先 anchor is skipped when it opens the honorific 先生 in
+    honorific context (the M8 review finding; verb forms 先生成/先生产/
+    先生长 keep their match) — 售后/后台/随后/最后/后来 (B6) — either as the word's tail
     ("坐席先处理售后问题") or its head ("先确认后台处理"). When no viable
     marker remains, the standard is not an ordered match and falls to the
     model_based lane. Returns the raw (first, second) pair."""
@@ -525,7 +548,7 @@ def _match_hou_marker(standard: str) -> tuple[str, str] | None:
         (
             index
             for index, char in enumerate(standard)
-            if char == "先" and not _completes_non_split_word(standard, index, index + 1)
+            if char == "先" and not _is_honorific_xiansheng(standard, index)
         ),
         -1,
     )

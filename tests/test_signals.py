@@ -646,3 +646,23 @@ class TestHonorificSpliceGuard:
         """前后 is word-internal: its 后 is never the bare ordered marker."""
         pair = _match_hou_marker("先确认前后一致后处理")
         assert pair is None or "前" not in pair[0][-1:], pair
+
+
+class TestHonorificContextPredicate:
+    """M8 review round 2: protecting 先生 as a flat word was substring-broad —
+    it swallowed the verb forms 先生成 / 先生产 / 先生长 (先 + 生X), losing
+    legitimate ordered matches. 先生 is skipped as an anchor only in
+    honorific CONTEXT (delimiter/end after 生, or a vocative successor)."""
+
+    def test_verb_forms_keep_their_ordered_match(self):
+        assert _match_hou_marker("先生成后上传") == ("生成", "上传")
+        assert _match_hou_marker("先生产后检验") == ("生产", "检验")
+        assert _match_hou_marker("先生长后成熟") == ("生长", "成熟")
+
+    def test_plain_marker_still_matches(self):
+        assert _match_hou_marker("先确认后办理") == ("确认", "办理")
+
+    def test_honorific_contexts_still_skipped(self):
+        # delimiter successor (the real rubric's shape) and vocative successor
+        assert _match_hou_marker("X小姐/先生/女士。称谓正确且前后一致。") is None
+        assert _match_hou_marker("先生您好后请先确认") is None
