@@ -36,9 +36,21 @@ FALLBACK_EXACT = "quality of the agent's handling as judged against the pass sta
 def staged_run(tmp_path_factory) -> Path:
     out = tmp_path_factory.mktemp("m8") / "out"
     result = subprocess.run(
-        [sys.executable, str(RUNNER), "loop", "--inputs", str(INPUTS),
-         "--out", str(out), "--evaluator", "mock", "--no-epoch-commit"],
-        capture_output=True, text=True, cwd=REPO_ROOT,
+        [
+            sys.executable,
+            str(RUNNER),
+            "loop",
+            "--inputs",
+            str(INPUTS),
+            "--out",
+            str(out),
+            "--evaluator",
+            "mock",
+            "--no-epoch-commit",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT,
     )
     assert result.returncode == 0, result.stdout + result.stderr
     return out
@@ -57,8 +69,9 @@ def test_all_items_compiled(staged_run):
     node_ids = {p.stem.removeprefix("item-") for p in nodes}
     assert len(nodes) == OPERATIONAL_COUNT
     assert node_ids == {it["id"] for it in rubric["items"]} - DEFERRED_ITEMS
-    gap_rows = [r for r in _manifest(staged_run)["rows"]
-                if r.get("kind") == "dimension_coverage_gap"]
+    gap_rows = [
+        r for r in _manifest(staged_run)["rows"] if r.get("kind") == "dimension_coverage_gap"
+    ]
     gap_items = {i for r in gap_rows for i in (r.get("source_items") or [])}
     assert gap_items == DEFERRED_ITEMS
     for row in gap_rows:
@@ -103,9 +116,12 @@ def test_manifest_covers_all_lossy_items(staged_run):
     """Every item whose node carries genuine model-quarantined residue (a
     checkable:false signal beyond the declared fallbacks) has a
     within_dimension manifest row naming what was left behind."""
-    covered = {i for r in _manifest(staged_run)["rows"]
-               if r.get("kind") == "within_dimension"
-               for i in (r.get("source_items") or [])}
+    covered = {
+        i
+        for r in _manifest(staged_run)["rows"]
+        if r.get("kind") == "within_dimension"
+        for i in (r.get("source_items") or [])
+    }
     for path in sorted((staged_run / "nodes").glob("item-*.json")):
         node = json.loads(path.read_text())
         lossy = any(
@@ -118,7 +134,9 @@ def test_manifest_covers_all_lossy_items(staged_run):
         item_id = node["node_id"].removeprefix("item-")
         if lossy:
             assert item_id in covered, f"lossy item {item_id} missing manifest row"
-            row = next(r for r in _manifest(staged_run)["rows"]
-                       if r.get("kind") == "within_dimension"
-                       and item_id in (r.get("source_items") or []))
+            row = next(
+                r
+                for r in _manifest(staged_run)["rows"]
+                if r.get("kind") == "within_dimension" and item_id in (r.get("source_items") or [])
+            )
             assert row.get("left_behind"), row
