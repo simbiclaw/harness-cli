@@ -43,7 +43,7 @@ items:
     note: "F1-F3 trace fail clauses ①③④; E1 replaces the mis-split ordered 2-S03 (signal-split adjudication: the deterministic ordered heuristic cut mid-word)."
     extra_remove:
       - id: "2-S03"
-        reason: "deterministic ordered_relation mis-split (生/女士\"。称谓正确且前 before 一致) — not a real relation; adjudicated and replaced by 2-E1"
+        reason: "deterministic ordered_relation mis-split (生/女士\"。称谓正确且前 before 一致) — not a real relation; adjudicated and replaced by 2-E1. ROOT CAUSE FIXED 2026-09-01 (M8 review, double-reproduced): signals.py now protects 先生/前后, so 2-S03 is no longer emitted and this entry is a defensive no-op — verified node content byte-identical either way."
     signals:
       - id: "2-F1"
         lane: fail

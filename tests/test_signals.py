@@ -12,6 +12,7 @@ compile_acoustic_framework, A2-ph compile_phrase_lexicon.
 from __future__ import annotations
 
 from argus.core.compiler.signals import (
+    _match_hou_marker,
     assign_facets,
     audit_gate_checkable,
     compile_acoustic_framework,
@@ -613,3 +614,35 @@ class TestPhraseLexicon:
         for entries in sections.values():
             for e in entries:
                 assert e["type"] == "phrase"
+
+
+class TestHonorificSpliceGuard:
+    """M8 review finding (2026-09-01, double-reproduced): the bare-后 ordered
+    marker spliced item 2's pass standard mid-word — 先 anchored inside 先生
+    ("X小姐/先生/女士") and 后 landed inside 前后 ("称谓正确且前后一致"),
+    yielding the corrupt pair ('生/女士"。称谓正确且前', '一致')."""
+
+    ITEM_2_PASS = '整通电话里礼貌的称呼来话人，如："X小姐/先生/女士"。称谓正确且前后一致。'
+
+    def test_honorific_and_qianhou_not_spliced(self):
+        signals = decompose_signals(
+            {
+                "id": "2",
+                "values": {"named_phrases": []},
+                "pass_standard": self.ITEM_2_PASS,
+                "fail_standard": "无称谓",
+            }
+        )
+        for signal in signals["excellence"]:
+            shape = signal.get("evidence_shape")
+            if not isinstance(shape, dict) or shape.get("shape") != "ordered_relation":
+                continue
+            for element in (shape.get("first"), shape.get("second")):
+                assert "先生" not in self.ITEM_2_PASS or element != '生/女士"。称谓正确且前'
+                assert not str(element).startswith("生"), f"先生 split at 先: {element!r}"
+                assert not str(element).endswith("前"), f"前后 split at 后: {element!r}"
+
+    def test_qianhou_is_protected_word(self):
+        """前后 is word-internal: its 后 is never the bare ordered marker."""
+        pair = _match_hou_marker("先确认前后一致后处理")
+        assert pair is None or "前" not in pair[0][-1:], pair

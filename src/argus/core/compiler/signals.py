@@ -92,10 +92,15 @@ _LEADING_CONNECTIVE_RE = re.compile(r"^(?:然后|再|后)+")
 # group1="A再" under the 然后 connector and must not keep the 再 glued on.
 _FIRST_CUT_RE = re.compile(r"再|然后|后")
 
-# Real words containing 再/后/然后 that a connective cut must never split
-# (B5): cutting 售后 at its 后 — or stripping the 后 off 后台 — would
-# corrupt the word.
-_NON_SPLIT_WORDS = ("售后", "后来", "后台", "随后", "最后", "然后")
+# Real words containing 先/再/后/然后 that a connective cut or marker anchor
+# must never split (B5): cutting 售后 at its 后 — or stripping the 后 off
+# 后台 — would corrupt the word. 前后 and 先生 join the set from the M8
+# review finding (2026-09-01, double-reproduced): item 2's standard
+# "X小姐/先生/女士"。称谓正确且前后一致 anchored 先 inside the honorific 先生
+# and cut 后 inside 前后, splicing the pair mid-word. Other 后-initial words
+# in the corpus (后续/后面/之后/稍后) are reachable only behind a real 先
+# marker and are left unprotected until one is demonstrated.
+_NON_SPLIT_WORDS = ("售后", "后来", "后台", "随后", "最后", "然后", "前后", "先生")
 
 # Leading subject/auxiliary tokens stripped from an English first ordered
 # element (F3): "agent must acknowledge" → "acknowledge".
@@ -511,11 +516,19 @@ def _match_ordered(standard: str) -> tuple[str, str] | None:
 def _match_hou_marker(standard: str) -> tuple[str, str] | None:
     """Match the bare-后 ordered marker 先<X>后<Y> position-by-position. A 后
     is never the marker when it belongs to 然后 (F1) or completes a protected
-    word — 售后/后台/随后/最后/后来 (B6) — either as the word's tail
+    word, and the 先 anchor is likewise skipped when it is word-internal
+    (先生 — the M8 review finding) — 售后/后台/随后/最后/后来 (B6) — either as the word's tail
     ("坐席先处理售后问题") or its head ("先确认后台处理"). When no viable
     marker remains, the standard is not an ordered match and falls to the
     model_based lane. Returns the raw (first, second) pair."""
-    marker_start = standard.find("先")
+    marker_start = next(
+        (
+            index
+            for index, char in enumerate(standard)
+            if char == "先" and not _completes_non_split_word(standard, index, index + 1)
+        ),
+        -1,
+    )
     if marker_start == -1:
         return None
     for index in range(marker_start + 1, len(standard)):

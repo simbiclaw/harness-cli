@@ -65,10 +65,24 @@ Result, delivered to the external INTENTS tree:
    20's trigger-keyword library from 营销话术.md"). T001–T014 each cite their
    source script or the item-20 rubric clause. Implicit triggers (scenario
    implies need, no keyword) remain declared residue (P33).
-3. **Signal-split adjudication**: item 2's deterministic ordered signal
-   (2-S03) was a mid-word mis-split of the heuristic and was replaced by the
-   authored 2-E1 (recorded in `b-e-signals.yaml` `extra_remove` and the
-   decision log).
+3. **Signal-split adjudication → root cause fixed (2026-09-01)**: item 2's
+   deterministic ordered signal (2-S03) was a mid-word mis-split and was
+   adjudicated away per-item. A cross-implementation review (PR #14,
+   @russellchang54) independently reproduced the same defect, confirming it
+   as a core-layer bug rather than an item quirk. Root cause: in
+   `_match_hou_marker`, the `先` anchor landed inside the honorific 先生 and
+   the `后` cut inside 前后, splicing
+   `("生/女士"。称谓正确且前", "一致")`. Fixed in
+   `src/argus/core/compiler/signals.py` by adding 先生/前后 to
+   `_NON_SPLIT_WORDS` and guarding the `先` anchor with the existing
+   `_completes_non_split_word` predicate; regression tests in
+   `tests/test_signals.py::TestHonorificSpliceGuard`. Word choice is
+   corpus-grounded: in the real rubric `先` occurs **only** as 先生 (3×) and
+   the spliced word is 前后 (2×). Item 2's standard now correctly falls to
+   the model_based lane. **Recompiling all 25 nodes with the fixed core
+   yields byte-identical signal content** (only `intents_sha` differs, see
+   below) — the per-item adjudication was content-equivalent, so no
+   published node was ever corrupt.
 4. **Values extraction stays conservative** — only phrases/numbers literally
    present in the rubric text (enforced by
    `tests/test_worked_compilation.py::test_no_invented_values`).
@@ -76,6 +90,26 @@ Result, delivered to the external INTENTS tree:
    tests, 4/4 pass): all-items-compiled (25+2 contract), no-invented-values,
    hard-fail-gates-synthesized, manifest-covers-lossy. The M8 checkbox in the
    archived 9003 plan is left to the human/verifier flow to flip.
+
+## Open provenance question (raised, not unilaterally changed)
+
+`intents_sha` is stamped from `EPOCH.yaml` at compile time, so a pure
+recompile of unchanged inputs produces a **different** stamp whenever the
+tree was published in between — demonstrated 2026-09-01: re-running the
+full compile changed exactly one field on all 24 nodes (`6a6bc76` →
+`06ad021`), with signal content byte-identical. The tree also carries two
+different stamps: item-18 pins `011c94b` (its pilot compile-time baseline,
+never recompiled) while the other 24 pin `6a6bc76`.
+
+Both stamps are *truthful* per the "pin your compile-time content baseline"
+reading, and neither is self-referential (`6a6bc76` does not contain the
+current node content — that is `06ad021`). But an epoch that moves on
+recompile is in tension with I5 replayability. Deciding the canonical
+convention changes the meaning of a published on-disk field, which is a
+Tier C call per `docs/conventions/ask-threshold.md` — recorded here for
+human arbitration rather than changed unilaterally. Proposed patch: stamp
+`intents_sha` from the epoch the *inputs* were resolved against and keep
+per-run publish provenance in `compile-decisions.jsonl` only.
 
 ## Still absent (not DIY-able)
 
