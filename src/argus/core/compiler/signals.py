@@ -113,9 +113,10 @@ _VOCATIVE_SUCCESSORS = ("您", "你")
 # Name delimiters that mark 先生 as an address form even when a CJK
 # ideograph follows it — "X先生确认后办理" is 陈/X + 先生, not 先 + 生确认
 # (M8 review round 3). A CJK predecessor is deliberately NOT a delimiter:
-# "应先生成后上传" is a real marker. The bare-surname case ("陈先生确认后
-# 办理") is a shared residual — separating it from a CJK auxiliary needs a
-# surname lexicon neither implementation carries.
+# "应先生成后上传" is a real marker. Bare-surname cases ("陈先生确认后办理",
+# "王先生成家后拜访") stay residuals — separating a surname from a CJK
+# auxiliary needs a lexicon, and 百家姓 entries are ambiguous as common
+# words, so one would trade these for a false-positive class.
 _NAME_DELIMITERS = ("/", "／", "、", "，", ",", "（", "(", "【", "[", "“", '"')
 
 

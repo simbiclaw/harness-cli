@@ -97,9 +97,13 @@ Result, delivered to the external INTENTS tree:
    `('生确认', '办理')`. Added the name-delimiter/surname-placeholder
    predecessor clause (`_NAME_DELIMITERS`). A CJK predecessor is
    deliberately excluded so `应先生成后上传` stays a real marker match.
-   **Documented residual (shared by both implementations):** the bare
-   surname case `陈先生确认后办理` still splices — separating a surname from
-   a CJK auxiliary needs a lexicon neither side carries. **Recompiling all 25 nodes with the fixed core
+   **Documented residuals (shared by both implementations, confirmed by the
+   companion verifier's 33-probe battery):** `陈先生确认后办理` →
+   `('生确认', '办理')` and `王先生成家后拜访` → `('生成家', '拜访')`. Both
+   have one cause — a bare CJK surname before 先生 is indistinguishable from
+   a CJK auxiliary (`应`/`要`) without a surname lexicon, and 百家姓 entries
+   are themselves ambiguous as common words (陈 "to state", 王 "king"), so a
+   lexicon would trade these for a false-positive class. Left as residuals. **Recompiling all 25 nodes with the fixed core
    yields byte-identical signal content** (only `intents_sha` differs, see
    below) — the per-item adjudication was content-equivalent, so no
    published node was ever corrupt.
