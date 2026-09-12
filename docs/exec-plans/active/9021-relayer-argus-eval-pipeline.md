@@ -115,6 +115,7 @@ flipped milestone. Restated as Q10 with a default that can actually execute.
 - `pyproject.toml` (modify — dependency changes)
 - `docs/decisions/dep-vet-transformers.md` (new)
 - `docs/rubric/specific-rubric-27.yaml` (new — B's table as compiler input)
+- `docs/experiments/9021-ab-investigation/**` (new — the evidence base this plan cites)
 - `docs/exec-plans/active/9021-relayer-argus-eval-pipeline.md` (modify — this plan)
 
 ## 3. Milestones
@@ -473,6 +474,24 @@ both dangling symlinks — the first to a path outside the repository, the secon
 on one developer's machine. Every conclusion in this plan was reached from CLAUDE.md's operating
 summary rather than from the spec it defers to.
 
+**Planning and implementation were split across environments, deliberately (2026-09-12).** This
+plan was written in a cloud session that could not install dependencies or read either symlink.
+Implementation was handed to a local session by human direction, for both reasons — see Q18. Two
+consequences the implementing session should act on before opening M1:
+
+- **Re-check this plan's invariant claims against the spec itself.** `docs/PRD` resolves locally.
+  Everything in section 2.1 and in the Decision Log was derived from CLAUDE.md's summary; where the
+  spec disagrees, the spec governs and this plan is wrong.
+- **Q7 may dissolve on contact.** `INTENTS` resolves locally too, so whether `_rubric/` and the
+  L1/L2/L3 business KB are one tree or two is answerable by looking rather than by steering. If
+  they are one tree, M13 is one provider and the estimate holds; if two, M13 grows by 2–3
+  milestones.
+
+The evidence base for every claim in this plan is committed at
+`docs/experiments/9021-ab-investigation/`. Read its README first — in particular, `adversarial.md`
+falsified five mechanism claims in `synthesis.md`, and the corrected versions are what this plan
+encodes.
+
 ## 7. Awaiting Steering
 
 **Q1: Approve the RE-LAYER strategy?** — Awaiting Steering: resolved 2026-09-12. Approved.
@@ -552,11 +571,13 @@ modes; this repository has a `version` stub. Tier C — CLI surface and stdout f
 `src/argus/cli/main.py` is a sensitive path. Default if not decided: adopt the three modes, drop
 the index-building mode whose output nothing reads, and add a JSON mode as the machine contract.
 
-**Q18: How do milestones importing `transformers` satisfy the verification floor?** — Deadline:
-2026-09-26. Unresolved; blocks M3 and M17. The pinned index is unreachable in the execution
-environment, so `transformers` cannot be installed and no acceptance test that imports it can run
-here. Default if not decided: stub the NLI behind a protocol so the acceptance tests run against a
-fake, and mark the real-model path as covered only where a reachable index exists.
+**Q18: How do milestones importing `transformers` satisfy the verification floor?** — Awaiting
+Steering: resolved 2026-09-12. **Implementation moves to a local Claude Code session.** The
+cloud container cannot install `transformers`, so no acceptance test importing it could run there
+— which made the verification floor unreachable for M3 and M17 and, by extension, made the whole
+plan unexecutable in that environment. A local session removes the constraint. The stub-behind-a-
+protocol fallback is no longer needed, and every milestone is expected to meet the real
+verification floor rather than a reduced one.
 
 **Q19: What is the on-disk format for the evaluation record?** — Deadline: 2026-09-30. Unresolved;
 blocks M21. B writes a report and discards every intermediate, so nothing is replayable. I5
