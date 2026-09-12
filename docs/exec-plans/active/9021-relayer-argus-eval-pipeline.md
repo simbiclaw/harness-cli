@@ -112,6 +112,7 @@ flipped milestone. Restated as Q10 with a default that can actually execute.
 - `tests/test_replay.py` (new)
 - `tests/test_cli.py` (new)
 - `.importlinter` (modify — the four forbidden contracts)
+- `docs/conventions/layering.md` (modify — Q16: amend :41 so the convention and the lint agree)
 - `pyproject.toml` (modify — dependency changes)
 - `docs/decisions/dep-vet-transformers.md` (new)
 - `docs/rubric/specific-rubric-27.yaml` (new — B's table as compiler input)
@@ -583,7 +584,7 @@ Option (a): scored in Empathy & Tone, with the Problem Resolution axis recorded 
 **Q6: Is NEI scored 0.5 and kept in the denominator?** — Awaiting Steering: resolved 2026-09-12.
 No — adopt the deferral rule. M11 owns the change.
 
-**Q7: Attach `simbiclaw/INTENTS`?** — Deadline: 2026-09-26. Unresolved; blocks M13. The symlink
+**Q7: Attach `simbiclaw/INTENTS`?** — Awaiting Steering: resolved 2026-09-12. The local `INTENTS` directory will be attached, so M13 reads a real tree. Whether `_rubric/` and the L1/L2/L3 business KB are one tree or two is now answered by inspection at M13 rather than by steering. If two, record it in Surprises as a scope increase of 2-3 milestones rather than absorbing it silently. Originally blocked M13. The symlink
 dangles in every clone. Whether this repository's `_rubric/` subtree and B's L1/L2/L3 business KB
 are one tree or two decides whether M13 is one provider or two. Default if not decided: attach and
 inspect before M13 opens, treating the two-tree case as a scope increase rather than a surprise.
@@ -594,8 +595,7 @@ repository; B enters as a squashed import commit citing `simbiclaw/sim@0c2cccd`.
 **Q9: Accept that fixing the role swap changes evaluation outputs?** — Awaiting Steering: resolved
 2026-09-12. Yes — fix the heuristic and add a confidence floor. M2 owns it.
 
-**Q10: Accept the four FindingGraph on-disk schema deltas?** — Deadline: 2026-09-16. Unresolved;
-blocks M5. Inherited from 9020's Q2, whose stated default could not execute because the milestone
+**Q10: Accept the four FindingGraph on-disk schema deltas?** — Awaiting Steering: resolved 2026-09-12. Adopt all four as non-replay-bearing diagnostics. M5 lands them in the ported schemas and records the adoption in the Decision Log. This also repairs 9020's Q2, whose stated default could not fire because the milestone it gated had already shipped. Originally blocked M5. Inherited from 9020's Q2, whose stated default could not execute because the milestone
 it gated had already shipped. The fields are `proposer_id`, `alignment_epoch`, `sampling_params`
 and the quarantined `proposed_scores{}` block; all four are non-replay-bearing. Tier C — a change
 to an on-disk format. Default if not decided: adopt all four as non-replay-bearing diagnostics and
@@ -616,8 +616,7 @@ again; the io boundary makes it a swap rather than a rewrite.
 nothing. Inherited from 9020's Q5. Default if not decided: renumber
 `measurement-profiles-design.md` D13–D18 to MP-D1–MP-D6.
 
-**Q14: Is companion patch 3 absorbed here or opened as its own plan?** — Deadline: 2026-09-16.
-Unresolved; blocks M16. Inherited from 9020's Q6. It adds CalibrationManifest row fields,
+**Q14: Is companion patch 3 absorbed here or opened as its own plan?** — Awaiting Steering: resolved 2026-09-12. Patch 3 is opened as its own plan owned by the 9003 compiler line, not absorbed here. The 25-vs-25 warning below stands and must travel with it. Originally blocked M16. Inherited from 9020's Q6. It adds CalibrationManifest row fields,
 prohibitions AUTH-11 to AUTH-13, an F4 tranche-balance check, and a 27-to-25 item-count correction.
 Default if not decided: open as its own plan owned by the 9003 compiler line.
 
@@ -638,8 +637,7 @@ where it was worked around per-milestone. Under the promotion rule a second occu
 rule into the test. Default if not decided: narrow the test's staleness signal to key on a verdict
 badge written at flip time.
 
-**Q16: Does `core/` stop importing `io/`, or do the fences allow indirect imports?** — Deadline:
-2026-09-26. Unresolved; blocks M8. `.importlinter` declares layers with `core` above `io`, so
+**Q16: Does `core/` stop importing `io/`, or do the fences allow indirect imports?** — Awaiting Steering: resolved 2026-09-12. Forbid `core -> io`. M8 lands the four forbidden contracts with `include_external_packages = True` and amends `docs/conventions/layering.md:41` in the same milestone, so the convention and the lint agree rather than contradicting each other. Originally blocked M8. `.importlinter` declares layers with `core` above `io`, so
 `core → io` passes today, while `docs/conventions/layering.md:41` permits it explicitly. The four
 forbidden contracts are weaker than claimed unless this is settled. Tier C — `.importlinter` and a
 convention document. Default if not decided: forbid `core → io` and amend the convention, because
@@ -658,8 +656,7 @@ plan unexecutable in that environment. A local session removes the constraint. T
 protocol fallback is no longer needed, and every milestone is expected to meet the real
 verification floor rather than a reduced one.
 
-**Q20: Which definition of D19's expectation is pinned?** — Deadline: 2026-09-26. Unresolved;
-blocks M20 and any future proposer work. Two readings exist: the softmax renormalized over the
+**Q20: Which definition of D19's expectation is pinned?** — Awaiting Steering: resolved 2026-09-12. Pin the expectation as the softmax renormalized over the twenty letter positions. The full-vocabulary-softmax-over-the-letter-set reading is recorded here as rejected, so a later implementer does not silently switch definitions on a probe whose value is comparability. Originally blocked M20 and any future proposer work. Two readings exist: the softmax renormalized over the
 twenty letter positions, or the full-vocabulary softmax renormalized over the letter set. Issue #15
 measured both and found they agree in ordering on its prompt, which is not a guarantee they agree
 on a real scoring prompt. Only one can be the definition, because `proposed_score` feeds a drift
@@ -667,8 +664,7 @@ probe whose whole value is comparability across runs. Default if not decided: pi
 renormalization over the twenty letter positions, and record the other as the rejected reading so a
 later implementer does not silently switch.
 
-**Q21: Is an MLX Provider in this plan's scope, or a successor's?** — Deadline: 2026-09-26.
-Unresolved; blocks M20's Notes. Issue #15 settles that MLX is a viable proposer engine and
+**Q21: Is an MLX Provider in this plan's scope, or a successor's?** — Awaiting Steering: resolved 2026-09-12. Option (b) - an MLX Provider is a successor plan's scope, owned by the proposer line. M20 demotes the llama.cpp proposer that exists; the deep-copy rewind contract in its Notes is the successor's starting requirement, not this plan's work. Originally blocked M20's Notes. Issue #15 settles that MLX is a viable proposer engine and
 recommends `mlx-vlm` stay the engine, but this plan assumed the proposer was demoted to a drift
 probe on its existing llama.cpp stack and contains no milestone for writing a second Provider. That
 work is real: extend the `LogitModel` Protocol, write the adapter, implement the deep-copy rewind,
