@@ -850,11 +850,8 @@ to an on-disk format. Default if not decided: adopt all four as non-replay-beari
 record the adoption in this plan's Decision Log, since M5 cannot port B's schemas without settling
 where these fields live.
 
-**Q11: Accept the new config surface?** — Deadline: 2026-09-30. Unresolved; blocks M22. Inherited
-from 9020's Q3, unchanged and still unresolved. The surface is the proposer deployment contract,
-the escape-sampler split ratio and the random-tranche floor, plus B's thresholds. Tier C —
-`src/argus/config/**` is a sensitive path. Default if not decided: none — no milestone writes
-config until this resolves.
+**Q11: Accept the new config surface?** — Awaiting Steering: resolved 2026-09-12. Accepted, and **the scope includes the drift probe's values**: M20 keeps the probe alive in this plan, and leaving it on hardcoded constants reproduces the silent-failure shape already on the debt list. **No key list is fixed here.** The contents are discovered at M22 under its binding constraint — no value that alters a verdict may live as a hardcoded constant — and the two floors that have no declared value anywhere are measured before they are declared, not guessed here. Note the mechanical consequence of this resolution: `src/argus/config/**` is a sensitive path, so the PreToolUse hook would have blocked M22 from touching config at all while this entry read unresolved, whatever it said. Originally blocked M22.
+
 
 **Q12: Fix the serving shape, or keep it behind the batch-shaped interface?** — Deadline:
 2026-09-30. Unresolved; blocks nothing. Inherited from 9020's Q4. Default if not decided: defer
@@ -930,10 +927,8 @@ open a successor owned by the proposer line, leaving this plan's M20 to demote w
 defer until the drift probe is running and has something to compare. Default if not decided: (b) —
 this plan is already at twenty-two milestones, and the Provider is orthogonal to re-layering B.
 
-**Q19: What is the on-disk format for the evaluation record?** — Deadline: 2026-09-30. Unresolved;
-blocks M21. B writes a report and discards every intermediate, so nothing is replayable. I5
-requires persisting the FindingGraph, `intents_sha` and rubric version. Tier C — on-disk format.
-Default if not decided: a sidecar run manifest, leaving B's report format intact.
+**Q19: What is the on-disk format for the evaluation record?** — Awaiting Steering: resolved 2026-09-12. Accepted: Argus writes an on-disk record sufficient to re-derive the verdict, because I5 requires one. This is a Tier C surface **mandated by an invariant rather than chosen**, so the decision is an acknowledgement and not a design. **Its shape, name and versioning are M21's to design** under I5 and under the `_meta/` ownership ledger, which requires a new exact-filename glob assigned to exactly one producer before the file may exist. Originally blocked M21.
+
 
 ## 8. Outcomes & Retrospective
 
