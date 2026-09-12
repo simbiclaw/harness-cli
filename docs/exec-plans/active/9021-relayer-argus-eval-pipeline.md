@@ -128,6 +128,30 @@ flipped milestone. Restated as Q10 with a default that can actually execute.
 
 ## 3. Milestones
 
+**How to read a milestone, and which half binds you.** Every milestone carries a **Contract** block
+— Deliverable, Binding constraint, Acceptance property, Known evidence. **The Contract is what
+binds.** The prose and the named `Acceptance Test:` functions above it were written in a cloud
+session that could not install dependencies, could not read the spec, and could not read INTENTS.
+They are a starting sketch, not a specification: treat them as evidence of what was known at
+authoring time, and discard any of it that contact with the code contradicts.
+
+This split exists because the alternative failed here, three times in one document. A local review
+found that this plan had written `replay_hash` as "grounded inputs only" (dropping the anchored
+precedents I5 requires), had named only two of I6's three weight classes (deleting the correlated
+class entirely), and had asserted the D15 no-write rule while a milestone produced nodes that live
+inside INTENTS. **Each was a paraphrase of an invariant that lost part of the invariant.** An agent
+implementing those paraphrases would have built a hash that cannot detect what it exists to detect,
+a corroboration aggregator with no home for correlated evidence, and a write path the plan forbids.
+
+So: where a Binding constraint cites an invariant, go read the invariant — do not implement this
+plan's summary of it. Where the Acceptance property states a behaviour, prove that behaviour; the
+test's name and design are yours. Where Known evidence conflicts with what you find, what you find
+wins, and the conflict belongs in Surprises.
+
+Two numbers this plan deliberately does **not** supply, because neither is knowable before the code
+runs: the random tranche's absolute floor (M19) and the role-swap confidence floor (M2). Measure,
+then declare, then record the basis.
+
 ### M1 — Fix B's two blocking crashes
 
 In `simbiclaw/sim`. `agents/qa_agent.py:66` calls `self.kb_builder`, never assigned (`:31` assigns
@@ -135,6 +159,13 @@ In `simbiclaw/sim`. `agents/qa_agent.py:66` calls `self.kb_builder`, never assig
 
 `Acceptance Test:` `tests/test_qa_agent.py::test_pipeline_reaches_report` — the orchestrator runs
 end to end against a fake LLM and returns a report object.
+
+
+**Contract.**
+- *Deliverable:* B's pipeline runs end to end without raising.
+- *Binding constraint:* None beyond the verification floor. This is defect repair in B's own repository.
+- *Acceptance property:* A transcript entering the orchestrator yields a report object with no unhandled exception on the happy path.
+- *Known evidence (advisory):* Two crashes were identified — an unassigned attribute in Stage 0 and a missing key at Stage 6. Treat the cited paths as leads and confirm against the tree you execute in.
 
 ### M2 — Fix the role-swap false positive
 
@@ -145,6 +176,13 @@ so a low-confidence swap routes to a human rather than silently inverting.
 `Acceptance Test:` `tests/test_asr_preprocessor.py::test_timestamp_parsing` — currently failing;
 passes without a swap. Plus `::test_low_confidence_swap_defers` — a marginal case routes to human.
 
+
+**Contract.**
+- *Deliverable:* Speaker-role assignment that does not silently invert a correctly-labelled transcript.
+- *Binding constraint:* No numbered invariant, but a wrong role inverts every downstream verdict, so an uncertain swap defers to a human rather than applying.
+- *Acceptance property:* A correctly-labelled transcript is left unswapped; an ambiguous one routes to a human instead of guessing.
+- *Known evidence (advisory):* The heuristic currently returns swap-true on a correct transcript. **Measure its actual error rate before choosing any threshold — do not adopt a number from this plan.**
+
 ### M3 — Repair the ASR-reliability chain
 
 `core/preprocessor.py` drops `timestamp_start`/`timestamp_end` when building `Turn`, and path C's
@@ -153,6 +191,13 @@ reliability branch is dead. The atomiser propagates `reliability=low` to no effe
 `Acceptance Test:` `tests/test_fact_checker.py::test_low_reliability_forces_human_review` — a
 turn marked low-reliability produces a verdict requiring review.
 
+
+**Contract.**
+- *Deliverable:* The reliability signal the atomiser computes reaches the verdict that consumes it.
+- *Binding constraint:* None beyond the floor. A dropped uncertainty signal is a silent-confidence defect.
+- *Acceptance property:* A turn marked low-reliability demonstrably changes the routing of a verdict resting on it.
+- *Known evidence (advisory):* The chain is reported broken at its last link, and timestamps appear to be dropped when the turn type is built. Confirm both.
+
 ### M4 — B's first end-to-end test
 
 B has zero integration tests, which is why M1's two crashes survived. Needs a fake LLM covering
@@ -160,6 +205,13 @@ B has zero integration tests, which is why M1's two crashes survived. Needs a fa
 
 `Acceptance Test:` `tests/test_e2e.py::test_transcript_to_report` — a real transcript from
 `data/transcripts/` produces a complete report with no network access.
+
+
+**Contract.**
+- *Deliverable:* An executable end-to-end test over a real transcript, with no network.
+- *Binding constraint:* The verification floor: an externally observable property exercised against real data.
+- *Acceptance property:* The pipeline runs from a real transcript file to a report, deterministically, offline.
+- *Known evidence (advisory):* B has no integration test, which is why M1's crashes survived. The NLI dependency may not be installable in every environment.
 
 ### M5 — Port B's schemas into `types/`
 
@@ -171,6 +223,13 @@ the contract everything else attaches to.
 serializes and deserializes. `::test_replay_payload_excludes_proposed_score` — 9020's I5 allowlist
 survives the port.
 
+
+**Contract.**
+- *Deliverable:* The pipeline's data contracts live in `types/`.
+- *Binding constraint:* I5 — the replay-bearing record stays separable from diagnostics.
+- *Acceptance property:* Every contract round-trips, and a proposed score cannot enter the replay-bearing payload.
+- *Known evidence (advisory):* B carries the stage decomposition in its schemas; A's are self-declared placeholders. Q10 adopted four diagnostic fields — where they live is yours to design.
+
 ### M6 — Extend `EvidenceItem` to an I2 anchor slot
 
 Add `span`, `quote` and `intents_sha`. Re-plumb timestamps through stage 1 so spans are
@@ -181,6 +240,13 @@ round-trip on the sample transcript recovered 17/17 turns as exact substrings.
 recovers an exact character span from the raw transcript. `::test_ambiguous_span_rejected` — a
 turn text occurring twice fails rather than guessing.
 
+
+**Contract.**
+- *Deliverable:* Evidence traceable to an exact location in the source transcript.
+- *Binding constraint:* I2 — every finding references a real transcript span, exact-quote verified, or is routed to a human.
+- *Acceptance property:* Any stored evidence item resolves to a verbatim substring of the raw transcript; an unresolvable one fails rather than passing.
+- *Known evidence (advisory):* A round-trip on the sample transcript recovered every turn exactly. Capturing offsets at parse time was suggested as more robust than recovering them later. Short turns may collide on longer calls — verify.
+
 ### M7 — Move B's proposal half into `io/`
 
 Eleven modules re-namespaced, behaviour unchanged: asr_preprocessor, preprocessor, atomizer,
@@ -189,6 +255,13 @@ prompts, qa_agent. Squashed import commit citing `simbiclaw/sim@0c2cccd`.
 
 `Acceptance Test:` `tests/test_io_import.py::test_pipeline_runs_from_io` — the moved pipeline
 produces the same output as M4's baseline on the same input.
+
+
+**Contract.**
+- *Deliverable:* Every model-touching module lives under `io/`.
+- *Binding constraint:* I1 — model nondeterminism exists only in S2, which lives in `io/`.
+- *Acceptance property:* The pipeline produces the same output after the move as before it, and no module outside `io/` reaches a model.
+- *Known evidence (advisory):* Fourteen call sites across nine modules. B's module graph splits close to the layer boundary, which is why this is a move rather than a rewrite.
 
 ### M8 — Land the four `forbidden` import-linter contracts
 
@@ -200,6 +273,13 @@ contract permits `core → io`, which must be reconciled with these — see Q16.
 `from anthropic import Anthropic` in a `core/` module makes `lint-imports` exit non-zero.
 `::test_clean_tree_passes`. A contract that has never failed is not enforcement.
 
+
+**Contract.**
+- *Deliverable:* The four layer fences enforced by an artifact that can fail.
+- *Binding constraint:* The four fences in CLAUDE.md. Q16 forbids `core -> io`.
+- *Acceptance property:* A planted violation of each fence fails the lint and a clean tree passes. **A contract that has never failed is not enforcement.**
+- *Known evidence (advisory):* The existing layers contract cannot see third-party imports, and the current backstop is a short denylist. External-package visibility may need enabling — confirm how.
+
 ### M9 — Repoint the I8 checker at the populated tree
 
 `tests/test_i8_provenance_separation.py` currently scans a nearly-empty `core/`. Its allowlist
@@ -207,6 +287,13 @@ assumes two modules exist. Widen the scan, keep the red/green pair.
 
 `Acceptance Test:` `tests/test_i8_provenance_separation.py::test_live_core_tree_clean` — passes
 against the populated tree with the allowlist reasoned, not widened to admit violations.
+
+
+**Contract.**
+- *Deliverable:* The provenance checker scans the populated `core/` tree.
+- *Binding constraint:* I8 — logit-derived continuity must not reach a disposer input.
+- *Acceptance property:* The checker still fails on its planted red case after the tree grows, and its allowlist is reasoned rather than widened to admit violations.
+- *Known evidence (advisory):* This is the repo's strongest existing artifact; it currently scans a nearly-empty directory.
 
 ### M10 — Extract `score(facts, rubric)`
 
@@ -219,6 +306,13 @@ the arithmetic from `core/`.
 byte-identical `raw`. `::test_score_receives_no_history`. `::test_weight_comes_from_rubric_not_verdict`.
 `::test_core_no_model_client`.
 
+
+**Contract.**
+- *Deliverable:* A pure scoring function taking grounded facts and the rubric.
+- *Binding constraint:* I3 — `raw = score(facts, rubric)`, and `score` never receives history. I1 — `core/` imports no model client.
+- *Acceptance property:* Identical grounded findings and rubric version produce an identical raw score, and the rubric's weight reaches the arithmetic from `core/` rather than from inside the quarantine.
+- *Known evidence (advisory):* B's aggregator is a report builder with no rubric parameter, and weight and veto are stamped inside modules bound for `io/`. This is a redesign, not a move — the shape of the redesign is yours.
+
 ### M11 — Re-litigate NEI scoring
 
 B scores NEI at 0.5 and keeps it in the denominator, so an unverifiable item contributes half a
@@ -227,6 +321,13 @@ the latter; it changes every score B has produced.
 
 `Acceptance Test:` `tests/test_score.py::test_nei_excluded_from_denominator` —
 an NEI item neither scores nor counts. `::test_nei_blocks_auto_final`.
+
+
+**Contract.**
+- *Deliverable:* A scoring policy for unverifiable items consistent with the deferral rules.
+- *Binding constraint:* I2 and D10 — an ungrounded finding routes to a human and blocks auto-final.
+- *Acceptance property:* An unverifiable item cannot silently contribute to a shipped score.
+- *Known evidence (advisory):* B scores the unverifiable case at half a point and keeps it in the denominator; adopting the deferral rule changes every score B has produced. The spec defines no denominator.
 
 ### M12 — Build `core/grounding.py` (I2)
 
@@ -237,6 +338,13 @@ text is model-authored prose, not a quote from the cited document.
 `Acceptance Test:` `tests/test_grounding.py::test_i2_anchor_or_quarantine_red` — a finding citing
 a non-existent node moves to `ungrounded`. `::test_quote_fidelity_red`. `::test_path_b_always_ungrounded`.
 `::test_grounding_no_model_import`.
+
+
+**Contract.**
+- *Deliverable:* S3, the grounding gate.
+- *Binding constraint:* I2, plus the two grounding fences — the gate imports neither the proposer nor a matching model.
+- *Acceptance property:* A finding that anchors to nothing real is routed, never dropped, and quote fidelity is verified against the transcript rather than asserted.
+- *Known evidence (advisory):* Evidence on B's document-verification path is model-authored prose rather than a quotation, so it is not anchorable in its current form.
 
 ### M13 — Build `io/intents_provider.py` and the epoch reader (I4)
 
@@ -249,6 +357,13 @@ drill-down picks the node by asking the model, with no depth cap and no visited 
 `::test_s1_no_write_path_into_intents` — an AST scan confirms no `src/argus/` path opens an INTENTS
 file for writing. This is 9002's M7 fixture, which was specified and never written.
 
+
+**Contract.**
+- *Deliverable:* Read-only access to INTENTS at a pinned epoch.
+- *Binding constraint:* I4 — pinned referents. D15 — no write path into INTENTS from `src/argus/`.
+- *Acceptance property:* Two runs against the same epoch reproduce the same grounding outcomes, and no code path opens an INTENTS file for writing.
+- *Known evidence (advisory):* Reported as one tree rather than two. The fork and the local tree sit at different revisions, so the real question is which revision, not which tree.
+
 ### M14 — Fix the polarity-blind FAIL signal before compiling anything
 
 `core/compiler/signals.py:353-361` emits a FAIL signal that does not distinguish polarity. The
@@ -257,6 +372,13 @@ rubrics faster than a human can review them.
 
 `Acceptance Test:` `tests/test_signals.py::test_fail_signal_polarity` — item 18 as the regression
 case; an inverted-polarity input no longer produces a passing signal.
+
+
+**Contract.**
+- *Deliverable:* A compiler signal that distinguishes polarity.
+- *Binding constraint:* None beyond the floor.
+- *Acceptance property:* An inverted-polarity input no longer yields a passing signal.
+- *Known evidence (advisory):* Reported in the signals module; item 18 is the natural regression case. Compiling many items through an undetected polarity defect manufactures wrong rubrics faster than review can catch them.
 
 ### M15 — Land B's 27 items as `SpecificRubric` input
 
@@ -269,6 +391,13 @@ lossy in at least two places (item 18 drops a counter-example, item 1 has an emp
 `::test_items_6_and_7_are_permanently_inapplicable` — both carry a `data_dependency` and neither
 reaches the denominator. `::test_25_items_scored`. `::test_no_empty_fail_standard`.
 
+
+**Contract.**
+- *Deliverable:* The human rubric available as compiler input.
+- *Binding constraint:* The rubric is a public artifact. Items excluded for data dependency are recorded with their reason, not deleted.
+- *Acceptance property:* The scored set matches the operational scope, and an excluded item never reaches the denominator.
+- *Known evidence (advisory):* The item count is contested — settle it by listing the live node ids before starting. B's transcription is lossy in at least two places.
+
 ### M16 — Compile the rubric through 9003
 
 Produce epoch-pinned `_rubric/` AuthoredNodes with the align map decided in Q3: item 22 to
@@ -280,6 +409,13 @@ are findings, not overrides.
 `Acceptance Test:` `tests/test_rubric_compile.py::test_all_27_compile_or_declare_residue`.
 `::test_item_27_is_compliance_layer` — the veto item does not depend on the judgment gates.
 `::test_hand_assignment_divergences_recorded`.
+
+
+**Contract.**
+- *Deliverable:* Compiled rubric nodes.
+- *Binding constraint:* D15 — Argus emits nodes; the epoch commit that lands them is an upstream write-time act. Until compilation, soft criteria correctly return deferred.
+- *Acceptance property:* Every item either compiles or declares residue, and the veto criterion does not depend on the judgment gates.
+- *Known evidence (advisory):* Q3 fixed the dimension mapping. Assessment mode may be inferred at runtime from key presence rather than stored — verify against the live nodes before assuming either.
 
 ### M17 — Build `core/corroboration.py` (I6)
 
@@ -304,6 +440,13 @@ an implementer to treat a correlated match as either independent (over-confidenc
 nor 0.0. `::test_independent_signal_clears_finding_thin`.
 `::test_corroboration_never_clears_criterion_below_tau`. `::test_aggregate_no_model_client`.
 
+
+**Contract.**
+- *Deliverable:* The independence-weighted corroboration aggregator.
+- *Binding constraint:* I6 — all three weight classes, with W_C provisional and its debt logged. D4 — corroboration clears `finding_thin`, never `criterion_below_tau`.
+- *Acceptance property:* Redundant signals manufacture no confidence; a correlated signal weighs as neither independent nor redundant; the two deferral axes stay orthogonal.
+- *Known evidence (advisory):* The correlated class has no counterpart in B and must be invented — B's aggregator sees only model-authored prose, so there is nowhere a correlation judgement currently lives. This is the hardest of the three inventions.
+
 ### M18 — Build `core/adjust.py` (S4b)
 
 `adjust(raw, history)`. Genuinely new — neither codebase has any notion of precedent. Unanchored
@@ -311,6 +454,13 @@ precedents are dropped, never applied; empty precedents give `adjusted == raw`.
 
 `Acceptance Test:` `tests/test_adjust.py::test_empty_precedents_adjusted_equals_raw`.
 `::test_unanchored_precedent_dropped`. `::test_applied_precedents_recorded`.
+
+
+**Contract.**
+- *Deliverable:* The precedent-application stage.
+- *Binding constraint:* I3 — `adjust(raw, history)` is pure, and unanchored precedents are dropped rather than applied. I5 — anchored precedents enter the replay hash.
+- *Acceptance property:* Empty precedents leave the score unchanged; the applied set is recorded and replayable.
+- *Known evidence (advisory):* Neither codebase has any notion of precedent. What a precedent is on disk is unconstrained by the spec — it is a design, not a port.
 
 ### M19 — Build `core/route.py` and reconcile the escape estimator (S5)
 
@@ -320,6 +470,13 @@ ends 9020's split between sampler and estimator. B's five-condition escalation r
 
 `Acceptance Test:` `tests/test_route.py::test_auto_final_requires_both_axes`.
 `::test_ungrounded_always_routes_to_human`. `::test_escape_rate_consumes_random_tranche_only`.
+
+
+**Contract.**
+- *Deliverable:* S5 routing, and the escape estimator reconciled with the sampler.
+- *Binding constraint:* D10 — auto-final requires both axes clear. The estimator consumes the random tranche only, and that tranche respects its declared floor.
+- *Acceptance property:* A call carrying ungrounded findings never auto-finalises; a biased sample cannot reach the estimator; the floor holds whatever the prioritisation asks for.
+- *Known evidence (advisory):* 9020 shipped the sampler with a floor test that must survive this reconciliation. **The floor has no declared value anywhere — declare one during execution and record its basis.**
 
 ### M20 — Demote the 9020 proposer to a drift probe, safely
 
@@ -341,6 +498,13 @@ raise rather than returning an empty dict. `::test_units_are_comparable`. If Q21
 Provider into scope, add `::test_cache_rewind_is_bit_exact` — replaying a suffix after a rewind
 gives `max|Δlogit| == 0.0`, with a reference-snapshot red case.
 
+
+**Contract.**
+- *Deliverable:* The existing proposer repurposed as an observable drift probe.
+- *Binding constraint:* I7 and D7 — a proposed score is never a verdict. D12 — resample variance never touches routing.
+- *Acceptance property:* The probe fails loudly on incomparable inputs rather than reporting stability, and divergence is logged rather than routed.
+- *Known evidence (advisory):* Key vocabularies and score units differ between the two sides. On MLX the cache rewind is not the llama.cpp primitive and the obvious implementation is silently wrong — see the milestone notes.
+
 ### M21 — Persist the replay record (I5)
 
 Store the FindingGraph, `intents_sha` and rubric version. `replay_hash` is a function of
@@ -360,6 +524,13 @@ follow. Reported in issue #16; verify against the live tree before writing.
 `::test_replay_hash_includes_anchored_precedents` — two graphs identical but for their precedent
 set must hash differently. `::test_replay_hash_excludes_proposed_score`.
 
+
+**Contract.**
+- *Deliverable:* A stored record that re-derives the verdict.
+- *Binding constraint:* I5, as written in CLAUDE.md — quoted, not paraphrased: the hash is a function of grounded inputs and anchored precedents only, never of the proposed score.
+- *Acceptance property:* The stored record re-derives an identical result; changing only the precedent set changes the hash; the proposed score never does.
+- *Known evidence (advisory):* An ownership ledger governs where such a file may live, and an existing compiler-produced sidecar is the precedent. Shape, name and versioning are yours.
+
 ### M22 — Surface: CLI, config, record format
 
 B's three run modes under this repository's entry point; typed configuration in `config/`; the
@@ -367,6 +538,12 @@ sidecar run manifest. Each is Tier C and individually gated.
 
 `Acceptance Test:` `tests/test_cli.py::test_eval_subcommand_exits_zero` — invoked as a subprocess
 against a real transcript. `::test_json_mode_is_machine_readable`.
+
+**Contract.**
+- *Deliverable:* The command, configuration and record surfaces.
+- *Binding constraint:* Each is a public contract and Tier C. No value that alters a verdict may live as a hardcoded constant.
+- *Acceptance property:* The command runs against a real transcript and exits non-zero on failure; every verdict-affecting value has a declared home.
+- *Known evidence (advisory):* B's key set contains dead and silently duplicated values, and at least two floors have no declared number anywhere. Discover the real set by building it.
 
 ## 4. Progress
 
