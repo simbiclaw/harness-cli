@@ -304,8 +304,19 @@ ends 9020's split between sampler and estimator. B's five-condition escalation r
 its own dimension strings on a `[0,k-1]` scale; the derived side keys by the five rubric categories
 on 0–100. Unify keys and units first, or the probe reports "flat" forever.
 
+`Notes:` If the proposer runs on MLX rather than llama.cpp (Q21), the cache rewind is **not**
+`model.n_tokens = prefix_len` and **not** `trim_prompt_cache`, which is unavailable on both pinned
+model families. It is a per-cache-type deep-copy snapshot and restore covering **both** `state` and
+`meta_state` — `RotatingKVCache` keeps `offset` and `_idx` in `meta_state`, so restoring `state`
+alone rewinds to the wrong position. A snapshot taken by reference is silently wrong rather than
+broken: mlx mutates cache buffers in place and its arrays have no `.copy()`, and a measured
+reference "snapshot" replayed to `max|Δlogit| = 6.06`, i.e. a different `proposed_score` with no
+error raised. Measured in issue #15.
+
 `Acceptance Test:` `tests/test_divergence.py::test_disjoint_keys_raise` — mismatched vocabularies
-raise rather than returning an empty dict. `::test_units_are_comparable`.
+raise rather than returning an empty dict. `::test_units_are_comparable`. If Q21 brings an MLX
+Provider into scope, add `::test_cache_rewind_is_bit_exact` — replaying a suffix after a rewind
+gives `max|Δlogit| == 0.0`, with a reference-snapshot red case.
 
 ### M21 — Persist the replay record (I5)
 
@@ -487,6 +498,34 @@ consequences the implementing session should act on before opening M1:
   they are one tree, M13 is one provider and the estimate holds; if two, M13 grows by 2–3
   milestones.
 
+**The Apple Silicon gap closed, and D19 is viable on real weights (issue #15, 2026-09-12).** The
+MLX spike ran the M0 probe against three real checkpoints on the M3 Ultra. MLX returns the whole
+logit vector at a position — 248,320 and 262,144 wide — and requested-k equals returned-k exactly
+(20→20, 256→256), so it does not have llama.cpp's distribution-dependent cap that forced the
+low-level path there. All twenty letters A–T are single tokens, so G=20 is satisfied rather than
+falling back, and the expectation differs from the argmax in all twelve measurements. Throughput is
+`throughput_representative: true` on real weights. Three consequences for this plan:
+
+- **The cache-rewind contract is a new requirement nobody had written down.** See M20's Notes. The
+  naive implementation is silently wrong, which is the failure class this repository's fixtures
+  exist to convert into parse-time or test-time failures.
+- **The `LogitModel` Protocol gap is confirmed by a second, independent attempt.** It blocks any
+  MLX adapter: the Protocol declares five members and `local_proposer.py:157` calls a sixth.
+- **9020's M6 may now be satisfiable.** It was deferred for want of a throughput run against a
+  production model on target hardware, and its acceptance test rejects
+  `throughput_representative: false`. The spike produced exactly that artifact. Whether it
+  *satisfies* M6 depends on whether M6 requires batched numbers — the spike reports
+  `batched_tok_s: null`. Check before assuming; do not flip M6 on this text alone.
+
+Scoring is not the capacity problem. The score pass costs ~0.14 s on the 27B against a hunt pass of
+~45–60 s — roughly 0.3% of the call. The hunt pass is where capacity is decided, which is Q12.
+
+**This entire line of work is unmerged.** `origin/main` contains none of it: not `local_proposer.py`,
+not the 9020 experiment artifacts, not the patch-1 spec, not 9020 or 9021 themselves. As of
+2026-09-12 `main` has zero commits this branch lacks and the branch is eighteen ahead, so it is a
+clean fast-forward. Until that happens, any acceptance test pointed at `main` cannot find the files
+it needs.
+
 The evidence base for every claim in this plan is committed at
 `docs/experiments/9021-ab-investigation/`. Read its README first — in particular, `adversarial.md`
 falsified five mechanism claims in `synthesis.md`, and the corrected versions are what this plan
@@ -578,6 +617,25 @@ cloud container cannot install `transformers`, so no acceptance test importing i
 plan unexecutable in that environment. A local session removes the constraint. The stub-behind-a-
 protocol fallback is no longer needed, and every milestone is expected to meet the real
 verification floor rather than a reduced one.
+
+**Q20: Which definition of D19's expectation is pinned?** — Deadline: 2026-09-26. Unresolved;
+blocks M20 and any future proposer work. Two readings exist: the softmax renormalized over the
+twenty letter positions, or the full-vocabulary softmax renormalized over the letter set. Issue #15
+measured both and found they agree in ordering on its prompt, which is not a guarantee they agree
+on a real scoring prompt. Only one can be the definition, because `proposed_score` feeds a drift
+probe whose whole value is comparability across runs. Default if not decided: pin the
+renormalization over the twenty letter positions, and record the other as the rejected reading so a
+later implementer does not silently switch.
+
+**Q21: Is an MLX Provider in this plan's scope, or a successor's?** — Deadline: 2026-09-26.
+Unresolved; blocks M20's Notes. Issue #15 settles that MLX is a viable proposer engine and
+recommends `mlx-vlm` stay the engine, but this plan assumed the proposer was demoted to a drift
+probe on its existing llama.cpp stack and contains no milestone for writing a second Provider. That
+work is real: extend the `LogitModel` Protocol, write the adapter, implement the deep-copy rewind,
+and add the bit-exactness regression test. Options: (a) add it to this plan as two milestones; (b)
+open a successor owned by the proposer line, leaving this plan's M20 to demote what exists; (c)
+defer until the drift probe is running and has something to compare. Default if not decided: (b) —
+this plan is already at twenty-two milestones, and the Provider is orthogonal to re-layering B.
 
 **Q19: What is the on-disk format for the evaluation record?** — Deadline: 2026-09-30. Unresolved;
 blocks M21. B writes a report and discards every intermediate, so nothing is replayable. I5
