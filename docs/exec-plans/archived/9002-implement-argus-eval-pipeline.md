@@ -170,4 +170,75 @@ No application code. A structural test confirms no code path in `src/argus/` wri
 
 ## 8. Outcomes & Retrospective
 
-*Written at completion or cancellation.*
+**Status: SUPERSEDED (completely overturned)**
+
+**Original outcome:**
+
+Nothing shipped. All eleven milestones (M0–M7, including M3.5, M4.5, M5.5) remained unchecked
+from creation on 2026-07-08 until archival on 2026-09-12 — sixty-six days dormant. No module
+this plan declares was ever written: `core/grounding.py`, `core/corroboration.py`,
+`core/score.py`, `core/adjust.py`, `core/routing.py`, `core/escape_rate.py`,
+`io/intents_provider.py`, `io/proposer.py`, `types/call_record.py` and `types/schemas.py` are all
+absent from `src/argus/`. This plan is not being overturned because its execution failed. It is
+being overturned because it never started, and the ground moved underneath it while it waited.
+
+**Overturn reason (2026-09-12):**
+
+Two independent causes, either sufficient on its own.
+
+*First — the strategy changed.* 9002 assumes Argus's proposer and pipeline are built from
+scratch inside this repository. An investigation of `simbiclaw/sim` (`0c2cccd`) found a working
+Chinese-language customer-service QA evaluator — atomiser, evidence retrieval, NLI-backed fact
+checking, aggregation, reporting — that already satisfies the hardest invariants this plan
+exists to enforce. Its model proposes labels, evidence and questions but **never a score,
+weight, dimension roll-up or grade**; all arithmetic is pure Python over rubric constants
+(`core/aggregator.py`, model-free by construction). It also has **no write path into any intent
+store**. That is I3, I7 and D15 arrived at independently. Rebuilding that from zero, as 9002
+specifies, discards a working engine and its domain assets — a 27-item operational QA rubric
+transcribed from the same internal scoring sheet 9002's own pilot cites
+(`docs/exec-plans/active/9003-pilot-item18/specific-rubric.yaml` names
+`docs/PRD/eval/rubric_com_hotline.md`; item 18 matches clause-for-clause).
+
+*Second — this plan went stale against 9020.* 9020 declared itself "a standalone dependent of
+9002… executes after the 9002 milestones it names have shipped." Those milestones never shipped.
+9020 completed anyway — legitimately, by building provisional parallel structures rather than
+touching 9002-owned files, each choice recorded in its Decision Log. The consequence is that
+several of this plan's milestones now have prior art in the plan that was supposed to follow
+them, and three are contradicted outright:
+
+- **M1 (call-record intake)** specifies `Turn` with `char_start`/`char_end` and acoustic spans.
+  9020 shipped `ProposerCall.transcript` as a bare `str`.
+- **M5.5 (escape rate)** owns `core/escape_rate.py`. 9020 shipped `core/escape_sampler.py`,
+  whose own comment reads "9002 M5.5 owns the real one." One responsibility, two files, never
+  reconciled.
+- **M6 (proposer S2)** states the proposer "is the ONLY component that imports `anthropic`."
+  9020 shipped a llama.cpp proposer under a human-directed stack swap (D21), with `findings`
+  hardwired empty.
+
+Two further gaps this plan's text now misstates: its Big Picture assumes `INTENTS/` is read,
+but nothing in `src/argus/` reads it and the root symlink dangles; and M7's S1 no-write-path
+fixture was never written, so the prohibition it names is unenforced.
+
+No mistake inventory exists for this plan because it never executed. The investigation that
+produced this overturn is recorded in the successor's Decision Log and Surprises sections.
+
+**Replacement plan:** 9021 — `docs/exec-plans/active/9021-relayer-argus-eval-pipeline.md`
+
+**Lessons learned:**
+
+- **A dormant plan is not a neutral placeholder — it decays.** Sixty-six days of other work
+  landed around 9002, including a plan that declared a dependency on it and then completed
+  without it. The collision detector compares *declared file scopes* between active plans, but
+  nothing detects a plan whose *assumptions* have been invalidated by a completed sibling. This
+  is the gap that let M1, M5.5 and M6 go stale silently.
+- **"Standalone dependent, executes after X" is a precondition, not a note.** 9020 wrote that
+  sentence and then executed anyway. Nothing in the harness checks a stated cross-plan
+  precondition before a milestone opens, so the sentence carried no force. Under the promotion
+  rule this is a candidate for a structural test.
+- **Scope declared as "new file" hides supersession.** Because 9020 declared only files it
+  created, the collision detector saw no overlap — correctly, by its own rules — while three of
+  9002's milestones were being functionally superseded. Path-level collision detection cannot
+  see design-level collision.
+- **Check for a working implementation before specifying one.** 9002 specified eleven milestones
+  of pipeline that, in substantial part, already existed in another repository in the same
+  account. The cost of that check is one afternoon; the cost of skipping it was this plan.
