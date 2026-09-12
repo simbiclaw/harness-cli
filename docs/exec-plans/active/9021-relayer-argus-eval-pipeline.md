@@ -252,12 +252,14 @@ case; an inverted-polarity input no longer produces a passing signal.
 
 ### M15 — Land B's 27 items as `SpecificRubric` input
 
-B's `config/rubric_items.py` becomes `docs/rubric/specific-rubric-27.yaml`. Re-verify all 27
-against the upstream source where recoverable; B's transcription is lossy in at least two places
-(item 18 drops a counter-example, item 1 has an empty fail standard).
+B's `config/rubric_items.py` becomes `docs/rubric/specific-rubric-27.yaml` — all 27 rows, with
+items 6 and 7 carrying a permanent inapplicability gate and a `data_dependency` naming the system
+they need. Re-verify all 27 against the upstream source where recoverable; B's transcription is
+lossy in at least two places (item 18 drops a counter-example, item 1 has an empty fail standard).
 
-`Acceptance Test:` `tests/test_rubric_input.py::test_27_items_parse_as_specific_rubric`.
-`::test_no_empty_fail_standard`.
+`Acceptance Test:` `tests/test_rubric_input.py::test_27_rows_parse_as_specific_rubric`.
+`::test_items_6_and_7_are_permanently_inapplicable` — both carry a `data_dependency` and neither
+reaches the denominator. `::test_25_items_scored`. `::test_no_empty_fail_standard`.
 
 ### M16 — Compile the rubric through 9003
 
@@ -410,6 +412,33 @@ representable. Item 26 maps to Empathy & Tone and its Problem Resolution aspect 
 
 **Confidence:** high that it is expressible; `Confidence: low` that residue is the right *semantic*
 home if the intent is that item 26 deduct in both dimensions. `Revisit: M16`.
+
+### Decision: 25 scored items — 6 and 7 excluded for data dependency, not deleted
+
+The rubric keeps all 27 rows. Items 6 (`服务记录规范`) and 7 (`问题升级流程操作完整且规范`) are
+marked permanently inapplicable, because both require reading systems Argus cannot reach — a
+service-record store and a workflow/escalation system. Twenty-five items are scored.
+**Rationale:**
+- Source: human direction, 2026-09-12. Neither criterion is checkable from a transcript alone.
+- Source: `simbiclaw/sim` `config/rubric_items.py` — both items already carry `na_criteria`
+  (`系统问题不能做记录/通话时长<1分30秒`; `电话中未涉及到问题升级`), so they are already known to the
+  NA machinery and need no new mechanism.
+- Implemented as an `applicability_gate` backed by `AuthoredNode.data_dependency` rather than by
+  removing the rows. Three reasons: the compiled rubric stays faithful to the real scoring sheet;
+  the *reason* for exclusion is recorded and auditable instead of being a silent absence; and if
+  the upstream integration ever lands, restoring them is a gate change rather than a rubric edit.
+  B's aggregator already excludes NA items from the denominator, so no scoring change is needed.
+
+**Confidence:** high.
+
+**Consequences:**
+- Under the Q3 dimension mapping, Procedural Accuracy drops from 7 scored items to 5, plus item 27,
+  giving 6. The other three dimensions are unaffected.
+- **Items 6 and 7 are the only two weighted 2.0.** Excluding them takes the rubric's total weight
+  from 29.0 to 25.0 and leaves every scored item at weight 1.0, so no scored item exercises the
+  weighted path. M10's `test_weight_comes_from_rubric_not_verdict` still proves the plumbing, but
+  it needs a synthetic weight ≠ 1.0 fixture or it passes vacuously.
+- This 25 is **not** patch 3's 25. See Q14.
 
 ### Decision: retain transformers; drop openai and chromadb
 
@@ -589,8 +618,19 @@ nothing. Inherited from 9020's Q5. Default if not decided: renumber
 
 **Q14: Is companion patch 3 absorbed here or opened as its own plan?** — Deadline: 2026-09-16.
 Unresolved; blocks M16. Inherited from 9020's Q6. It adds CalibrationManifest row fields,
-prohibitions AUTH-11 to AUTH-13, and a 27-to-25 item-count correction that contradicts this plan's
-27-item rubric. Default if not decided: open as its own plan owned by the 9003 compiler line.
+prohibitions AUTH-11 to AUTH-13, an F4 tranche-balance check, and a 27-to-25 item-count correction.
+Default if not decided: open as its own plan owned by the 9003 compiler line.
+
+> **Do not confuse patch 3's 25 with this plan's 25.** They are different counts reached for
+> unrelated reasons and they happen to be the same number. Patch 3 corrects an **ontology node
+> count**: it holds that Acoustic Feature and Phrase & Keyword are evidence sources rather than
+> rule categories, so the rules_criteria count is 25 (Procedural 7, Empathy 8, Resolution 8,
+> Proactive 2). This plan's 25 is an **operational scope**: B's 27 scoring rows minus items 6 and 7,
+> excluded because they need systems Argus cannot read. Neither of B's excluded items is an
+> acoustic or phrase-lexicon criterion, and B's sheet contains no such category at all — so patch
+> 3's correction does not apply to it. Applying patch 3's arithmetic to B's sheet would push out
+> items 26 and 27 instead, and item 27 is the privacy veto. Whoever resolves Q14 must keep the two
+> counts apart.
 
 **Q15: Reconcile implementation-notes-during-execution with the checkbox-flip gate.** — Deadline:
 2026-09-30. Unresolved; blocks nothing but recurs on every milestone. Inherited from 9020's Q8,
