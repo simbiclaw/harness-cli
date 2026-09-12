@@ -809,6 +809,31 @@ The evidence base for every claim in this plan is committed at
 falsified five mechanism claims in `synthesis.md`, and the corrected versions are what this plan
 encodes.
 
+**M5 was REJECTED by adversarial verification, 2026-09-12 — and the whole defect class was
+invention rather than porting.** Subagent B ran ten field-deletion mutations against the ported
+types; eight passed the acceptance test cleanly, including deleting `Verdict.weight` and
+`Atom.source_turn_ids`. Pydantic v2 ignores unknown keyword arguments, so a round-trip test built
+by constructing with kwargs cannot see a field disappear. The full application suite was equally
+blind: identical pass/fail counts with a field removed.
+
+Two enums had been silently rewritten. `TurnFlag` is `INCOMPLETE/ASR_ERROR/ROLE_SWAPPED/NORMAL`
+upstream; the port wrote `INCOMPLETE/UNCERTAIN/STUTTER`, inventing two members and deleting three —
+two of which (`ASR_ERROR`, `ROLE_SWAPPED`) are produced by live code at
+`core/asr_preprocessor.py:46,54`. `CoverageStatus` was likewise substituted. **The port could not
+read the upstream system's own output**, which is an undeclared on-disk format change with no
+steering entry. Losing `ROLE_SWAPPED` also deletes the turn-level provenance M2 needs.
+
+Three fields went required to optional, including `Atom.source_turn_ids` — the atom's anchor — in
+the same module whose docstring argues that evidence naming no source must be rejected at
+construction. The guard was applied to `EvidenceItem` and the opposite to `Atom`.
+
+**The lesson is narrower and sharper than "check your work".** The acceptance test carried
+`hasattr(TurnFlag, "UNCERTAIN")` guards, written because the author was unsure the member existed.
+That uncertainty was the signal to open the source file; instead it was encoded as a fallback that
+resolves to a passing value. **A guard that degrades to green is a skip, and it will mask precisely
+the thing its author was unsure about.** Any structural test in this plan that cannot be shown to
+fail on a planted defect is not evidence.
+
 ## 7. Awaiting Steering
 
 **Q1: Approve the RE-LAYER strategy?** — Awaiting Steering: resolved 2026-09-12. Approved.
