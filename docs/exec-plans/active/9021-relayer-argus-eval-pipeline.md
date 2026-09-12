@@ -897,13 +897,10 @@ modes; this repository has a `version` stub. Tier C — CLI surface and stdout f
 `src/argus/cli/main.py` is a sensitive path. Default if not decided: adopt the three modes, drop
 the index-building mode whose output nothing reads, and add a JSON mode as the machine contract.
 
-**Q18: How do milestones importing `transformers` satisfy the verification floor?** — Awaiting
-Steering: resolved 2026-09-12. **Implementation moves to a local Claude Code session.** The
-cloud container cannot install `transformers`, so no acceptance test importing it could run there
-— which made the verification floor unreachable for M3 and M17 and, by extension, made the whole
-plan unexecutable in that environment. A local session removes the constraint. The stub-behind-a-
-protocol fallback is no longer needed, and every milestone is expected to meet the real
-verification floor rather than a reduced one.
+**Q18: How do milestones importing `transformers` satisfy the verification floor?** — Awaiting Steering: resolved 2026-09-12. **Implementation moves to a local Claude Code session**, for the referent reason rather than the tooling one. `docs/PRD` and `INTENTS` resolve locally and dangle in a fresh clone, so the local session is the first that can check this plan against the spec it defers to and against the tree it reads.
+
+> **Correction, 2026-09-12.** An earlier revision of this entry claimed the cloud environment made the whole plan unexecutable. That was measured and is false. `pytest` runs, `argus` imports with `PYTHONPATH=src`, and **287 application tests pass** there; the failures are dependency-bound or routed through `uv`, which cannot reach the pinned index. Thirteen of the twenty-two milestones — M5, M6, M9, M10, M11, M12, M14, M15, M17, M18, M19, M20, M21 — have acceptance tests that are runnable in a dependency-free environment, because `core/` is pure by construction. Only M7, M8 and M22 are dependency-blocked, and M13 and M16 are blocked on the INTENTS tree rather than on tooling. The generalisation from two milestones to all of them was made without testing it. **A plan that says a milestone cannot be verified should name the milestone and the import that blocks it, never the environment.**
+
 
 **Q20: Which definition of D19's expectation is pinned?** — Awaiting Steering: resolved 2026-09-12. Pin the expectation as the softmax renormalized over the twenty letter positions. The full-vocabulary-softmax-over-the-letter-set reading is recorded here as rejected, so a later implementer does not silently switch definitions on a probe whose value is comparability. Originally blocked M20 and any future proposer work. Two readings exist: the softmax renormalized over the
 twenty letter positions, or the full-vocabulary softmax renormalized over the letter set. Issue #15
