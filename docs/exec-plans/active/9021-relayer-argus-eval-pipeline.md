@@ -53,7 +53,14 @@ fixed in place before the import so they surface in their own diffs rather than 
 repo-relative to `harness-cli` per the rubric, so it does not list them.
 
 **INTENTS is deliberately absent from File Scope.** M13 reads `INTENTS/` and `EPOCH.yaml`;
-nothing in this plan writes them (D15). `.claude/tests/test_plan_collisions.py` intersects
+no code in `src/argus/` writes them (D15). **M16 is not an exception to this and must not become
+one.** M16 runs the 9003 compiler to *produce* `_rubric/` AuthoredNodes, and those nodes' home is
+`INTENTS/_rubric/rules_criteria/**` — so the milestone emits them to a staging path and stops
+there. Committing them into the tree is an upstream write-time epoch act (S6, ADR-0003), performed
+by a human or by the compiler line, never by Argus reaching back into its own referent. An earlier
+revision of this plan asserted the D15 rule in this paragraph while M16 read as though it wrote the
+nodes directly; an implementer would have had to pick a reading, and neither was recorded as
+intended. `.claude/tests/test_plan_collisions.py` intersects
 declared paths with no read/write distinction, and 9008 declares `INTENTS/**` (modify), so
 declaring a read-only INTENTS path here would fail the collision test and block both plans. Do not
 add one.
@@ -276,12 +283,25 @@ are findings, not overrides.
 
 ### M17 — Build `core/corroboration.py` (I6)
 
-Independence-weighted aggregation over verified signals. B's local NLI path is a weight-1.0
-independent instrument; another model-judged text criterion on the same span is redundant at 0.0.
-Clears `finding_thin`, never `criterion_below_tau`.
+Independence-weighted aggregation over verified signals, across **all three** weight classes:
+independent (acoustic measurement, lexical/lookup/ordered-match) at **1.0**; **correlated** (Error
+Case, Best Practice — a model-judged match to a confirmed referent) at **W_C = 0.4 PROVISIONAL**,
+with the debt logged and the correct value being `1 − corr(matcher_error, proposer_error)` measured
+on a human-labelled sample; redundant (another model-judged text criterion on the same span) at
+**0.0**. B's local NLI path is an independent instrument. Clears `finding_thin`, never
+`criterion_below_tau`.
+
+`Notes:` The correlated class is the hard one and it is **not a port**. B has independent signals
+and redundant ones but no concept of a model-judged match to a confirmed referent, because its
+aggregator only ever sees model-authored prose. Inventing that class — plus a deterministic test
+for "same span, same judgment source" — is what makes soft⊕soft = 0 enforceable rather than
+aspirational. An earlier revision of this milestone named only 1.0 and 0.0, which would have left
+an implementer to treat a correlated match as either independent (over-confidence) or redundant
+(discarding evidence). Both violate I6.
 
 `Acceptance Test:` `tests/test_corroboration.py::test_redundant_signals_aggregate_zero`.
-`::test_independent_signal_clears_finding_thin`.
+`::test_correlated_signal_weighs_w_c` — a model-judged referent match contributes 0.4, neither 1.0
+nor 0.0. `::test_independent_signal_clears_finding_thin`.
 `::test_corroboration_never_clears_criterion_below_tau`. `::test_aggregate_no_model_client`.
 
 ### M18 — Build `core/adjust.py` (S4b)
@@ -323,11 +343,22 @@ gives `max|Δlogit| == 0.0`, with a reference-snapshot red case.
 
 ### M21 — Persist the replay record (I5)
 
-Store the FindingGraph, `intents_sha` and rubric version. `replay_hash` over grounded inputs only,
-never the proposed score. B currently discards every intermediate, so no report is re-derivable.
+Store the FindingGraph, `intents_sha` and rubric version. `replay_hash` is a function of
+**grounded inputs *and* anchored precedents** — and never of the proposed score (I5). An earlier
+revision of this milestone said "grounded inputs only", which drops the precedent set from the hash
+and leaves it unable to detect the change it exists to detect: two runs citing different precedents
+would hash identically. B discards every intermediate today, so no report is re-derivable.
+
+`Notes:` The manifest path needs a new exact-filename glob in `INTENTS/_meta/ownership.yaml`
+assigned to exactly one producer **before** the file may exist. That ledger requires every file to
+match exactly one glob with zero orphans, CI-enforced, and `_meta/` uses exact-filename globs with
+no `*.yaml` wildcard. The existing compiler-produced sidecar `_meta/residue-manifest.yaml` —
+`schema_version: "1.0.0"`, top-level `compiler_epoch`/`sources`/`rows` — is the precedent to
+follow. Reported in issue #16; verify against the live tree before writing.
 
 `Acceptance Test:` `tests/test_replay.py::test_stored_graph_rederives_identical_result`.
-`::test_replay_hash_excludes_proposed_score`.
+`::test_replay_hash_includes_anchored_precedents` — two graphs identical but for their precedent
+set must hash differently. `::test_replay_hash_excludes_proposed_score`.
 
 ### M22 — Surface: CLI, config, record format
 
@@ -372,7 +403,11 @@ against a real transcript. `::test_json_mode_is_machine_readable`.
   from `src/argus/`.
 - Source: `simbiclaw/sim@0c2cccd` `core/aggregator.py` — 118 lines, no model import, 4/4 tests
   passing; `core/fact_checker.py:184-186` derives the per-verdict score from an enum rather than
-  from model output. B satisfies I3, I7 and D15 independently.
+  from model output. B satisfies **I7 and D15** independently. On **I3 it satisfies the purity half
+  only**: no model touches the arithmetic, but `aggregate()` takes no rubric parameter, so it is
+  not `score(facts, rubric)` and M10 is a redesign rather than a move. Stating this as "B satisfies
+  I3" without that qualifier — as an earlier revision did here, and as the archived 9002 Outcomes
+  still does — overstates it against this plan's own evidence two hundred lines below.
 - Source: 9020 Big Picture — "executes after the 9002 milestones it names have shipped"; 9020
   Progress shows M0–M5 flipped 2026-08-27 while 9002 shipped nothing.
 
@@ -413,6 +448,24 @@ representable. Item 26 maps to Empathy & Tone and its Problem Resolution aspect 
 
 **Confidence:** high that it is expressible; `Confidence: low` that residue is the right *semantic*
 home if the intent is that item 26 deduct in both dimensions. `Revisit: M16`.
+
+### Decision: deviate knowingly from the spec's build order
+
+The spec fixes the build order M0→M7 as written and states that **the proposer is built last**.
+This plan imports B's proposal half at M7 and builds the INTENTS Provider at M13, which inverts
+that.
+**Rationale:**
+- Source: reported in issue #16 as a standing disagreement with the spec (`:976`, `:1074`).
+- The spec's order is correct for building S2 from scratch, where a proposer written before its
+  consumers has nothing to check it. This plan is not building S2 — it is importing a proposer that
+  already exists and already runs, and the reason to move it early is that quarantining it is a
+  directory move that everything downstream depends on.
+- The property the spec's order protects — that no proposer output reaches a verdict ungrounded —
+  is held here by M12's grounding gate and the M8 fences, not by ordering.
+
+**Confidence:** medium. `Revisit: M12` — if the grounding gate cannot be built against imported
+proposer output without reaching back into `io/`, the spec's order was right and this plan's
+phasing is wrong.
 
 ### Decision: 25 scored items — 6 and 7 excluded for data dependency, not deleted
 
@@ -550,6 +603,24 @@ falling back, and the expectation differs from the argmax in all twelve measurem
 Scoring is not the capacity problem. The score pass costs ~0.14 s on the 27B against a hunt pass of
 ~45–60 s — roughly 0.3% of the call. The hunt pass is where capacity is decided, which is Q12.
 
+**A local review found three defects in this plan that would have shipped into implementation
+(issue #16, 2026-09-12).** All three were introduced here and all three are now fixed: `replay_hash`
+was written as "grounded inputs only", dropping the anchored precedents I5 requires (M21); M17 named
+only the 1.0 and 0.0 weight classes, deleting I6's `correlated` class at `W_C = 0.4` entirely; and
+§2's D15 claim contradicted M16's production of `_rubric/` nodes. The pattern in all three is the
+same and worth naming: **each dropped the harder half of an invariant and kept the half that was a
+port.** Precedents, correlation, and the write boundary are the three places this plan cannot copy
+B and must invent, and all three were quietly narrowed to what B already does.
+
+**Two claims in that review did not verify here, and are recorded so they are not propagated.**
+The review states 9020 "has no notes at all, at any path, and all eight milestones are unflipped";
+this tree has seven notes files under
+`docs/exec-plans/completed/9020-continuous-proposer-and-provenance-separation-notes/` and six
+flipped milestones. It also calls B's `self.kb_builder` `AttributeError` a *third* blocking crash;
+it is the first of the two M1 already covers — `qa_agent.py:31` assigns `kb_context_builder` and
+`:66` calls `kb_builder`, which is exactly the blocker M1 names. Both misreadings are the same
+class the review itself warns about, and neither changes its conclusions.
+
 **This entire line of work is unmerged.** `origin/main` contains none of it: not `local_proposer.py`,
 not the 9020 experiment artifacts, not the patch-1 spec, not 9020 or 9021 themselves. As of
 2026-09-12 `main` has zero commits this branch lacks and the branch is eighteen ahead, so it is a
@@ -630,6 +701,15 @@ Default if not decided: open as its own plan owned by the 9003 compiler line.
 > 3's correction does not apply to it. Applying patch 3's arithmetic to B's sheet would push out
 > items 26 and 27 instead, and item 27 is the privacy veto. Whoever resolves Q14 must keep the two
 > counts apart.
+>
+> **Contested, and only the local session can settle it.** Issue #16 reports that the live INTENTS
+> tree holds **25 nodes at ids 1–5 and 8–27** — i.e. 6 and 7 already excluded — which if true means
+> the two counts are the same 25 and this warning is wrong. The supporting citation given for it
+> (`patch-1:194` as "25 (items 6,7 excluded)") does **not** verify in this tree: line 194 is a
+> milestone-table row, and patch-1 contains no mention of items 6 or 7 anywhere. The tree evidence
+> cannot be checked from a clone where `INTENTS` dangles. **Settle it by listing the node ids in
+> the live tree before M15**, and delete or keep this warning on that basis rather than on either
+> document.
 
 **Q15: Reconcile implementation-notes-during-execution with the checkbox-flip gate.** — Deadline:
 2026-09-30. Unresolved; blocks nothing but recurs on every milestone. Inherited from 9020's Q8,
