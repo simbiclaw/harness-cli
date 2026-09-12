@@ -853,13 +853,11 @@ where these fields live.
 **Q11: Accept the new config surface?** — Awaiting Steering: resolved 2026-09-12. Accepted, and **the scope includes the drift probe's values**: M20 keeps the probe alive in this plan, and leaving it on hardcoded constants reproduces the silent-failure shape already on the debt list. **No key list is fixed here.** The contents are discovered at M22 under its binding constraint — no value that alters a verdict may live as a hardcoded constant — and the two floors that have no declared value anywhere are measured before they are declared, not guessed here. Note the mechanical consequence of this resolution: `src/argus/config/**` is a sensitive path, so the PreToolUse hook would have blocked M22 from touching config at all while this entry read unresolved, whatever it said. Originally blocked M22.
 
 
-**Q12: Fix the serving shape, or keep it behind the batch-shaped interface?** — Deadline:
-2026-09-30. Unresolved; blocks nothing. Inherited from 9020's Q4. Default if not decided: defer
-again; the io boundary makes it a swap rather than a rewrite.
+**Q12: Fix the serving shape, or keep it behind the batch-shaped interface?** — Awaiting Steering: resolved 2026-09-12. **Deferred**, and not for 9020's reason. The measurement needs a stack that is not installed and weights that are not present, and issue #15 established that the score pass is roughly 0.3% of a call — so the capacity question is about the hunt pass, not about D19's granularity. The io boundary keeps this a swap rather than a rewrite whenever it is taken up. Blocked nothing in this plan.
 
-**Q13: Namespace the measurement-profiles D-series?** — Deadline: 2026-09-30. Unresolved; blocks
-nothing. Inherited from 9020's Q5. Default if not decided: renumber
-`measurement-profiles-design.md` D13–D18 to MP-D1–MP-D6.
+
+**Q13: Namespace the measurement-profiles D-series?** — Awaiting Steering: resolved 2026-09-12. **Moved out of this plan** to [#17](https://github.com/simbiclaw/harness-cli/issues/17), owned by the 9003 compiler line. It sat here only because 9020 handed it over, and it is not this plan's deliverable: the citation weight is in `core/compiler/**` and its tests. The evidence gathered for it — that there are three colliding series rather than two, that the collision starts at D1 rather than D13, and that the recorded basis for 9020's default was wrong because the ADRs cite zero D-numbers — travels with the issue. Blocked nothing in this plan.
+
 
 **Q14: Is companion patch 3 absorbed here or opened as its own plan?** — Awaiting Steering: resolved 2026-09-12. Patch 3 is opened as its own plan owned by the 9003 compiler line, not absorbed here. The 25-vs-25 warning below stands and must travel with it. Originally blocked M16. Inherited from 9020's Q6. It adds CalibrationManifest row fields,
 prohibitions AUTH-11 to AUTH-13, an F4 tranche-balance check, and a 27-to-25 item-count correction.
@@ -885,11 +883,8 @@ Default if not decided: open as its own plan owned by the 9003 compiler line.
 > the live tree before M15**, and delete or keep this warning on that basis rather than on either
 > document.
 
-**Q15: Reconcile implementation-notes-during-execution with the checkbox-flip gate.** — Deadline:
-2026-09-30. Unresolved; blocks nothing but recurs on every milestone. Inherited from 9020's Q8,
-where it was worked around per-milestone. Under the promotion rule a second occurrence moves the
-rule into the test. Default if not decided: narrow the test's staleness signal to key on a verdict
-badge written at flip time.
+**Q15: Reconcile implementation-notes-during-execution with the checkbox-flip gate.** — Awaiting Steering: resolved 2026-09-12. **Moved out of this plan** to [#18](https://github.com/simbiclaw/harness-cli/issues/18). It is a harness defect in `.claude/tests/**`, not a deliverable of re-layering Argus. The finding that travels with it: the gate derives a notes directory that does not match 9008's, so 9008's seven flipped milestones are never checked and the unflipped-milestone test passes vacuously — and 9008's directory name is the one the convention document actually specifies. It is **not** violation two under the promotion rule; the single historical trip predates the test by a day. Blocked nothing in this plan.
+
 
 **Q16: Does `core/` stop importing `io/`, or do the fences allow indirect imports?** — Awaiting Steering: resolved 2026-09-12. Forbid `core -> io`. M8 lands the four forbidden contracts with `include_external_packages = True` and amends `docs/conventions/layering.md:41` in the same milestone, so the convention and the lint agree rather than contradicting each other. Originally blocked M8. `.importlinter` declares layers with `core` above `io`, so
 `core → io` passes today, while `docs/conventions/layering.md:41` permits it explicitly. The four
