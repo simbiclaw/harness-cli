@@ -268,8 +268,12 @@ def decompose_signals(item: RubricItem | dict) -> dict:
     FAIL and EXCELLENCE signals, and reject pure-adjective standards.
 
     Deterministic rule order (ids increment S01, S02, ... in this order):
-      1. Lexical — non-empty named phrases produce a gate-checkable FAIL
-         signal naming the phrases.
+      1. Lexical — named phrases produce gate-checkable signals, split by
+         polarity (M14): phrases the fail standard names (plus phrases
+         neither standard places) go to the FAIL lane, phrases only the pass
+         standard names go to the EXCELLENCE lane. A FAIL signal fires on
+         the phrase being PRESENT, so a pass-standard phrase in that lane
+         deducts for the behaviour the rubric rewards.
       2. Ordered relation — a fail standard matching 先<X>再<Y> / 先<X>后<Y>
          (or English "acknowledge before resolve" / "... THEN ...") produces
          a FAIL signal with an ordered-relation evidence shape.
@@ -350,13 +354,29 @@ def decompose_signals(item: RubricItem | dict) -> dict:
         def reject(standard: str) -> None:
             rejected.append({"standard": standard, "reason": "adjective without concrete referent"})
 
-        # 1. Lexical signals from the item's named phrases (B-D).
-        if named_phrases:
+        # 1. Lexical signals from the item's named phrases (B-D), split by
+        #    polarity (M14). A FAIL signal asserts that a transcript
+        #    CONTAINING the phrase is evidence of failure, so a phrase the
+        #    PASS standard names belongs in the excellence lane: item 18's
+        #    业务手册 comes from 善于使用资源, and deducting for it inverts
+        #    the rubric.
+        fail_phrases, excellence_phrases = _split_phrases_by_polarity(
+            named_phrases, pass_standard, fail_standard
+        )
+        if fail_phrases:
             fail.append(
                 make_signal(
-                    "transcript contains one of the named phrases: " + "、".join(named_phrases),
+                    "transcript contains one of the named phrases: " + "、".join(fail_phrases),
                     True,
                     severity="high",
+                )
+            )
+        if excellence_phrases:
+            excellence.append(
+                make_signal(
+                    "transcript contains one of the pass-standard phrases: "
+                    + "、".join(excellence_phrases),
+                    True,
                 )
             )
 
@@ -617,6 +637,29 @@ def _trim_verb_prefix(text: str) -> str:
     ):
         start += 1
     return " ".join(tokens[start:])
+
+
+def _split_phrases_by_polarity(
+    named_phrases: list[str], pass_standard: str, fail_standard: str
+) -> tuple[list[str], list[str]]:
+    """M14: partition named phrases into (fail lane, excellence lane) by the
+    polarity of the standard that names them.
+
+    A phrase the FAIL standard names marks failure — its presence in a
+    transcript is evidence against the agent. A phrase only the PASS standard
+    names marks the opposite (item 18's 业务手册 comes from 善于使用资源), so a
+    FAIL signal naming it inverts the rubric. A phrase named by BOTH standards
+    keeps the fail lane: item 18's 客服系统 is a resource in the pass standard
+    and a worked counter-example in the fail standard, and the entanglement is
+    what `_pass_cites_fail_standard` already routes to model judgment.
+
+    A phrase NEITHER standard names has no determinable polarity and stays in
+    the fail lane, which is the lane the compiler has always given it — an
+    unplaceable phrase is never dropped (B3).
+    """
+    fail_lane = [p for p in named_phrases if p in fail_standard or p not in pass_standard]
+    excellence_lane = [p for p in named_phrases if p in pass_standard and p not in fail_standard]
+    return fail_lane, excellence_lane
 
 
 def _is_split_standard(standard: str) -> bool:
