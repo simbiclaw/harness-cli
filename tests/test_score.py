@@ -31,6 +31,7 @@ import pytest
 from pydantic import ValidationError
 
 from argus.core.score import (
+    Contribution,
     DeferReason,
     Rubric,
     ScorableFact,
@@ -281,6 +282,26 @@ def test_an_all_na_call_is_not_a_clean_hundred_or_a_shippable_zero():
     assert raw.denominator == 0.0
     assert raw.coverage_clear is False
     assert auto_final_eligible(raw, criteria_trusted=True) is False
+
+
+def test_a_contribution_cannot_disagree_with_itself():
+    """`credit` is a function of `outcome`, so a row storing both must agree.
+
+    They are stored separately because the arithmetic reads one and the veto
+    rule reads the other. Without this check a caller — M18 applying a
+    precedent is the realistic one — could write `outcome=FAIL, credit=1.0`,
+    and the row would score as a pass while still tripping the veto.
+    """
+    ok = dict(finding_id="F01", rubric_id=1, weight=1.0, is_veto=False)
+    assert Contribution(outcome=VerdictResult.PASS, credit=1.0, **ok).credit == 1.0
+
+    with pytest.raises(ValidationError, match="scores 0.0, not 1.0"):
+        Contribution(outcome=VerdictResult.FAIL, credit=1.0, **ok)
+    with pytest.raises(ValidationError, match="scores 1.0, not 0.0"):
+        Contribution(outcome=VerdictResult.PASS, credit=0.0, **ok)
+    # An outcome that does not score has no credit to record at all.
+    with pytest.raises(ValidationError, match="scores None"):
+        Contribution(outcome=VerdictResult.NEI, credit=0.0, **ok)
 
 
 def test_every_outcome_in_the_enum_is_handled():

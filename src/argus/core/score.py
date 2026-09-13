@@ -46,7 +46,7 @@ import inspect
 from collections.abc import Sequence
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from argus.types.pipeline import RubricItem, VerdictResult
 
@@ -81,6 +81,16 @@ _DEFERRALS: dict[VerdictResult, DeferReason] = {
     VerdictResult.NEI: DeferReason.UNVERIFIABLE,
     VerdictResult.HUMAN_REVIEW: DeferReason.HUMAN_REVIEW,
 }
+
+
+def credit_for(outcome: VerdictResult) -> float | None:
+    """The credit one outcome earns, or `None` if it does not score at all.
+
+    Public because M18 needs it to re-derive an overturned row's credit, and a
+    downstream stage reaching into `_CREDIT` would be a second place where the
+    outcome-to-credit mapping lives.
+    """
+    return _CREDIT[outcome]
 
 
 class UnknownCriterion(LookupError):
@@ -131,6 +141,48 @@ class Rubric(BaseModel):
         )
 
 
+class Contribution(BaseModel):
+    """One scored row, kept so the total can be re-derived rather than trusted.
+
+    I5 requires the stored record to re-derive the identical result forever. A
+    record carrying only a numerator and a denominator cannot: nothing in it
+    says which criterion contributed what, so a later stage that needs to
+    revisit one row — M18 applying a precedent — would have to re-run the whole
+    pipeline or invent the arithmetic a second time.
+
+    `weight` and `is_veto` are copied from the rubric *here*, inside `core/`,
+    at the moment the rubric was consulted. That is the opposite of upstream,
+    where the copy is made inside a model-calling module and the arithmetic
+    never sees the sheet.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    finding_id: str
+    rubric_id: int
+    outcome: VerdictResult
+    credit: float
+    weight: float
+    is_veto: bool
+
+    @model_validator(mode="after")
+    def _credit_matches_outcome(self) -> Contribution:
+        """The credit is a function of the outcome, so it cannot disagree with it.
+
+        Without this a caller — M18 applying a precedent, most plausibly — could
+        record `outcome=FAIL` with `credit=1.0`, and the row would score as a
+        pass while the veto rule still read it as a failure. The two fields are
+        stored separately because the arithmetic needs one and the veto rule
+        needs the other; keeping them consistent is this check's whole job.
+        """
+        expected = _CREDIT[self.outcome]
+        if expected is None or self.credit != expected:
+            raise ValueError(
+                f"outcome {self.outcome.value} scores {expected}, not {self.credit}"
+            )
+        return self
+
+
 class Deferral(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -156,6 +208,7 @@ class RawScore(BaseModel):
     denominator: float
     veto_triggered: bool
     veto_criteria: tuple[int, ...] = Field(default_factory=tuple)
+    contributions: tuple[Contribution, ...] = Field(default_factory=tuple)
     deferrals: tuple[Deferral, ...] = Field(default_factory=tuple)
 
     @property
@@ -169,6 +222,40 @@ class RawScore(BaseModel):
         return not self.deferrals and self.denominator > 0
 
 
+def tally(contributions: Sequence[Contribution]) -> tuple[float, float, float, tuple[int, ...]]:
+    """Sum a set of contributions into `(value, numerator, denominator, vetoes)`.
+
+    Separated from `score` so that M18 re-derives the adjusted total through
+    the same arithmetic rather than writing a second copy of it. Two copies is
+    how `raw` and `adjusted` drift apart while both look correct.
+
+    A veto is a *failure* on a criterion the rubric marks as one, matching
+    upstream (`core/aggregator.py:76`). Not merely a row that earned no credit:
+    `PARTIAL` also earns none, and treating it as a veto would zero a call for
+    a partially-met criterion — a change nobody asked for and which would be
+    invisible behind a passing test suite.
+
+    Recomputed from the contributions rather than carried over, so a precedent
+    that overturns the failure also lifts the veto it caused.
+    """
+    numerator = sum(c.credit * c.weight for c in contributions)
+    denominator = sum(c.weight for c in contributions)
+    vetoes = tuple(
+        sorted(
+            {
+                c.rubric_id
+                for c in contributions
+                if c.is_veto and c.outcome is VerdictResult.FAIL
+            }
+        )
+    )
+
+    value = round(numerator / denominator * 100, 1) if denominator > 0 else 0.0
+    if vetoes:
+        value = 0.0
+    return value, numerator, denominator, vetoes
+
+
 def score(facts: Sequence[ScorableFact], rubric: Rubric) -> RawScore:
     """Derive the raw score. Pure: no clock, no RNG, no history, no model.
 
@@ -176,10 +263,8 @@ def score(facts: Sequence[ScorableFact], rubric: Rubric) -> RawScore:
     sequence on the result is sorted before it is returned — so a caller that
     shuffles its findings gets a byte-identical record.
     """
-    numerator = 0.0
-    denominator = 0.0
+    contributions: list[Contribution] = []
     deferrals: list[Deferral] = []
-    veto_criteria: set[int] = set()
 
     for fact in facts:
         item = rubric.item(fact.rubric_id)  # raises on an unknown criterion
@@ -197,23 +282,29 @@ def score(facts: Sequence[ScorableFact], rubric: Rubric) -> RawScore:
                 )
             continue
 
-        numerator += credit * item.weight
-        denominator += item.weight
+        contributions.append(
+            Contribution(
+                finding_id=fact.finding_id,
+                rubric_id=fact.rubric_id,
+                outcome=fact.outcome,
+                credit=credit,
+                weight=item.weight,
+                is_veto=item.is_veto,
+            )
+        )
 
-        if item.is_veto and fact.outcome is VerdictResult.FAIL:
-            veto_criteria.add(item.id)
-
-    value = round(numerator / denominator * 100, 1) if denominator > 0 else 0.0
-    if veto_criteria:
-        value = 0.0
+    value, numerator, denominator, vetoes = tally(contributions)
 
     return RawScore(
         rubric_version=rubric.version,
         value=value,
         numerator=numerator,
         denominator=denominator,
-        veto_triggered=bool(veto_criteria),
-        veto_criteria=tuple(sorted(veto_criteria)),
+        veto_triggered=bool(vetoes),
+        veto_criteria=vetoes,
+        contributions=tuple(
+            sorted(contributions, key=lambda c: (c.rubric_id, c.finding_id))
+        ),
         deferrals=tuple(sorted(deferrals, key=lambda d: (d.rubric_id, d.finding_id))),
     )
 
