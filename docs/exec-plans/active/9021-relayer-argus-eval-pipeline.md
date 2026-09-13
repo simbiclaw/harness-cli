@@ -745,6 +745,54 @@ both dangling symlinks — the first to a path outside the repository, the secon
 on one developer's machine. Every conclusion in this plan was reached from CLAUDE.md's operating
 summary rather than from the spec it defers to.
 
+**The plan's path-B reason was wrong, and the real one is worse (M12, 2026-09-13).** The advisory
+called upstream's path-B evidence "model-authored prose rather than a quotation". The prompt asks
+for one: `models/prompts.py:328` requests `"key_evidence": "最关键的证据原文片段"` — the most critical
+*verbatim source fragment*. What makes it unanchorable is narrower. The returned string is whatever
+came out of `json.loads` (`core/fact_checker.py:98-99`) and nothing upstream checks it against a
+source, unlike path A where the text is `turn.text` copied verbatim (`:66-72`). It is filed under
+`kb_context.primary_intent_path` — `matched_paths[0]` (`knowledge/intent_retriever.py:110`) — while
+the text the model read is every primary node concatenated (`:99-103`) and truncated to 3000
+characters (`fact_checker.py:102`). So with more than one primary node, a *faithful* quote is
+attributed to the wrong document. A plan that had been right about the cause would have suggested
+"verify the quote against the doc"; the actual cause means there is no document to verify against.
+
+**The correlated corroboration class already existed here (M17, 2026-09-13).** The advisory says it
+"has no counterpart and must be invented". True of upstream — its aggregator sums `v.score *
+v.weight` with no notion of where a verdict's error came from (`core/aggregator.py:52-56`) — but
+9003 landed the class on the authoring side months ago: `core/compiler/classify.py:43-58`
+classifies an exemplar/case match as correlated, and `core/compiler/agreement.py:36-46` already
+holds `_W_C = 0.4` with the same provisional note. M17 invented the runtime aggregator, not the
+class. The constant now lives in two places, deliberately — a 9003-compiler private is not a
+runtime contract — and that is new debt for M22, whose binding constraint is that no
+verdict-altering value lives as a hardcoded constant.
+
+**The I8 checker was passing on a docstring (M9, 2026-09-13).** `test_divergence_is_the_only_
+permitted_reader` asserted that `divergence.py` reads the proposed score. It does — but under the
+parameter name `proposed`, which was never in `LOGIT_DERIVED`. The assertion was satisfied by the
+module's *prose*, matched by a raw `"proposed_score" in code` substring scan. So the repo's
+strongest existing artifact was reporting the right answer for the wrong reason, and
+`severity = proposed` written inside the drift probe — the one module that legitimately holds the
+quantity — would have passed clean. Two fixes: the reader test is now structural (identifiers,
+string subscripts, `getattr`-style access, no prose), and `LOGIT_DERIVED` carries the names the
+quantity is actually spelled with. Verified by planting `deduction = proposed_score` in a live
+core module. This is the second time a check has been found to be satisfied by something other
+than the property it names — the first was M5's hand-transcribed schema table. Both were fixed by
+making the check derive its expectation instead of stating it.
+
+**The escape floor was a parameter, never a commitment (M19, 2026-09-13).** 9020 shipped
+`split_tranches(..., absolute_floor: int = 0)`, and every test passed its own number. So the floor
+was enforced in four test bodies and in no call site, and the plan's own note — "the floor has no
+declared value anywhere" — understated it: a default of zero means a caller who forgets gets no
+floor and no warning. Declared at `ESCAPE_RATE_FLOOR = 60`, derived rather than chosen: the rule of
+three against the 0.05 escape ceiling this repo already carries at `agreement.py:49`, so 3/0.05 =
+60 is the smallest clean sample that distinguishes "below the ceiling" from "too few looks to
+tell". The relation is asserted in the test, so changing either number alone fails.
+
+**`compute_escape_rate` returned 0.0 for an empty sample (M19, 2026-09-13).** The most reassuring
+number the function can produce, returned for having reviewed nobody. Latent because nothing called
+it. An estimate and the absence of one now have different shapes.
+
 **Planning and implementation were split across environments, deliberately (2026-09-12).** This
 plan was written in a cloud session that could not install dependencies or read either symlink.
 Implementation was handed to a local session by human direction, for both reasons — see Q18. Two
