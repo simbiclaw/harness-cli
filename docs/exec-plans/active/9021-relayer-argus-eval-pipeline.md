@@ -834,6 +834,31 @@ resolves to a passing value. **A guard that degrades to green is a skip, and it 
 the thing its author was unsure about.** Any structural test in this plan that cannot be shown to
 fail on a planted defect is not evidence.
 
+**The polarity-blind compiler signal was item 18's *only* gate-checkable signal (M14,
+2026-09-13).** `decompose_signals` emitted one FAIL signal from the flat `named_phrases` list
+without consulting which standard named each phrase. A FAIL signal fires on presence, so any phrase
+drawn from the *pass* standard deducted for the behaviour the rubric rewards. Item 18 shipped that
+signal as its sole gate-checkable output — every other signal was `model_only` — so this was not
+one wrong voice among several, it was the entire deterministic verdict, and it deducted for
+consulting the business manual that `善于使用资源` explicitly rewards. Measured directly: the item
+and the item with its two standards swapped produced byte-identical output. The compiler could not
+see polarity at all.
+
+**And the flattening starts upstream of the compiler, which M15 and M16 must address.** The pilot's
+`named_phrases` mixes pass-standard vocabulary (`客服系统`, `业务手册`) with fail-standard
+vocabulary (`思路混乱`, `引导延期`) in one undifferentiated list, with no field recording which is
+which. M14's fix recovers polarity by substring-matching each phrase against the two standards,
+because that is the only place the compiler has the information — it works on every fixture in the
+suite, but it is **inference, not data**. If the rubric input grows an explicit polarity field, the
+helper should read it and fall back to inference only when absent. A phrase appearing in both
+standards, as `客服系统` does in item 18, is genuinely ambiguous and stays in the FAIL lane where
+the existing entanglement check routes it to model judgment.
+
+**Signal ids shifted as a consequence.** Item 18 now emits `18-S01` (fail lexical), `18-S02`
+(excellence lexical), `18-S03`, `18-S04`, where it previously emitted `18-S01..S03`. Nothing in the
+suite pins these, but any node compiled before this change, and any downstream reference to
+`18-S02` or `18-S03`, now points at a different signal.
+
 ## 7. Awaiting Steering
 
 **Q1: Approve the RE-LAYER strategy?** — Awaiting Steering: resolved 2026-09-12. Approved.
