@@ -19,12 +19,17 @@ import ast
 from dataclasses import fields
 from pathlib import Path
 
+import pytest
+
 from argus.core.divergence import (
     DriftAssessment,
     assess_drift,
+    divergence_trend,
     per_call_divergence,
+    probe_divergence,
     window_divergence,
 )
+from argus.types.pipeline import RubricCategory
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MODULE = REPO_ROOT / "src" / "argus" / "core" / "divergence.py"
@@ -105,3 +110,95 @@ def test_core_no_model_client():
     forbidden_roots = {"anthropic", "llama_cpp", "random", "time", "datetime", "secrets"}
     offenders = [m for m in imported if m.split(".")[0] in forbidden_roots]
     assert not offenders, f"divergence must be pure; forbidden imports: {offenders}"
+
+
+# ── 9021 M20: the probe must be able to fail ────────────────────────────────
+#
+# M20 repurposes 9020's proposer as an *observable* drift probe. The two sides
+# of the comparison do not speak the same language:
+#
+#   proposed — keys are the proposer's own dimension strings
+#              (`ProposerCall.dimensions`, src/argus/io/local_proposer.py:103),
+#              values are an index on the ORDERED letter scale, in [0, k-1]
+#              where k = `g_used` (src/argus/io/logprob_scoring.py:25-45).
+#   derived  — keys are the five `RubricCategory` values
+#              (src/argus/types/pipeline.py:83-90), the number is a percentage
+#              (`QAReport.overall_score`, src/argus/types/pipeline.py:326).
+#
+# Both mismatches are silent in the shipped 9020 code, and silence here is the
+# worst possible failure mode: a monitor that cannot fail is trusted.
+
+
+def test_disjoint_keys_raise():
+    """Incomparable key vocabularies fail loudly instead of reporting stability.
+
+    With a silent skip, a disjoint pair produces `{}`. The chain below is why
+    that single empty dict is fatal rather than merely empty: it windows to
+    `{}`, whose series trends "flat", which clears `calibration_injection` —
+    for every window, forever, by construction. The probe would report a stable
+    proposer without ever having compared one number to another.
+    """
+    # Real key vocabularies from both sides, not invented ones.
+    proposed = {"empathy": 3.2, "procedural": 1.0}
+    derived = {
+        RubricCategory.ATTITUDE.value: 87.5,
+        RubricCategory.PROCESS.value: 92.0,
+    }
+    assert not (proposed.keys() & derived.keys()), "fixture must be disjoint"
+
+    with pytest.raises(ValueError, match="no shared dimension"):
+        per_call_divergence(proposed, derived)
+
+    # Nothing at all on either side is the same failure, not a quiet success.
+    with pytest.raises(ValueError, match="no shared dimension"):
+        per_call_divergence({}, {})
+
+    # The stability-forever chain the raise removes, in the real functions.
+    assert window_divergence([{}, {}, {}]) == {}
+    assert divergence_trend([]) == "flat"
+    assert assess_drift([0.9, 0.9, 0.9], [], tau=0.8).calibration_injection is False
+
+    # A partial overlap is still a comparison, and stays one (9020's rule,
+    # asserted by test_divergence_only_over_shared_dimensions above).
+    assert per_call_divergence({"a": 5.0, "b": 1.0}, {"a": 2.0}) == {"a": 3.0}
+
+
+def test_units_are_comparable():
+    """Unifying keys is not enough — the two sides are on different scales.
+
+    `abs(3.2 - 87.5)` over a shared key is well-formed and meaningless: an
+    ordinal scale index differenced against a percentage. `probe_divergence` is
+    the probe's entry point and both scale tops are keyword-only with no
+    default, so a caller cannot enter the probe without declaring what its
+    numbers mean.
+    """
+    dim = RubricCategory.ATTITUDE.value
+    ordinal = {dim: 3.2}      # g_used = 5 letters -> the axis top is 4.0
+    percentage = {dim: 87.5}
+
+    # The raw difference the unfixed probe would have reported.
+    assert per_call_divergence(ordinal, percentage) == {dim: abs(3.2 - 87.5)}
+
+    # Declaring no scale is impossible, not merely discouraged.
+    with pytest.raises(TypeError):
+        probe_divergence(ordinal, percentage)
+
+    d = probe_divergence(ordinal, percentage, proposed_upper=4.0, derived_upper=100.0)
+    assert d == {dim: abs(3.2 / 4.0 - 87.5 / 100.0)}
+    assert 0.0 <= d[dim] <= 1.0, "both sides land on the common [0, 1] axis"
+
+    # A number that is not on the scale it was declared to be on is an
+    # incomparable input too: 87.5 cannot be an index into a 5-letter scale.
+    with pytest.raises(ValueError, match="outside its declared scale"):
+        probe_divergence(percentage, percentage, proposed_upper=4.0, derived_upper=100.0)
+
+    # g_used == 1 leaves no score axis at all; dividing by zero width would
+    # otherwise raise ZeroDivisionError or fabricate a ratio.
+    with pytest.raises(ValueError, match="degenerate scale"):
+        probe_divergence({dim: 0.0}, percentage, proposed_upper=0.0, derived_upper=100.0)
+
+    # The key check is not bypassed by going through the entry point.
+    with pytest.raises(ValueError, match="no shared dimension"):
+        probe_divergence(
+            {"empathy": 3.2}, percentage, proposed_upper=4.0, derived_upper=100.0
+        )
