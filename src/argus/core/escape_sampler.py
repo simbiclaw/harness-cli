@@ -12,18 +12,19 @@ the estimator depends on. So the sampler splits (D22):
 - a PRIORITIZED tranche — ordered by proposer signal, feeding recall recovery
   and calibration minting, and excluded from the escape-rate computation.
 
-The random-tranche-only rule is enforced by TYPE: `compute_escape_rate()`
-accepts a `RandomTranche` and nothing else. A `PrioritizedTranche` or a raw
-list is a `TypeError`, so the bias cannot enter by a careless call site.
+The random-tranche-only rule is enforced by TYPE: `compute_escape_rate()` —
+which lives in `core/escape_rate.py` as of 9021 M19 — accepts a `RandomTranche`
+and nothing else. A `PrioritizedTranche` or a raw list is a `TypeError`, so the
+bias cannot enter by a careless call site.
 
 Decorrelation without RNG: the partition is a stable hash of `call_id`, which
 is independent of `proposed_score`, so the random tranche is decorrelated from
 the proposer signal AND deterministic (replayable) — no clock, no RNG.
 
-Provisional: 9002 M5.5 owns the real `compute_escape_rate()`; this module lands
-the tranche split and a compatible estimator. The split ratio and floor are
-config (Q3); they are function arguments with documented defaults until the
-config layer lands. `escape-random` provenance is the scarce, load-bearing
+9021 M19 ended the split this module's 9020 docstring anticipated: the real
+`compute_escape_rate()` now lives in `core/escape_rate.py`, together with the
+declared floor the sampler had only ever taken as an argument. What remains
+here is the tranche split. The split ratio is still config (Q3). `escape-random` provenance is the scarce, load-bearing
 input to manifest curation (companion patch 3), so the random tranche is the
 value this milestone protects.
 """
@@ -87,7 +88,8 @@ def _priority_key(call: AutoPassedCall) -> tuple:
 def split_tranches(
     calls: list[AutoPassedCall],
     random_fraction: float = 0.5,
-    absolute_floor: int = 0,
+    *,
+    absolute_floor: int,
 ) -> tuple[RandomTranche, PrioritizedTranche]:
     """Split auto-passed calls into a random tranche and a prioritized tranche.
 
@@ -97,7 +99,14 @@ def split_tranches(
     that is decorrelated from `proposed_score`. Everything else is prioritized,
     ordered by proposer signal.
 
-    Defaults (0.5, 0) are provisional; the real values are config (Q3).
+    `absolute_floor` is required and keyword-only (9021 M19). It shipped as
+    `= 0`, which is not a floor: a call site that forgot it got no minimum and
+    nothing said so. The declared value is `escape_rate.ESCAPE_RATE_FLOOR`,
+    which is not imported here — `escape_rate` imports `RandomTranche` from this
+    module, and the caller choosing the floor explicitly is the point.
+
+    `random_fraction`'s 0.5 default remains provisional; the real value is
+    config (Q3).
     """
     if not 0.0 <= random_fraction <= 1.0:
         raise ValueError("random_fraction must be in [0, 1]")
@@ -112,21 +121,3 @@ def split_tranches(
         (c for c in calls if c.call_id not in random_ids), key=_priority_key
     )
     return RandomTranche(random_calls), PrioritizedTranche(prioritized_calls)
-
-
-def compute_escape_rate(sample: RandomTranche) -> float:
-    """Human-caught misses / reviewed auto-passes, over the random tranche only.
-
-    Type-enforced: a `PrioritizedTranche` or a raw list raises `TypeError`, so a
-    biased sample cannot reach the estimator. An empty tranche is a rate of 0.0.
-    """
-    if not isinstance(sample, RandomTranche):
-        raise TypeError(
-            f"compute_escape_rate consumes only the random tranche; got "
-            f"{type(sample).__name__}. The prioritized tranche is excluded by "
-            f"D22 — feeding it here would bias the estimate."
-        )
-    if not sample.calls:
-        return 0.0
-    misses = sum(1 for c in sample.calls if c.missed)
-    return misses / len(sample.calls)

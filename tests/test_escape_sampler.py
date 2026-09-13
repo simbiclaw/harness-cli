@@ -19,11 +19,11 @@ from __future__ import annotations
 
 import pytest
 
+from argus.core.escape_rate import compute_escape_rate
 from argus.core.escape_sampler import (
     AutoPassedCall,
     PrioritizedTranche,
     RandomTranche,
-    compute_escape_rate,
     split_tranches,
 )
 
@@ -67,7 +67,9 @@ def test_d22_green():
 
     rate = compute_escape_rate(random_tranche)
     # Unbiased: the decorrelated random tranche recovers the stream rate.
-    assert abs(rate - 0.10) < 0.03, f"rate {rate} strayed from the true 0.10"
+    # `.value` since 9021 M19 — the estimator returns a record rather than a
+    # float, so "no estimate" and "an estimate of zero" stop sharing a shape.
+    assert abs(rate.value - 0.10) < 0.03, f"rate {rate.value} strayed from the true 0.10"
 
 
 def test_random_tranche_floor_holds():
