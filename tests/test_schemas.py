@@ -31,11 +31,12 @@ from __future__ import annotations
 import enum
 import json
 import types
+import uuid
 from pathlib import Path
 from typing import Literal, get_args, get_origin
 
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from argus.types import pipeline as p
 
@@ -88,13 +89,63 @@ def _default_key(info: object) -> str:
             produced = factory()
         except TypeError:
             return "<factory:uncallable>"
-        return f"<factory:{type(produced).__name__}>" if produced else repr(produced)
+        if not produced:
+            # An empty list or dict is its own value, so `= []` and
+            # `default_factory=list` compare equal, as they should.
+            return repr(produced)
+        # A factory producing a value cannot be snapshotted by value — a uuid
+        # would never match twice. Recording it by type alone was a blind spot:
+        # `lambda: "FIXED"` and `lambda: uuid4().hex[:8]` were the same string,
+        # so a port that gave every Session one shared id passed green, and
+        # `session_id` is what QAReport and the replay record key on. Freshness
+        # is the property the type cannot carry, so it goes in the key. Sampled
+        # rather than assumed: three draws, fresh if any two differ.
+        draws = {repr(produced)} | {repr(factory()) for _ in range(2)}
+        kind = "fresh" if len(draws) > 1 else "constant"
+        return f"<factory:{type(produced).__name__}:{kind}>"
     default = getattr(info, "default", PydanticUndefined)
     if default is PydanticUndefined:
         return "<required>"
     if isinstance(default, enum.Enum):
         return f"{type(default).__name__}.{default.name}"
     return repr(default)
+
+
+def test_a_generated_value_is_guarded_by_its_freshness_not_its_type():
+    """The oracle's one blind spot, closed (9021 M5, third pass).
+
+    A factory's value cannot be snapshotted — a uuid would never match twice —
+    so it was recorded as `<factory:str>`, by type alone. That made
+    `lambda: "FIXED"` and `lambda: str(uuid.uuid4())[:8]` the same string to the
+    comparison, and a port giving every `Session` one shared id passed all 23
+    tests green. `session_id` is what `QAReport` keys on
+    (`simbiclaw/sim@0c2cccd core/aggregator.py:98`) and what M21's replay record
+    carries, so two different calls would have been indistinguishable in
+    storage.
+
+    Freshness is the property the type cannot carry, so it is in the key now.
+    This test pins it directly rather than leaving it to the mutation sweep:
+    the encoder is shared by the snapshot script and the comparison, so a
+    regression there would move both sides together and cancel out.
+    """
+    from pydantic import Field as _Field
+
+    class Fresh(BaseModel):
+        v: str = _Field(default_factory=lambda: str(uuid.uuid4())[:8])
+
+    class Constant(BaseModel):
+        v: str = _Field(default_factory=lambda: "FIXED")
+
+    fresh = _default_key(Fresh.model_fields["v"])
+    constant = _default_key(Constant.model_fields["v"])
+
+    assert fresh == "<factory:str:fresh>"
+    assert constant == "<factory:str:constant>"
+    assert fresh != constant, "a shared id must not encode as a generated one"
+
+    # And the shipped snapshot records the real contract, not a stale shape.
+    snap = json.loads(SNAPSHOT.read_text(encoding="utf-8"))
+    assert snap["models"]["Session"]["fields"]["session_id"]["default"] == fresh
 
 
 def compare_to_snapshot(namespace: object, snap: dict | None = None) -> list[str]:
@@ -221,6 +272,13 @@ def test_the_checks_can_fail():
         score: float = 0.0
         supports: bool = False
 
+    class ConstantFactory(BaseModel):  # a fresh id turned into a shared one
+        session_id: str = Field(default_factory=lambda: "FIXED")
+        agent_id: str = "UNKNOWN"
+        duration_sec: int | None = None
+        turns: list[p.Turn] = Field(default_factory=list)
+        metadata: dict[str, object] = Field(default_factory=dict)
+
     class WrongWire(str, enum.Enum):
         INCOMPLETE = "INCOMPLETE"
         ASR_ERROR = "asr_error"  # upstream is "ASR_ERROR"
@@ -240,6 +298,7 @@ def test_the_checks_can_fail():
         ("widened annotation", "Turn", {"Turn": WidenedAnnotation}),
         ("relaxed requirement", "EvidenceItem", {"EvidenceItem": RelaxedRequirement}),
         ("changed wire value", "TurnFlag", {"TurnFlag": WrongWire}),
+        ("constant factory", "Session", {"Session": ConstantFactory}),
     ]:
         problems = compare_to_snapshot(stand_in(**mutation))
         assert problems, f"the comparison did not catch: {label}"

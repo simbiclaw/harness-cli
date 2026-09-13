@@ -70,9 +70,20 @@ def default_key(info: object) -> str:
             produced = factory()
         except TypeError:
             return "<factory:uncallable>"
-        # A factory producing a fresh value each call (uuid) is recorded by
-        # type, not value, or the snapshot would never match twice.
-        return f"<factory:{type(produced).__name__}>" if produced else repr(produced)
+        if not produced:
+            # An empty list or dict is its own value, so `= []` and
+            # `default_factory=list` compare equal, as they should.
+            return repr(produced)
+        # A factory producing a value cannot be snapshotted by value — a uuid
+        # would never match twice. Recording it by type alone was a blind spot:
+        # `lambda: "FIXED"` and `lambda: uuid4().hex[:8]` were the same string,
+        # so a port that gave every Session one shared id passed green, and
+        # `session_id` is what QAReport and the replay record key on. Freshness
+        # is the property the type cannot carry, so it goes in the key. Sampled
+        # rather than assumed: three draws, fresh if any two differ.
+        draws = {repr(produced)} | {repr(factory()) for _ in range(2)}
+        kind = "fresh" if len(draws) > 1 else "constant"
+        return f"<factory:{type(produced).__name__}:{kind}>"
     if default is PydanticUndefined:
         return "<required>"
     if isinstance(default, enum.Enum):

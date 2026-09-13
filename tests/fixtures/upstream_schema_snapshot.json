@@ -623,7 +623,7 @@
         },
         "session_id": {
           "annotation": "str",
-          "default": "<factory:str>",
+          "default": "<factory:str:fresh>",
           "required": false
         },
         "turns": {
