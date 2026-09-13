@@ -89,10 +89,25 @@ def test_a_quote_that_does_not_match_its_span_fails():
 
 
 def test_a_span_outside_the_transcript_fails():
-    """An anchor pointing past the end is unresolvable, not empty."""
-    ev = _anchored(span=Span(start=10_000, end=10_010))
+    """An anchor pointing past the end is unresolvable, not empty.
+
+    The span keeps the quote's own length: a mismatched length is rejected at
+    construction by a different check, and this case must reach `resolve_quote`
+    to prove the transcript-bounds check exists rather than riding on that one.
+    """
+    ev = _anchored(span=Span(start=10_000, end=10_000 + len(QUOTE)))
     with pytest.raises(ValueError, match="outside"):
         resolve_quote(ev, TRANSCRIPT)
+
+
+def test_a_quote_whose_length_disagrees_with_its_span_is_rejected():
+    """Length is checked at construction, before any transcript is involved.
+
+    A record whose quote and span cannot describe the same text is malformed on
+    its own terms — catching it here means the gate never sees it.
+    """
+    with pytest.raises(ValidationError, match="cannot describe the same text"):
+        _anchored(span=Span(start=START, end=START + 3))
 
 
 def test_a_repeated_quote_is_still_unambiguous():
