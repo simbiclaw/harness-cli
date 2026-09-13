@@ -35,9 +35,13 @@ The split between `config/` and `io/` is a recurring source of confusion: config
 
 ### `argus.core`
 
-Domain logic. The actual transformations and computations the CLI performs. Pure where possible. May import from `types/`, `config/`, and `io/`.
+Domain logic. The actual transformations and computations the CLI performs. Pure. May import from `types/` and `config/` — **and not from `io/`** (9021 Q16).
 
-Core functions take inputs (often from `io/` reads parameterized by `config/` settings), produce outputs (often passed back to `io/` writes), and ideally do not themselves perform I/O. Easier to test, easier to refactor, easier to reason about.
+Core functions take inputs (often produced by `io/` reads parameterized by `config/` settings) and produce outputs (often passed back to `io/` writes), but they receive those values as **arguments** rather than importing the reader. Easier to test, easier to refactor, easier to reason about.
+
+**Why `core` may not import `io`, when the layer order would allow it.** Argus quarantines model nondeterminism in S2, which lives in `io/` (I1). A fence that permits `core → io` cannot express that quarantine: a core module could import the proposer and still satisfy the layer rule, because the dependency points the permitted way. This paragraph previously said `core` "may import from `io/`", which contradicted the `core ✗ model_client` fence CLAUDE.md declares load-bearing — the convention and the lint disagreed, and the convention was the weaker of the two. Resolved by narrowing the convention, not by weakening the fence.
+
+The practical consequence is small: no `core` module imports `io` today, and the stages that need an `io`-produced value take it as a typed parameter — `score(facts, rubric)` receives the rubric rather than loading it.
 
 ### `argus.cli`
 

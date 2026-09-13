@@ -27,3 +27,73 @@ layers =
 containers =
     argus
 exhaustive = false
+
+# ---------------------------------------------------------------------------
+# The four layer fences from CLAUDE.md, as forbidden contracts (9021 M8).
+#
+# The layers contract above cannot express any of these: it constrains only
+# inter-layer argus.* edges, so `from anthropic import Anthropic` inside core/
+# is invisible to it. include_external_packages is what lets a forbidden
+# contract see a third-party import at all.
+#
+# NOT VERIFIABLE IN THE AUTHORING ENVIRONMENT: import-linter cannot be
+# installed there (the pinned index is unreachable), so these contracts have
+# never been shown to fail. A contract that has never failed is not
+# enforcement. The runnable half lives in tests/test_fences.py, which is a
+# stdlib AST scan proved against planted violations. Before trusting these,
+# run `uv run lint-imports` with a planted `import openai` in a core module and
+# confirm it exits non-zero.
+# ---------------------------------------------------------------------------
+
+[importlinter:contract:core-no-model-client]
+name = core X model_client (I1 quarantine)
+type = forbidden
+source_modules =
+    argus.core
+forbidden_modules =
+    anthropic
+    openai
+    cohere
+    mistralai
+    llama_cpp
+    mlx_lm
+    transformers
+    torch
+    argus.io
+include_external_packages = True
+
+[importlinter:contract:grounding-no-proposer]
+name = grounding X proposer (S3 never re-judges S2)
+type = forbidden
+source_modules =
+    argus.core.grounding
+forbidden_modules =
+    argus.io
+include_external_packages = True
+
+[importlinter:contract:grounding-no-matching-model]
+name = grounding X matching_model (D3 - the match happens in the proposer)
+type = forbidden
+source_modules =
+    argus.core.grounding
+forbidden_modules =
+    sentence_transformers
+    chromadb
+    faiss
+    sklearn
+include_external_packages = True
+
+[importlinter:contract:aggregate-no-model-client]
+name = aggregate X model_client (I6 aggregator is pure)
+type = forbidden
+source_modules =
+    argus.core.corroboration
+forbidden_modules =
+    anthropic
+    openai
+    llama_cpp
+    mlx_lm
+    transformers
+    torch
+    argus.io
+include_external_packages = True
