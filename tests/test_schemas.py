@@ -1,208 +1,312 @@
 """Acceptance tests for 9021 M5 — the pipeline's data contracts live in types/.
 
-The first attempt at M5 was rejected. Every defect was an *invention*: two enums
-were silently rewritten with members that exist nowhere upstream, three required
-fields were relaxed, and a mechanism was added that nothing sets and nothing
-reads. The acceptance test could not see any of it, because it constructed
-instances with keyword arguments and compared a JSON round-trip — and pydantic
-ignores keyword arguments naming fields a model no longer has, so a model with a
-field deleted round-trips trivially. Eight of ten planted deletions passed.
+Two rejections shaped this file, and both lessons are encoded here rather than
+remembered.
 
-So these tests assert on the *shape* of each contract, not on its behaviour
-under a round-trip. `model_fields` is compared against an explicit expected set
-transcribed from `simbiclaw/sim@0c2cccd` `models/schemas.py`, and enum members
-are compared name-and-value. A deleted field fails immediately and loudly;
-`test_the_checks_can_fail` proves that rather than asserting it.
+The first attempt asserted *behaviour*: construct with keyword arguments,
+compare a JSON round-trip. Pydantic ignores keyword arguments naming fields a
+model no longer has, so eight of ten planted field deletions passed green.
 
-Per the milestone's Contract block, the binding constraint is I5 — the
-replay-bearing record stays separable from diagnostics.
+The second attempt asserted *shape*, which caught all of those — but from
+hand-written tables. Verification found the tables happened to be correct and
+the approach still unsound: they held field *names*, so a changed default, a
+widened annotation or a relaxed requirement all passed. One of those, flipping
+`RubricItem.weight`'s default from 1.0 to 2.0, doubles every unweighted row's
+contribution to the shipped score. And a model dropped from *both* the port and
+the table was undetectable — the tables were the only oracle, and they were
+maintained by the same hand as the code.
+
+So the oracle is now generated, not written: `tests/fixtures/upstream_schema_snapshot.json`
+is produced by `scripts/build_schema_snapshot.py` from the upstream module and
+records, per field, requiredness *and* realized default *and* annotation, plus
+the complete model and enum sets. Completeness is a property of the snapshot
+rather than of anyone's diligence.
+
+Per the milestone's Contract: the binding constraint is I5 — the replay-bearing
+record stays separable from diagnostics.
 """
 
 from __future__ import annotations
 
 import enum
+import json
+import types
+from pathlib import Path
+from typing import Literal, get_args, get_origin
 
 import pytest
+from pydantic import BaseModel
 
 from argus.types import pipeline as p
 
-# Transcribed field-for-field from simbiclaw/sim@0c2cccd models/schemas.py.
-# This is the frozen shape of the upstream contract; drift from it is the
-# defect the first attempt shipped.
-EXPECTED_FIELDS: dict[str, set[str]] = {
-    "CleanTurn": {
-        "id", "role", "text", "flags", "reliability",
-        "timestamp_start", "timestamp_end",
-    },
-    "CleanTranscript": {
-        "session_id", "turns", "asr_quality", "role_swap_detected",
-        "low_reliability_turn_ids",
-    },
-    "RubricItem": {
-        "id", "category", "name", "pass_criteria", "fail_criteria",
-        "na_criteria", "is_weighted", "weight", "always_check",
-        "requires_domain_kb", "trigger_keywords", "is_veto",
-    },
-    "KBContent": {"path", "content", "level", "node_type"},
-    "SessionKBContext": {
-        "primary_intent_path", "secondary_intent_paths", "kb_contents",
-        "domain_knowledge_summary", "all_rubric_items", "applicable_rubrics",
-        "coverage_score", "low_coverage_warning", "unmatched_entities",
-    },
-    "Turn": {"id", "role", "text", "reliability", "flags"},
-    "Session": {"session_id", "agent_id", "duration_sec", "turns", "metadata"},
-    "Atom": {
-        "id", "source_turn_ids", "role", "atom_type", "content",
-        "decontextualized", "reliability", "intent_group",
-    },
-    "CoverageRelation": {"client_atom_id", "agent_atom_id", "status", "note"},
-    "IntentSwitch": {"turn_id", "from_intent", "to_intent", "agent_recognized"},
-    "IntentInference": {
-        "customer_surface_intent", "customer_deep_intent",
-        "agent_behavior_pattern", "key_tension", "intent_switches",
-        "unresolved_intents",
-    },
-    "Subquestion": {
-        "id", "question", "q_type", "source", "claim_type", "rubric_id",
-        "source_atom_ids", "hypothesis_pos", "hypothesis_neg", "dimension",
-        "is_veto", "implied_q_type", "applicability", "na_reason",
-    },
-    "EvidenceItem": {"turn_id", "doc_path", "text", "score", "supports"},
-    "Verdict": {
-        "question_id", "rubric_id", "result", "confidence", "score", "weight",
-        "evidence", "requires_human_review", "review_reason", "checking_path",
-    },
-    "DimensionScore": {
-        "name", "applicable_count", "passed_count", "weighted_score",
-        "total_weight",
-    },
-    "QAReport": {
-        "session_id", "agent_id", "overall_score", "grade", "veto_triggered",
-        "veto_items", "dimension_scores", "verdicts", "questions",
-        "requires_human_review", "human_review_items", "asr_quality_warning",
-        "role_swap_detected", "multi_intent_detected", "unresolved_intents",
-        "low_kb_coverage_warning", "summary", "improvement_suggestions",
-    },
-}
-
-# Member name -> wire value. The wire value is what lands on disk, so a changed
-# value is an on-disk format change even when the member name survives.
-EXPECTED_ENUMS: dict[str, dict[str, str]] = {
-    "ASRQuality": {"GOOD": "good", "FAIR": "fair", "POOR": "poor"},
-    "TurnFlag": {
-        "INCOMPLETE": "INCOMPLETE", "ASR_ERROR": "ASR_ERROR",
-        "ROLE_SWAPPED": "ROLE_SWAPPED", "NORMAL": "NORMAL",
-    },
-    "RubricCategory": {
-        "PROCESS": "流程遵守", "ATTITUDE": "态度规范", "SKILL": "技能技巧",
-        "SPECIAL": "特殊项", "ACCURACY": "准确性",
-    },
-    "ClientAtomType": {
-        "FACT_CLAIM": "事实声明", "FAULT_DESCRIPTION": "故障描述",
-        "EXPLICIT_REQUEST": "明确诉求", "HISTORICAL_CLAIM": "历史声称",
-        "INFERRED_CLAIM": "推断声称", "OBJECTION": "异议",
-    },
-    "AgentAtomType": {
-        "BUSINESS_JUDGMENT": "业务判断", "FACT_STATEMENT": "事实陈述",
-        "POLICY_CITATION": "政策引用", "FAULT_DIAGNOSIS": "故障定性",
-        "SOLUTION_OFFER": "解决方案", "OPERATION_GUIDE": "操作指引",
-        "SERVICE_PROMISE": "服务承诺", "CLOSING_ACTION": "结案行为",
-        "SERVICE_ACTION": "服务行为",
-    },
-    "CoverageStatus": {
-        "RESPONDED": "responded", "PARTIAL": "partial", "IGNORED": "ignored",
-    },
-    "ClaimType": {
-        "DIALOGUE_CONSISTENCY": "dialogue_consistency",
-        "EXTERNAL_FACT": "external_fact",
-        "INTERNAL_POLICY": "internal_policy",
-        "ASR_UNCERTAIN": "asr_uncertain",
-    },
-    "ImpliedQType": {
-        "DOMAIN_KNOWLEDGE": "DOMAIN_KNOWLEDGE", "CONTEXT": "CONTEXT",
-        "IMPLICIT_MEANING": "IMPLICIT_MEANING",
-        "STATISTICAL_RIGOR": "STATISTICAL_RIGOR",
-    },
-    "QuestionSource": {
-        "RUBRIC_DRIVEN": "rubric_driven", "ATOM_LITERAL": "atom_literal",
-        "ATOM_IMPLIED": "atom_implied",
-    },
-    "VerdictResult": {
-        "PASS": "pass", "FAIL": "fail", "PARTIAL": "partial", "NEI": "NEI",
-        "NA": "NA", "HUMAN_REVIEW": "human_review",
-    },
-}
-
-# Fields upstream declares without a default. Relaxing one turns missing
-# information into a confident claim — `asr_quality` defaulting to GOOD would
-# assert a transcript is trustworthy when it was never assessed.
-EXPECTED_REQUIRED: dict[str, set[str]] = {
-    "CleanTranscript": {"session_id", "turns", "asr_quality"},
-    "Atom": {"id", "source_turn_ids", "role", "atom_type", "content",
-             "decontextualized"},
-    "CoverageRelation": {"client_atom_id", "status"},
-    "Verdict": {"question_id", "result", "confidence", "score"},
-    "EvidenceItem": {"text", "score", "supports"},
-}
+SNAPSHOT = Path(__file__).resolve().parent / "fixtures" / "upstream_schema_snapshot.json"
 
 
-def _fields(name: str) -> set[str]:
-    return set(getattr(p, name).model_fields)
+def _load_snapshot() -> dict:
+    assert SNAPSHOT.exists(), (
+        f"schema snapshot missing at {SNAPSHOT}. "
+        f"Regenerate with scripts/build_schema_snapshot.py."
+    )
+    return json.loads(SNAPSHOT.read_text(encoding="utf-8"))
 
 
-@pytest.mark.parametrize("name", sorted(EXPECTED_FIELDS))
-def test_model_field_sets_match_upstream(name):
-    """Every ported model carries exactly the upstream field set.
+SNAP = _load_snapshot()
 
-    Not 'round-trips cleanly' — a model missing a field round-trips perfectly.
+
+def _norm(annotation: object) -> str:
+    """Canonical string for an annotation, comparable across the two modules.
+
+    Upstream writes `typing.List[X]` and `Optional[X]`; the port writes
+    `list[X]` and `X | None`. Those are the same type and must compare equal.
+    `Literal['customer', 'agent']` and `str` are NOT the same type and must not
+    — widening that one drops the constraint M2's role-swap fix rests on.
     """
-    assert _fields(name) == EXPECTED_FIELDS[name]
+    text = str(annotation)
+    for before, after in (
+        ("typing.List[", "list["),
+        ("typing.Dict[", "dict["),
+        ("typing.Set[", "set["),
+        ("typing.Tuple[", "tuple["),
+        ("models.schemas.", ""),
+        ("argus.types.pipeline.", ""),
+        ("<class '", ""),
+        ("'>", ""),
+    ):
+        text = text.replace(before, after)
+    if text.startswith("typing.Optional[") and text.endswith("]"):
+        text = text[len("typing.Optional[") : -1] + " | None"
+    return text
 
 
-@pytest.mark.parametrize("name", sorted(EXPECTED_ENUMS))
-def test_enum_members_and_values_match_upstream(name):
-    """Members and wire values both, since the value is what lands on disk."""
-    member = getattr(p, name)
-    assert issubclass(member, enum.Enum)
-    actual = {m.name: m.value for m in member}
-    assert actual == EXPECTED_ENUMS[name]
+def _default_key(info: object) -> str:
+    """Mirror of the snapshot's default encoding, applied to a live field."""
+    from pydantic_core import PydanticUndefined
+
+    factory = getattr(info, "default_factory", None)
+    if factory is not None:
+        try:
+            produced = factory()
+        except TypeError:
+            return "<factory:uncallable>"
+        return f"<factory:{type(produced).__name__}>" if produced else repr(produced)
+    default = getattr(info, "default", PydanticUndefined)
+    if default is PydanticUndefined:
+        return "<required>"
+    if isinstance(default, enum.Enum):
+        return f"{type(default).__name__}.{default.name}"
+    return repr(default)
 
 
-@pytest.mark.parametrize("name", sorted(EXPECTED_REQUIRED))
-def test_required_fields_stay_required(name):
-    """A field upstream demands is not quietly given a default here."""
-    model = getattr(p, name)
-    required = {f for f, info in model.model_fields.items() if info.is_required()}
-    assert EXPECTED_REQUIRED[name] <= required
+def compare_to_snapshot(namespace: object, snap: dict | None = None) -> list[str]:
+    """Every way `namespace` differs from the upstream contract.
+
+    This is the function the live port is judged by, and the one
+    `test_the_checks_can_fail` plants a defect against — so a demonstration
+    that it fires is a demonstration about the real check, not about `!=`.
+    """
+    snap = snap or SNAP
+    problems: list[str] = []
+
+    for name, spec in sorted(snap["models"].items()):
+        model = getattr(namespace, name, None)
+        if model is None:
+            problems.append(f"model {name}: missing")
+            continue
+        fields = model.model_fields
+        expected = set(spec["fields"])
+        actual = set(fields)
+        for missing in sorted(expected - actual):
+            problems.append(f"{name}.{missing}: missing")
+        for extra in sorted(actual - expected):
+            problems.append(f"{name}.{extra}: not in the upstream contract")
+        if list(fields) != spec["order"] and expected == actual:
+            problems.append(f"{name}: field order differs from upstream")
+        for fname in sorted(expected & actual):
+            want, info = spec["fields"][fname], fields[fname]
+            if info.is_required() != want["required"]:
+                problems.append(
+                    f"{name}.{fname}: required={info.is_required()}, upstream {want['required']}"
+                )
+            if _default_key(info) != want["default"]:
+                problems.append(
+                    f"{name}.{fname}: default {_default_key(info)}, upstream {want['default']}"
+                )
+            if _norm(info.annotation) != _norm(want["annotation"]):
+                problems.append(
+                    f"{name}.{fname}: annotation {_norm(info.annotation)}, "
+                    f"upstream {_norm(want['annotation'])}"
+                )
+
+    for name, members in sorted(snap["enums"].items()):
+        member = getattr(namespace, name, None)
+        if member is None:
+            problems.append(f"enum {name}: missing")
+            continue
+        actual_members = {m.name: m.value for m in member}
+        if actual_members != members:
+            problems.append(f"enum {name}: {actual_members} != upstream {members}")
+
+    return problems
+
+
+# --- The contract itself ----------------------------------------------------
+
+
+def test_port_matches_the_upstream_contract_exactly():
+    """Field sets, order, requiredness, defaults, annotations, and every enum."""
+    assert compare_to_snapshot(p) == []
+
+
+def test_no_upstream_model_or_enum_is_missing():
+    """Completeness — the defect a hand-written table structurally cannot catch.
+
+    A model deleted from the port *and* from an expectation table vanishes
+    silently. The snapshot is generated from upstream, so it still knows.
+    """
+    assert len(SNAP["models"]) == 16
+    assert len(SNAP["enums"]) == 10
+    missing = [n for n in SNAP["models"] if not hasattr(p, n)]
+    missing += [n for n in SNAP["enums"] if not hasattr(p, n)]
+    assert not missing, f"absent from the port: {missing}"
 
 
 def test_the_checks_can_fail():
-    """The shape checks fire on a planted defect.
+    """Plant each defect class against the *live* comparison and watch it fire.
 
-    Without this the suite asserts its own competence. A structural check that
-    has never been shown to fail is not evidence — the rejected first attempt
-    passed ten planted mutations.
+    The previous version of this test built two throwaway classes and asserted
+    they differed from a table it had written itself. It passed against a
+    zero-byte module. This one mutates the real port and runs the real
+    comparison, so what it demonstrates is what actually guards the tree.
     """
-    from pydantic import BaseModel
 
-    class Truncated(BaseModel):
-        id: str  # upstream CleanTurn has seven fields
+    def stand_in(**replacements) -> types.ModuleType:
+        ns = types.ModuleType("stand_in")
+        ns.__dict__.update(vars(p))
+        ns.__dict__.update(replacements)
+        return ns
 
-    assert set(Truncated.model_fields) != EXPECTED_FIELDS["CleanTurn"]
+    class MissingField(BaseModel):  # CleanTurn without timestamp_end
+        id: str
+        role: Literal["customer", "agent"]
+        text: str
+        flags: list[p.TurnFlag] = []
+        reliability: Literal["high", "low"] = "high"
+        timestamp_start: int | None = None
+
+    class ChangedDefault(BaseModel):  # the score-doubling mutation
+        id: int
+        category: p.RubricCategory
+        name: str
+        pass_criteria: str
+        fail_criteria: str
+        na_criteria: str | None = None
+        is_weighted: bool = False
+        weight: float = 2.0  # upstream is 1.0
+        always_check: bool = True
+        requires_domain_kb: bool = False
+        trigger_keywords: list[str] = []
+        is_veto: bool = False
+
+    class WidenedAnnotation(BaseModel):  # Literal dropped to str
+        id: str
+        role: str
+        text: str
+        reliability: Literal["high", "low"] = "high"
+        flags: list[p.TurnFlag] = []
+
+    class RelaxedRequirement(BaseModel):  # hypothesis pair made optional
+        turn_id: str | None = None
+        doc_path: str | None = None
+        text: str = ""
+        score: float = 0.0
+        supports: bool = False
 
     class WrongWire(str, enum.Enum):
-        INCOMPLETE = "incomplete"  # upstream value is "INCOMPLETE"
+        INCOMPLETE = "INCOMPLETE"
+        ASR_ERROR = "asr_error"  # upstream is "ASR_ERROR"
+        ROLE_SWAPPED = "ROLE_SWAPPED"
+        NORMAL = "NORMAL"
 
-    assert {m.name: m.value for m in WrongWire} != EXPECTED_ENUMS["TurnFlag"]
+    # Baseline first. Without this the whole test passes vacuously against an
+    # empty module — every mutation "fires" because everything is missing, which
+    # is the tautology this test exists to have escaped.
+    assert compare_to_snapshot(stand_in()) == [], (
+        "the unmutated stand-in is already dirty, so nothing below proves anything"
+    )
+
+    for label, target, mutation in [
+        ("deleted field", "CleanTurn", {"CleanTurn": MissingField}),
+        ("changed default", "RubricItem", {"RubricItem": ChangedDefault}),
+        ("widened annotation", "Turn", {"Turn": WidenedAnnotation}),
+        ("relaxed requirement", "EvidenceItem", {"EvidenceItem": RelaxedRequirement}),
+        ("changed wire value", "TurnFlag", {"TurnFlag": WrongWire}),
+    ]:
+        problems = compare_to_snapshot(stand_in(**mutation))
+        assert problems, f"the comparison did not catch: {label}"
+        # And it is *this* mutation being caught, not ambient breakage.
+        assert any(target in line for line in problems), (
+            f"{label}: comparison complained, but not about {target}: {problems}"
+        )
+
+    # And a whole model removed.
+    gone = types.ModuleType("gone")
+    gone.__dict__.update({k: v for k, v in vars(p).items() if k != "Session"})
+    assert any("Session" in line for line in compare_to_snapshot(gone)), (
+        "the comparison did not catch a removed model"
+    )
+
+
+# --- Round-tripping, for every contract rather than a sample ----------------
+
+
+def _sample(annotation: object):
+    """A valid value for a field, derived from its annotation."""
+    origin = get_origin(annotation)
+    if origin is Literal:
+        return get_args(annotation)[0]
+    if origin in (list, set, tuple):
+        inner = get_args(annotation)
+        return [_sample(inner[0])] if inner else []
+    if origin is dict:
+        return {}
+    args = get_args(annotation)
+    if args and type(None) in args:  # X | None -> produce the X
+        return _sample(next(a for a in args if a is not type(None)))
+    if isinstance(annotation, type):
+        if issubclass(annotation, enum.Enum):
+            return list(annotation)[0]
+        if issubclass(annotation, BaseModel):
+            return _instance(annotation)
+        for typ, value in ((bool, True), (int, 1), (float, 1.0), (str, "x")):
+            if issubclass(annotation, typ):
+                return value
+    return "x"
+
+
+def _instance(model: type[BaseModel]) -> BaseModel:
+    return model(
+        **{
+            name: _sample(info.annotation)
+            for name, info in model.model_fields.items()
+            if info.is_required()
+        }
+    )
+
+
+@pytest.mark.parametrize("name", sorted(SNAP["models"]))
+def test_every_contract_roundtrips(name):
+    """The Contract says *every* contract round-trips. All sixteen, not a sample."""
+    model = getattr(p, name)
+    original = _instance(model)
+    assert model.model_validate_json(original.model_dump_json()) == original
 
 
 def test_upstream_output_loads():
     """The port reads what the upstream system actually writes.
 
-    The rejected attempt could not: it had invented TurnFlag members and
-    dropped ASR_ERROR and ROLE_SWAPPED, both emitted by live code at
-    core/asr_preprocessor.py:46,54. This pins the wire format against a
-    realistic payload rather than against instances this test built itself.
+    The first attempt could not: it had invented TurnFlag members and dropped
+    ASR_ERROR and ROLE_SWAPPED, both emitted by live code at
+    core/asr_preprocessor.py:46,54.
     """
     on_disk = (
         '{"session_id":"S-0001",'
@@ -220,56 +324,61 @@ def test_upstream_output_loads():
     assert p.CoverageRelation.model_validate_json(coverage).status is p.CoverageStatus.RESPONDED
 
 
-def test_contracts_roundtrip():
-    """Real instances survive serialize -> deserialize unchanged."""
-    verdict = p.Verdict(
-        question_id="RQ-01",
-        rubric_id=27,
-        result=p.VerdictResult.PASS,
-        confidence=0.91,
-        score=1.0,
-        evidence=[p.EvidenceItem(turn_id="T01", text="片段", score=0.9, supports=True)],
+def test_unknown_keys_are_dropped_not_preserved():
+    """Recorded because it is upstream behaviour and it will bite M6.
+
+    `extra` is at pydantic's default, which is `ignore` — unknown keys are
+    silently discarded rather than preserved. That is exact upstream parity, so
+    the port keeps it; `forbid` would reject payloads carrying keys this layer
+    does not know, which is the on-disk break the first attempt was rejected for.
+
+    But note what it costs: `span`, `quote` and `intents_sha` are precisely the
+    keys M6 adds, and until M6 lands, anything writing them loses them on the
+    first pass through here, with no error. M6 must land the fields before
+    anything upstream starts emitting them.
+    """
+    payload = (
+        '{"turn_id":"T01","text":"片段","score":0.9,"supports":true,'
+        '"span":[0,5],"intents_sha":"deadbeef"}'
     )
-    assert p.Verdict.model_validate_json(verdict.model_dump_json()) == verdict
-
-    atom = p.Atom(
-        id="CA-01",
-        source_turn_ids=["T01"],
-        role="client",
-        atom_type=p.ClientAtomType.FAULT_DESCRIPTION.value,
-        content="登录时显示CA锁未绑定",
-        decontextualized="客户在登录系统时遇到CA锁未绑定的提示",
-    )
-    assert p.Atom.model_validate_json(atom.model_dump_json()) == atom
+    item = p.EvidenceItem.model_validate_json(payload)
+    assert "span" not in item.model_dump_json()
+    assert "intents_sha" not in item.model_dump_json()
 
 
-def test_types_package_has_one_rubric_item_per_module_and_they_differ():
-    """The name `RubricItem` is now used twice in argus.types, deliberately.
+def test_two_rubric_item_classes_remain_distinct():
+    """`argus.types` holds two classes named `RubricItem`, deliberately.
 
-    `compiler_schemas.RubricItem` is a SpecificRubric row destined for the 9003
-    compiler and keys on a string id. `pipeline.RubricItem` is the upstream
-    scoring-sheet row and keys on an int. They model the same sheet at different
-    maturities and reconciling them is M15's job, not M5's — porting a third
-    shape here would have been the same invention that got M5 rejected.
+    `compiler_schemas.RubricItem` is a SpecificRubric row keyed on a string id;
+    `pipeline.RubricItem` is the upstream scoring-sheet row keyed on an int.
+    They describe the same 27-row sheet at different maturities, and
+    reconciling them is M15's decision, not M5's.
 
-    This test exists so the collision is a recorded fact rather than a trap: it
-    fails the moment someone makes them silently interchangeable.
+    The annotation pin is the part with teeth — it catches an `id` retype. The
+    real mitigation is that `types/__init__.py` re-exports nothing, so both must
+    be module-qualified; that is asserted here so a future convenience export
+    fails loudly rather than making them silently interchangeable.
     """
     from argus.types import compiler_schemas as cs
 
     assert cs.RubricItem.model_fields["id"].annotation is str
     assert p.RubricItem.model_fields["id"].annotation is int
-    assert set(cs.RubricItem.model_fields) != set(p.RubricItem.model_fields)
+
+    import argus.types as pkg
+
+    assert not hasattr(pkg, "RubricItem"), (
+        "argus.types re-exports RubricItem — with two incompatible classes of "
+        "that name in the package, an unqualified import is a coin flip."
+    )
 
 
 def test_replay_payload_still_excludes_proposed_score():
     """I5 — the port did not widen what the replay hash sees.
 
-    This exercises 9020's module rather than M5's, which is a real limitation:
-    it proves the mechanism is intact, not that the new contracts respect it.
-    Nothing in `pipeline.py` reaches the payload yet because nothing constructs
-    a FindingGraph from it. Tying the two together is M21's work, and the risk
-    in the gap is `Verdict.score` — model-produced upstream, unmarked here.
+    This exercises 9020's module, not M5's: nothing in `pipeline.py` reaches a
+    replay payload yet because nothing builds a FindingGraph from it. Tying the
+    two together is M21's work. The live risk in the gap is `Verdict.score` —
+    model-produced upstream, unbounded, and unmarked here.
     """
     from argus.types.proposer_diagnostics import (
         GroundedFinding,

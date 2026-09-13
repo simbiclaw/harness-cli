@@ -1,0 +1,902 @@
+{
+  "enums": {
+    "ASRQuality": {
+      "FAIR": "fair",
+      "GOOD": "good",
+      "POOR": "poor"
+    },
+    "AgentAtomType": {
+      "BUSINESS_JUDGMENT": "业务判断",
+      "CLOSING_ACTION": "结案行为",
+      "FACT_STATEMENT": "事实陈述",
+      "FAULT_DIAGNOSIS": "故障定性",
+      "OPERATION_GUIDE": "操作指引",
+      "POLICY_CITATION": "政策引用",
+      "SERVICE_ACTION": "服务行为",
+      "SERVICE_PROMISE": "服务承诺",
+      "SOLUTION_OFFER": "解决方案"
+    },
+    "ClaimType": {
+      "ASR_UNCERTAIN": "asr_uncertain",
+      "DIALOGUE_CONSISTENCY": "dialogue_consistency",
+      "EXTERNAL_FACT": "external_fact",
+      "INTERNAL_POLICY": "internal_policy"
+    },
+    "ClientAtomType": {
+      "EXPLICIT_REQUEST": "明确诉求",
+      "FACT_CLAIM": "事实声明",
+      "FAULT_DESCRIPTION": "故障描述",
+      "HISTORICAL_CLAIM": "历史声称",
+      "INFERRED_CLAIM": "推断声称",
+      "OBJECTION": "异议"
+    },
+    "CoverageStatus": {
+      "IGNORED": "ignored",
+      "PARTIAL": "partial",
+      "RESPONDED": "responded"
+    },
+    "ImpliedQType": {
+      "CONTEXT": "CONTEXT",
+      "DOMAIN_KNOWLEDGE": "DOMAIN_KNOWLEDGE",
+      "IMPLICIT_MEANING": "IMPLICIT_MEANING",
+      "STATISTICAL_RIGOR": "STATISTICAL_RIGOR"
+    },
+    "QuestionSource": {
+      "ATOM_IMPLIED": "atom_implied",
+      "ATOM_LITERAL": "atom_literal",
+      "RUBRIC_DRIVEN": "rubric_driven"
+    },
+    "RubricCategory": {
+      "ACCURACY": "准确性",
+      "ATTITUDE": "态度规范",
+      "PROCESS": "流程遵守",
+      "SKILL": "技能技巧",
+      "SPECIAL": "特殊项"
+    },
+    "TurnFlag": {
+      "ASR_ERROR": "ASR_ERROR",
+      "INCOMPLETE": "INCOMPLETE",
+      "NORMAL": "NORMAL",
+      "ROLE_SWAPPED": "ROLE_SWAPPED"
+    },
+    "VerdictResult": {
+      "FAIL": "fail",
+      "HUMAN_REVIEW": "human_review",
+      "NA": "NA",
+      "NEI": "NEI",
+      "PARTIAL": "partial",
+      "PASS": "pass"
+    }
+  },
+  "generated_by": "scripts/build_schema_snapshot.py",
+  "models": {
+    "Atom": {
+      "fields": {
+        "atom_type": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "content": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "decontextualized": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "id": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "intent_group": {
+          "annotation": "typing.Optional[str]",
+          "default": "None",
+          "required": false
+        },
+        "reliability": {
+          "annotation": "typing.Literal['high', 'low']",
+          "default": "'high'",
+          "required": false
+        },
+        "role": {
+          "annotation": "typing.Literal['client', 'agent']",
+          "default": "<required>",
+          "required": true
+        },
+        "source_turn_ids": {
+          "annotation": "typing.List[str]",
+          "default": "<required>",
+          "required": true
+        }
+      },
+      "order": [
+        "id",
+        "source_turn_ids",
+        "role",
+        "atom_type",
+        "content",
+        "decontextualized",
+        "reliability",
+        "intent_group"
+      ]
+    },
+    "CleanTranscript": {
+      "fields": {
+        "asr_quality": {
+          "annotation": "<enum 'ASRQuality",
+          "default": "<required>",
+          "required": true
+        },
+        "low_reliability_turn_ids": {
+          "annotation": "typing.List[str]",
+          "default": "[]",
+          "required": false
+        },
+        "role_swap_detected": {
+          "annotation": "bool",
+          "default": "False",
+          "required": false
+        },
+        "session_id": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "turns": {
+          "annotation": "typing.List[CleanTurn]",
+          "default": "<required>",
+          "required": true
+        }
+      },
+      "order": [
+        "session_id",
+        "turns",
+        "asr_quality",
+        "role_swap_detected",
+        "low_reliability_turn_ids"
+      ]
+    },
+    "CleanTurn": {
+      "fields": {
+        "flags": {
+          "annotation": "typing.List[TurnFlag]",
+          "default": "[]",
+          "required": false
+        },
+        "id": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "reliability": {
+          "annotation": "typing.Literal['high', 'low']",
+          "default": "'high'",
+          "required": false
+        },
+        "role": {
+          "annotation": "typing.Literal['customer', 'agent']",
+          "default": "<required>",
+          "required": true
+        },
+        "text": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "timestamp_end": {
+          "annotation": "typing.Optional[int]",
+          "default": "None",
+          "required": false
+        },
+        "timestamp_start": {
+          "annotation": "typing.Optional[int]",
+          "default": "None",
+          "required": false
+        }
+      },
+      "order": [
+        "id",
+        "role",
+        "text",
+        "flags",
+        "reliability",
+        "timestamp_start",
+        "timestamp_end"
+      ]
+    },
+    "CoverageRelation": {
+      "fields": {
+        "agent_atom_id": {
+          "annotation": "typing.Optional[str]",
+          "default": "None",
+          "required": false
+        },
+        "client_atom_id": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "note": {
+          "annotation": "typing.Optional[str]",
+          "default": "None",
+          "required": false
+        },
+        "status": {
+          "annotation": "<enum 'CoverageStatus",
+          "default": "<required>",
+          "required": true
+        }
+      },
+      "order": [
+        "client_atom_id",
+        "agent_atom_id",
+        "status",
+        "note"
+      ]
+    },
+    "DimensionScore": {
+      "fields": {
+        "applicable_count": {
+          "annotation": "int",
+          "default": "<required>",
+          "required": true
+        },
+        "name": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "passed_count": {
+          "annotation": "int",
+          "default": "<required>",
+          "required": true
+        },
+        "total_weight": {
+          "annotation": "float",
+          "default": "<required>",
+          "required": true
+        },
+        "weighted_score": {
+          "annotation": "float",
+          "default": "<required>",
+          "required": true
+        }
+      },
+      "order": [
+        "name",
+        "applicable_count",
+        "passed_count",
+        "weighted_score",
+        "total_weight"
+      ]
+    },
+    "EvidenceItem": {
+      "fields": {
+        "doc_path": {
+          "annotation": "typing.Optional[str]",
+          "default": "None",
+          "required": false
+        },
+        "score": {
+          "annotation": "float",
+          "default": "<required>",
+          "required": true
+        },
+        "supports": {
+          "annotation": "bool",
+          "default": "<required>",
+          "required": true
+        },
+        "text": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "turn_id": {
+          "annotation": "typing.Optional[str]",
+          "default": "None",
+          "required": false
+        }
+      },
+      "order": [
+        "turn_id",
+        "doc_path",
+        "text",
+        "score",
+        "supports"
+      ]
+    },
+    "IntentInference": {
+      "fields": {
+        "agent_behavior_pattern": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "customer_deep_intent": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "customer_surface_intent": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "intent_switches": {
+          "annotation": "typing.List[IntentSwitch]",
+          "default": "[]",
+          "required": false
+        },
+        "key_tension": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "unresolved_intents": {
+          "annotation": "typing.List[str]",
+          "default": "[]",
+          "required": false
+        }
+      },
+      "order": [
+        "customer_surface_intent",
+        "customer_deep_intent",
+        "agent_behavior_pattern",
+        "key_tension",
+        "intent_switches",
+        "unresolved_intents"
+      ]
+    },
+    "IntentSwitch": {
+      "fields": {
+        "agent_recognized": {
+          "annotation": "bool",
+          "default": "<required>",
+          "required": true
+        },
+        "from_intent": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "to_intent": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "turn_id": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        }
+      },
+      "order": [
+        "turn_id",
+        "from_intent",
+        "to_intent",
+        "agent_recognized"
+      ]
+    },
+    "KBContent": {
+      "fields": {
+        "content": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "level": {
+          "annotation": "int",
+          "default": "<required>",
+          "required": true
+        },
+        "node_type": {
+          "annotation": "typing.Literal['primary', 'parent', 'sibling']",
+          "default": "<required>",
+          "required": true
+        },
+        "path": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        }
+      },
+      "order": [
+        "path",
+        "content",
+        "level",
+        "node_type"
+      ]
+    },
+    "QAReport": {
+      "fields": {
+        "agent_id": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "asr_quality_warning": {
+          "annotation": "bool",
+          "default": "<required>",
+          "required": true
+        },
+        "dimension_scores": {
+          "annotation": "typing.List[DimensionScore]",
+          "default": "<required>",
+          "required": true
+        },
+        "grade": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "human_review_items": {
+          "annotation": "typing.List[str]",
+          "default": "<required>",
+          "required": true
+        },
+        "improvement_suggestions": {
+          "annotation": "typing.List[str]",
+          "default": "<required>",
+          "required": true
+        },
+        "low_kb_coverage_warning": {
+          "annotation": "bool",
+          "default": "<required>",
+          "required": true
+        },
+        "multi_intent_detected": {
+          "annotation": "bool",
+          "default": "<required>",
+          "required": true
+        },
+        "overall_score": {
+          "annotation": "float",
+          "default": "<required>",
+          "required": true
+        },
+        "questions": {
+          "annotation": "typing.List[Subquestion]",
+          "default": "<required>",
+          "required": true
+        },
+        "requires_human_review": {
+          "annotation": "bool",
+          "default": "<required>",
+          "required": true
+        },
+        "role_swap_detected": {
+          "annotation": "bool",
+          "default": "<required>",
+          "required": true
+        },
+        "session_id": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "summary": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "unresolved_intents": {
+          "annotation": "typing.List[str]",
+          "default": "<required>",
+          "required": true
+        },
+        "verdicts": {
+          "annotation": "typing.List[Verdict]",
+          "default": "<required>",
+          "required": true
+        },
+        "veto_items": {
+          "annotation": "typing.List[str]",
+          "default": "<required>",
+          "required": true
+        },
+        "veto_triggered": {
+          "annotation": "bool",
+          "default": "<required>",
+          "required": true
+        }
+      },
+      "order": [
+        "session_id",
+        "agent_id",
+        "overall_score",
+        "grade",
+        "veto_triggered",
+        "veto_items",
+        "dimension_scores",
+        "verdicts",
+        "questions",
+        "requires_human_review",
+        "human_review_items",
+        "asr_quality_warning",
+        "role_swap_detected",
+        "multi_intent_detected",
+        "unresolved_intents",
+        "low_kb_coverage_warning",
+        "summary",
+        "improvement_suggestions"
+      ]
+    },
+    "RubricItem": {
+      "fields": {
+        "always_check": {
+          "annotation": "bool",
+          "default": "True",
+          "required": false
+        },
+        "category": {
+          "annotation": "<enum 'RubricCategory",
+          "default": "<required>",
+          "required": true
+        },
+        "fail_criteria": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "id": {
+          "annotation": "int",
+          "default": "<required>",
+          "required": true
+        },
+        "is_veto": {
+          "annotation": "bool",
+          "default": "False",
+          "required": false
+        },
+        "is_weighted": {
+          "annotation": "bool",
+          "default": "False",
+          "required": false
+        },
+        "na_criteria": {
+          "annotation": "typing.Optional[str]",
+          "default": "None",
+          "required": false
+        },
+        "name": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "pass_criteria": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "requires_domain_kb": {
+          "annotation": "bool",
+          "default": "False",
+          "required": false
+        },
+        "trigger_keywords": {
+          "annotation": "typing.List[str]",
+          "default": "[]",
+          "required": false
+        },
+        "weight": {
+          "annotation": "float",
+          "default": "1.0",
+          "required": false
+        }
+      },
+      "order": [
+        "id",
+        "category",
+        "name",
+        "pass_criteria",
+        "fail_criteria",
+        "na_criteria",
+        "is_weighted",
+        "weight",
+        "always_check",
+        "requires_domain_kb",
+        "trigger_keywords",
+        "is_veto"
+      ]
+    },
+    "Session": {
+      "fields": {
+        "agent_id": {
+          "annotation": "str",
+          "default": "'UNKNOWN'",
+          "required": false
+        },
+        "duration_sec": {
+          "annotation": "typing.Optional[int]",
+          "default": "None",
+          "required": false
+        },
+        "metadata": {
+          "annotation": "typing.Dict[str, typing.Any]",
+          "default": "{}",
+          "required": false
+        },
+        "session_id": {
+          "annotation": "str",
+          "default": "<factory:str>",
+          "required": false
+        },
+        "turns": {
+          "annotation": "typing.List[Turn]",
+          "default": "[]",
+          "required": false
+        }
+      },
+      "order": [
+        "session_id",
+        "agent_id",
+        "duration_sec",
+        "turns",
+        "metadata"
+      ]
+    },
+    "SessionKBContext": {
+      "fields": {
+        "all_rubric_items": {
+          "annotation": "typing.List[RubricItem]",
+          "default": "[]",
+          "required": false
+        },
+        "applicable_rubrics": {
+          "annotation": "typing.List[RubricItem]",
+          "default": "[]",
+          "required": false
+        },
+        "coverage_score": {
+          "annotation": "float",
+          "default": "0.0",
+          "required": false
+        },
+        "domain_knowledge_summary": {
+          "annotation": "str",
+          "default": "''",
+          "required": false
+        },
+        "kb_contents": {
+          "annotation": "typing.List[KBContent]",
+          "default": "[]",
+          "required": false
+        },
+        "low_coverage_warning": {
+          "annotation": "bool",
+          "default": "False",
+          "required": false
+        },
+        "primary_intent_path": {
+          "annotation": "typing.Optional[str]",
+          "default": "None",
+          "required": false
+        },
+        "secondary_intent_paths": {
+          "annotation": "typing.List[str]",
+          "default": "[]",
+          "required": false
+        },
+        "unmatched_entities": {
+          "annotation": "typing.List[str]",
+          "default": "[]",
+          "required": false
+        }
+      },
+      "order": [
+        "primary_intent_path",
+        "secondary_intent_paths",
+        "kb_contents",
+        "domain_knowledge_summary",
+        "all_rubric_items",
+        "applicable_rubrics",
+        "coverage_score",
+        "low_coverage_warning",
+        "unmatched_entities"
+      ]
+    },
+    "Subquestion": {
+      "fields": {
+        "applicability": {
+          "annotation": "typing.Literal['applicable', 'NA']",
+          "default": "'applicable'",
+          "required": false
+        },
+        "claim_type": {
+          "annotation": "<enum 'ClaimType",
+          "default": "<required>",
+          "required": true
+        },
+        "dimension": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "hypothesis_neg": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "hypothesis_pos": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "id": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "implied_q_type": {
+          "annotation": "typing.Optional[ImpliedQType]",
+          "default": "None",
+          "required": false
+        },
+        "is_veto": {
+          "annotation": "bool",
+          "default": "False",
+          "required": false
+        },
+        "na_reason": {
+          "annotation": "typing.Optional[str]",
+          "default": "None",
+          "required": false
+        },
+        "q_type": {
+          "annotation": "typing.Literal['literal', 'implied']",
+          "default": "<required>",
+          "required": true
+        },
+        "question": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "rubric_id": {
+          "annotation": "typing.Optional[int]",
+          "default": "None",
+          "required": false
+        },
+        "source": {
+          "annotation": "<enum 'QuestionSource",
+          "default": "<required>",
+          "required": true
+        },
+        "source_atom_ids": {
+          "annotation": "typing.List[str]",
+          "default": "[]",
+          "required": false
+        }
+      },
+      "order": [
+        "id",
+        "question",
+        "q_type",
+        "source",
+        "claim_type",
+        "rubric_id",
+        "source_atom_ids",
+        "hypothesis_pos",
+        "hypothesis_neg",
+        "dimension",
+        "is_veto",
+        "implied_q_type",
+        "applicability",
+        "na_reason"
+      ]
+    },
+    "Turn": {
+      "fields": {
+        "flags": {
+          "annotation": "typing.List[TurnFlag]",
+          "default": "[]",
+          "required": false
+        },
+        "id": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "reliability": {
+          "annotation": "typing.Literal['high', 'low']",
+          "default": "'high'",
+          "required": false
+        },
+        "role": {
+          "annotation": "typing.Literal['customer', 'agent']",
+          "default": "<required>",
+          "required": true
+        },
+        "text": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        }
+      },
+      "order": [
+        "id",
+        "role",
+        "text",
+        "reliability",
+        "flags"
+      ]
+    },
+    "Verdict": {
+      "fields": {
+        "checking_path": {
+          "annotation": "typing.Literal['A', 'B', 'C']",
+          "default": "'A'",
+          "required": false
+        },
+        "confidence": {
+          "annotation": "float",
+          "default": "<required>",
+          "required": true
+        },
+        "evidence": {
+          "annotation": "typing.List[EvidenceItem]",
+          "default": "[]",
+          "required": false
+        },
+        "question_id": {
+          "annotation": "str",
+          "default": "<required>",
+          "required": true
+        },
+        "requires_human_review": {
+          "annotation": "bool",
+          "default": "False",
+          "required": false
+        },
+        "result": {
+          "annotation": "<enum 'VerdictResult",
+          "default": "<required>",
+          "required": true
+        },
+        "review_reason": {
+          "annotation": "typing.Optional[str]",
+          "default": "None",
+          "required": false
+        },
+        "rubric_id": {
+          "annotation": "typing.Optional[int]",
+          "default": "None",
+          "required": false
+        },
+        "score": {
+          "annotation": "float",
+          "default": "<required>",
+          "required": true
+        },
+        "weight": {
+          "annotation": "float",
+          "default": "1.0",
+          "required": false
+        }
+      },
+      "order": [
+        "question_id",
+        "rubric_id",
+        "result",
+        "confidence",
+        "score",
+        "weight",
+        "evidence",
+        "requires_human_review",
+        "review_reason",
+        "checking_path"
+      ]
+    }
+  },
+  "note": "Generated, not transcribed. A diff here is an on-disk format change (Tier C) and needs a steering entry, not a regenerate-and-move-on.",
+  "source": {
+    "commit": "0c2cccd",
+    "path": "models/schemas.py",
+    "repo": "simbiclaw/sim"
+  }
+}
