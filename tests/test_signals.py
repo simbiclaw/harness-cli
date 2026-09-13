@@ -613,3 +613,157 @@ class TestPhraseLexicon:
         for entries in sections.values():
             for e in entries:
                 assert e["type"] == "phrase"
+
+
+# ── M14 (9021): the lexical FAIL signal must distinguish polarity ────────────
+
+# Item 18 verbatim from docs/exec-plans/active/9003-pilot-item18/
+# specific-rubric.yaml. Its four named phrases straddle both standards:
+# 思路混乱 and 引导延期 are named by the fail standard, 业务手册 only by the
+# pass standard's 善于使用资源 clause, and 客服系统 by both — the fail
+# standard uses it inside a worked counter-example.
+_ITEM_18_PASS = (
+    "针对不同的用户理解能力、操作能力、所属环境适时调整自己的说话方式、指导方法，"
+    "给予合理的处理办法、解释说明和操作指导；善于使用资源（例如客服系统、业务手册等）"
+)
+_ITEM_18_FAIL = (
+    "思路混乱、发散或完全无方向；没有考虑到用户的立场以及理解能力、操作能力、所属环境，"
+    "按照自己的思路进行指导；处理或解释死板（不能结合客户实际、主观；不能根据客户的具体"
+    "情况和疑虑进行灵活解释；不善于使用资源；考虑问题不周，对关联业务判断不足，造成客户"
+    "肯定会在后续问题。补充例证：未确认清楚企业问题，查客服系统发现过期就直接引导延期，"
+    "此项将扣分。已经连上远程，企业并未要求，客服继续和企业保持通话。"
+)
+
+
+def make_item_18(**overrides) -> dict:
+    item = {
+        "id": "18",
+        "text": "思路清晰，能根据客户理解程度，灵活的给予合理的处理办法，解释说明和操作指导",
+        "values": {
+            "named_phrases": ["客服系统", "业务手册", "思路混乱", "引导延期"],
+            "numeric_thresholds": [],
+        },
+        "na_condition": None,
+        "pass_standard": _ITEM_18_PASS,
+        "fail_standard": _ITEM_18_FAIL,
+    }
+    item.update(overrides)
+    return item
+
+
+def passing_fail_descriptions(signals: dict) -> list[str]:
+    """Descriptions of every FAIL-lane signal the gate would score as present —
+    checkable, auditing "pass". These are the signals that deduct."""
+    return [
+        s["description"]
+        for s in signals["fail"]
+        if s.get("checkable") and s.get("audit_result") == "pass"
+    ]
+
+
+def test_fail_signal_polarity():
+    """M14 acceptance: an inverted-polarity input no longer yields a passing
+    signal built from the phrases whose polarity was inverted.
+
+    The compiled FAIL signal asserts that a transcript CONTAINING a named
+    phrase is evidence of failure. Item 18's 业务手册 comes from the pass
+    standard's 善于使用资源 — a transcript containing it is evidence FOR the
+    agent. A FAIL signal naming it inverts the rubric, and that signal is the
+    item's only shipped gate-checkable output.
+    """
+    upright = decompose_signals(make_item_18())
+    inverted = decompose_signals(
+        make_item_18(pass_standard=_ITEM_18_FAIL, fail_standard=_ITEM_18_PASS)
+    )
+    upright_fail = passing_fail_descriptions(upright)
+    inverted_fail = passing_fail_descriptions(inverted)
+
+    # The defect itself: polarity is invisible in the output. Swapping the
+    # standards must change which phrases deduct.
+    assert upright_fail != inverted_fail, (
+        "inverting the standards left the passing FAIL signals byte-identical — "
+        f"the compiler is polarity-blind: {upright_fail!r}"
+    )
+
+    # Upright: the fail standard's own phrases deduct; the pass standard's do not.
+    assert any("思路混乱" in d and "引导延期" in d for d in upright_fail), (
+        f"fail-standard phrases must carry the FAIL signal, got {upright_fail!r}"
+    )
+    assert not any("业务手册" in d for d in upright_fail), (
+        f"业务手册 is named only by the pass standard — it must not deduct, got {upright_fail!r}"
+    )
+    # ...and it is not silently dropped (B3): it survives as excellence evidence.
+    assert any("业务手册" in s["description"] for s in upright["excellence"]), (
+        "a pass-standard phrase removed from the FAIL lane must reappear as "
+        "excellence evidence, never vanish"
+    )
+
+    # Inverted: the two sets of phrases swap lanes.
+    assert not any("思路混乱" in d or "引导延期" in d for d in inverted_fail), (
+        f"inverted input: phrases now named by the pass standard must not deduct, "
+        f"got {inverted_fail!r}"
+    )
+    assert any("业务手册" in d for d in inverted_fail), (
+        f"inverted input: 业务手册 is now a fail-standard phrase, got {inverted_fail!r}"
+    )
+    assert any("思路混乱" in s["description"] for s in inverted["excellence"]), (
+        "inverted input: the fail-standard vocabulary must move to the excellence lane"
+    )
+
+
+class TestFailSignalPolarity:
+    """Supporting cases for M14 — polarity attribution on synthetic items."""
+
+    def test_pass_only_phrases_emit_no_passing_fail_signal(self):
+        """Every phrase comes from the pass standard: nothing in the FAIL lane
+        may deduct on their presence, and the fail standard is still signalled."""
+        item = make_item(
+            values={"named_phrases": ["请您放心", "帮您处理"], "numeric_thresholds": []},
+            pass_standard="坐席说请您放心并主动帮您处理客户问题",
+            fail_standard="坐席未处理客户问题",
+        )
+        signals = decompose_signals(item)
+        for description in passing_fail_descriptions(signals):
+            for phrase in ("请您放心", "帮您处理"):
+                assert phrase not in description, (
+                    f"pass-standard phrase {phrase!r} must not deduct, got {description!r}"
+                )
+        assert signals["fail"], "the fail standard must still produce a signal (B3)"
+        assert any(
+            "请您放心" in s["description"] and "帮您处理" in s["description"]
+            for s in signals["excellence"]
+        ), "pass-standard phrases must land in the excellence lane"
+
+    def test_unplaced_phrases_stay_in_the_fail_lane(self):
+        """A phrase neither standard names has no determinable polarity. It
+        keeps the lane the compiler has always given it — never dropped."""
+        signals = decompose_signals(make_item())
+        assert any("您别着急" in d and "我理解" in d for d in passing_fail_descriptions(signals)), (
+            "phrases no standard places must stay in the FAIL lane"
+        )
+
+    def test_polarity_split_signals_stay_audit_consistent(self):
+        """B4's invariant holds across the split: every emitted signal's stored
+        audit_result is audit_gate_checkable of its own description."""
+        for item in (
+            make_item_18(),
+            make_item_18(pass_standard=_ITEM_18_FAIL, fail_standard=_ITEM_18_PASS),
+        ):
+            signals = decompose_signals(item)
+            for lane in ("fail", "excellence"):
+                for s in signals[lane]:
+                    assert audit_gate_checkable(s) == s["audit_result"], (
+                        f"{s['id']}: stored {s['audit_result']} vs "
+                        f"audited {audit_gate_checkable(s)}"
+                    )
+
+    def test_excellence_lane_never_reuses_a_fail_phrase(self):
+        """M8 must survive the split: the two lanes' phrase sets stay disjoint."""
+        signals = decompose_signals(make_item_18())
+        fail_text = " ".join(passing_fail_descriptions(signals))
+        for s in signals["excellence"]:
+            for phrase in ("客服系统", "业务手册", "思路混乱", "引导延期"):
+                if phrase in fail_text:
+                    assert phrase not in s["description"], (
+                        f"excellence signal {s['id']} reuses FAIL phrase {phrase!r}"
+                    )
