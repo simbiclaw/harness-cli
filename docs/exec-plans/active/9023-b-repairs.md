@@ -157,7 +157,10 @@ is that plan's `core/grounding.py`), not here — see §2's second exception.
 - *Known evidence (advisory):* `asr_quality` has zero effect on any score simbi has produced (its three consumers are a log line, a report field, and display). The repetition half of the phenomenon belongs to audio2tree's M11 (a per-turn 3-gram run-length measurement, in flight) — **Argus waits for that rather than building a second detector.** If an input-triage signal is ever wanted before the hunt pass, the named route is reviving one of Q6c's five indicators as a deliberate act — which would produce a measurement, not a grade. Both are optimisations; I2 catches the consequence regardless.
 
 
-### M4 — B's first end-to-end test, and the call-record contract's conformance test
+### M4 — B's first end-to-end test
+
+*The title dropped the conformance half on 2026-09-14, when that half moved to `9024`; the
+section body and the Contract block record the move.*
 
 **Amended 2026-09-14 — promoted to the definition of the seam.** B has zero integration tests,
 which is why M1's two crashes survived; it needs a fake LLM covering 14 call sites and a stub NLI,
@@ -211,9 +214,38 @@ it executes there in the `tests/test_call_record.py` that plan already declares.
 - [x] M1: Fix B's two blocking crashes  (done 2026-09-14 — cleared by human ruling at the five-round cap; see the Decision Log)
 - [x] M2: Delete the role re-derivation; consume the producer's `speaker_role`  (done 2026-09-14 — verified at 9f0e8b3, round 1 CONFIRMED; amended 2026-09-14, was "add a confidence floor")
 - [x] M3: Retire the reliability chain (not a signal; timestamps are not lost)  (done 2026-09-14 — verified at 03be621, round 1 CONFIRMED; amended 2026-09-14, was "repair the chain")
-- [ ] M4: B's first end-to-end test  (amended 2026-09-14 — the call-record conformance half moved to 9024)
+- [x] M4: B's first end-to-end test  (done 2026-09-14 — verified at 929d5a7, round 3 CONFIRMED; the call-record conformance half moved to 9024)
 
 ## 5. Decision Log
+
+### M4 adversarial verification
+
+**Verdict: CONFIRMED** — round 3, no rejection-grade finding. Round 2 confirmed `df35f9c` and found
+its central weakness; the artifact changed, so round 3 verified `929d5a7`.
+
+**The edge cases the round designed and ran:**
+
+- *Is the new empty-input assertion caused by the input, or by the second run's construction?* Four
+  combinations of the two variables (KB tree, `FakeLLM` instance): real⇒98.1, empty⇒0.0, empty with
+  run-1's construction⇒0.0, real with run-2's construction⇒98.1. Construction is not a confound.
+- *Both runs empty ⇒ the test fails*, so the assertion is not satisfiable without a transcript.
+- *A total drop of the caller's text* (the orchestrator ignoring it for a constant) ⇒ 1 failed, the
+  e2e test. A **content** drop (every turn's text replaced by a constant) ⇒ 38 passed, which bounds
+  the assertion: it proves input-dependence, not content-dependence.
+- *The route floor's correction, re-measured.* With the earlier revision's empty payloads reinstated
+  against today's thirteen routes: 8 of 13 fire, 5 never — and of `INTERACTING_ROUTES` exactly the
+  three the comment names fire. Both counts in the comment are exact, not approximate.
+- *The empty-string measurements in the test's comment*: 25 questions, 25 verdicts, 0.0/不合格, and
+  6 of 6 required routes firing — so the route list genuinely cannot discriminate that case, as the
+  comment says.
+- *Determinism*, ten consecutive runs of the file, and `ruff check`/`ruff format --check` clean on
+  all three files the milestone touches.
+- *The record repairs of the previous commit, checked against measurement* — see §6.
+
+**What the round falsified, and this commit corrects:** a sentence I shipped in `ff86993` said the
+suite misses five of eight production mutations "including inverting every dialogue-consistency
+verdict". That mutation is **caught** at `ff86993` — by the empty-input assertion the same commit
+added. The bound was measured at `df35f9c` and carried into the commit that invalidated it. See §6.
 
 ### M3 adversarial verification
 
@@ -475,6 +507,53 @@ would notice a reimplementation. Verification reinstated the same two regexes un
 a three-valued grade on `CleanTranscript` — all four M3 tests stayed green. M2's round 1 falsified
 the twin of that sentence in the same file, so this is the second occurrence of one already
 recorded error class, and the docstring now names it rather than repeating the claim.
+
+**The production mutations, listed so the bound is auditable (2026-09-14).** Three rounds measured
+what the suite catches; the numbers were described in prose and nowhere recorded, which is the
+mechanism that let a stale example survive a round — a bound measured at one commit was carried into
+the commit that invalidated it. Both tables below, with the measurement each belongs to:
+
+*Round 2, at `df35f9c`* — eight production mutations, `test_e2e.py` alone catching **none**:
+
+| | mutation | whole suite |
+|---|---|---|
+| P1 | aggregator: veto no longer zeroes the score | caught |
+| P2 | fact_checker: NA weight 0.0 → 1.0 | caught |
+| P3 | fact_checker: `best_pos > best_neg` → `<` | **missed** |
+| P4 | fact_checker: low-confidence review flag never set | caught |
+| P5 | aggregator: `passed_count` counts NEI/FAIL as passed | **missed** |
+| P6 | aggregator: grade thresholds shifted | **missed** |
+| P7 | aggregator: report summary replaced by a constant | **missed** |
+| P8 | qa_agent: unresponded count never counts anything | **missed** |
+
+*Round 3, at `ff86993`, ten mutations of its own*: six caught, four missed, and **none of the four
+misses was caught by `test_e2e.py`**. P3 is the one that moved — the empty-input assertion added in
+`ff86993` catches the dialogue-consistency inversion, so P3's row above is true of `df35f9c` and
+false of everything after it. The conclusion both rounds support is the one the test's docstring
+now states: **a smoke test over the orchestrator, not a semantic regression net.**
+
+**What the new assertion establishes, and what it does not (2026-09-14).** It reads only
+`overall_score`, so it proves the report depends on the *input* rather than on the second run's
+construction — and not that it depends on this transcript's *content*. Measured: `"客服：您好"`,
+five characters, no timestamps and unrelated to the call, scores exactly what the real transcript
+scores, `98.1`. The assertion is also unsigned, so a pipeline scoring the real transcript *lower*
+than the empty one passes it; the suite's direction is pinned elsewhere (`test_aggregator.py`), not
+here. Both bounds are in the test's docstring, which now points at this section instead of restating
+arithmetic it cannot keep current.
+
+**Four of the floor's checks pass while skipping, repo-wide (2026-09-14).** `test_prd_spine_drift.py`
+reports five passes; four emit `UserWarning: SKIP: … PRD symlink does not resolve to a directory`
+and pass anyway. The symlink `docs/PRD -> ../../papers/PLAN` resolves to `/Users/prometheus/papers/PLAN`,
+which does not exist **in the main checkout either**, not only in a worktree. So four of the
+"192 passed" in every Tier-1 run since before this plan family test nothing, and the count should be
+read knowing it. Recorded here because the floor's numbers are now quoted in verification briefs.
+
+**A correction note on `ff86993` (2026-09-14).** Its message's ruff bookkeeping does not match the
+measurement: the pre-M4 reformat count was 29 rather than 28 (28 is what a different ruff version
+reports), the pass cleared three files rather than two, and the denominator 52 is not any
+invocation's total. The substantive claims hold — `ruff check` and `ruff format --check` are clean
+on all three files and the repo-wide count moved down by three. A `git notes` correction is attached
+to the commit.
 
 ### Entries predating the cap record
 
