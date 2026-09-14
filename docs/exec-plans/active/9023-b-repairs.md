@@ -210,14 +210,44 @@ It does not: measured, `device=0` constructs successfully on this machine via MP
 first correction named the range one release low. The decision survives, and on a firmer footing
 than either wrong statement gave it: `pyproject.toml` admits every raising release, and the probe
 was silently wrong for Apple Silicon. It rests on the version range, not on the development
-machine. The range itself is stated once, in `utils/nli.py::_resolve_device`; §6 records how it
-was verified.
+machine. The range's **operative** statement is `utils/nli.py::_resolve_device`'s docstring; this
+plan restates the number as the evidence that justified the milestone, and §6 records both how it
+was verified and why the count is two rather than one. **Corrected 2026-09-14 by round 5**, which
+found this line and §6 answering the same question differently — this one said "stated once".
 
 **Confidence:** high on the repair; `Confidence: low` on whether `_resolve_device()` should consult
 config rather than torch's own answer — that question belongs to whoever first runs B on a GPU box,
 and the explicit `device` argument is what makes the answer cheap to change. `Revisit:` then.
 
 ## 6. Surprises & Discoveries
+
+**M1 hit the five-round verification cap without CONFIRMED (2026-09-14).**
+`docs/conventions/pev-loop.md` allows at most five Verify rounds per milestone. M1 used all five,
+did not reach CONFIRMED, and is **not flipped** and does not advance. This is the record the cap
+requires, written before the question goes to the human.
+
+| Round | Verdict | Rejection-grade | Significant | Minor | What the rejection was about |
+|---|---|---|---|---|---|
+| 1 | REJECTED | 1 | 3 | 2 | the third defect's written provenance — "fails here", "found by execution" — both false; plus a real regression the repair introduced, MPS downgraded to CPU |
+| 2 | REJECTED | 1 | 0 | 1 | the version boundary, stated as 4.45 when it is 4.46.3 |
+| 3 | REJECTED | 1 | 0 | 5 | the wrong range surviving in `f7af485`'s commit message, and a wrong test count in the same message |
+| 4 | REJECTED | 1 | 1 | 3 | the paragraph written to answer round 3, falsified in every part: no in-place correction channel, an inverted force-push argument, a false "stated once" |
+| 5 | REJECTED | 1 | 1 | 2 | the command named as evidence that the `git notes` corrections print — `git log --oneline -1 <sha>` suppresses them — and §5 and §6 disagreeing on how many times the range is stated |
+
+**What changed between rounds, and whether the arc converged.** The code has not been rejected since
+round 2 and has not changed since round 2 except for one comment and a tightening of the device
+predicate. Rounds 1, 3, 4 and 5 each found the pipeline, the acceptance test, the `git notes`
+corrections and the docstring correct — in those words. Every rejection from round 3 onward was a
+defect in the prose *describing* the work, and each round's repair introduced the sentence the next
+round rejected: round 3's scoping paragraph was falsified by round 4, and round 4's evidence
+sentence was falsified by round 5.
+
+The findings narrowed every round — from a defect plus a regression, to one number, to one surviving
+copy, to a scoping argument, to a command name — but the class did not go away, because the repairs
+were themselves unverified assertions. That is the same failure the rounds were catching, which is
+the honest reading of why five rounds did not converge.
+
+### Entries predating the cap record
 
 **The third defect is real, and the first account of it was wrong (2026-09-14, corrected after
 round 1).** THIS ENTRY SAID, until round-1 verification falsified it: that `device=0` "fails in
@@ -281,9 +311,17 @@ them by execution rather than by argument:
   **What was actually done.** Notes are attached to `f7af485` (the wrong range, the five-test
   enumeration) and `cdc2a05` (the "found by execution" provenance, the "a GPU box keeps the old
   behaviour" claim). The messages are left as written — they record what was believed when they
-  were written — and each now carries its correction at the point of reading. Verified by running
-  `git log --oneline -1 <sha>` with no flags: the note prints by default, because notes on
-  `refs/notes/commits` are shown unless suppressed.
+  were written — and each now carries its correction at the point of reading.
+
+  **Verified with commands that actually print it (corrected 2026-09-14 by round 5).** This
+  paragraph previously offered `git log --oneline -1 <sha>` as the check. That command *suppresses*
+  the note: `--oneline` replaces git's default format, and the notes placeholder lives in the
+  default one. Round 5 measured ten invocations and split them — printing: `git log -1 <sha>`,
+  `git show -s <sha>`, `git log --notes`, `git log --oneline --notes`; silent: `git log --oneline
+  -1 <sha>`, `git log --pretty=oneline -1 <sha>`, `git show --oneline -s <sha>`, `git show -s
+  --format=medium <sha>`. The property holds — the notes print under `git log -1 <sha>` and
+  `git show -s <sha>` — but the sentence named the one form that does not, and it was the only
+  evidence offered for the claim it supported.
 
   The criterion is therefore **not** scoped to live artifacts: a false statement in a reachable
   record is a defect, corrected where it stands. What *remains* scoped is the experiment record,
@@ -357,6 +395,26 @@ consumer with nothing to consume. Recorded here because this is the plan that ow
 the re-run.
 
 ## 7. Awaiting Steering
+
+**Q27: A milestone whose code verifies clean but whose prose keeps failing — what closes it?**
+Raised 2026-09-14, when M1 reached the five-round verification cap without CONFIRMED. Five rounds
+rejected it; the code has not been rejected since round 2 and has not changed since then except for
+one comment and a tightening of the device predicate. Rounds 3, 4 and 5 found the pipeline, the
+acceptance test, the `git notes` corrections and the docstring correct, and rejected the *prose
+describing* them — and each round's repair introduced the sentence the next round rejected.
+
+Options. **(a)** Keep repairing the prose and verify again. It has now failed four rounds running,
+each fix becoming the next rejection, and the cap exists precisely because that loop can run
+without converging. **(b)** Flip M1 on the code's evidence, and treat the written record's residual
+defects as an open workstream on this plan. **(c)** Change the practice: write a milestone's record
+once, at the end, from artifacts that have already been verified, rather than editing it
+continuously while the verification is in flight — the five rounds suggest the continuous-edit
+practice is what manufactures falsifiable claims. Understanding which, and whether the cap should
+have fired here at all, matters more than M1: it will recur on M2, M3 and M4.
+
+**Default if not decided: (a) is exhausted, so the plan sits at (b)-or-(c) undecided — M1 stays
+unflipped and no further verification round is dispatched.** — deadline: when the human next reads
+this plan, or before M2's Plan phase, whichever is first.
 
 **Q25: Who executes the corpus re-run, and when is the archive backup made?** Not resolved. M2 and
 M3 are correct as written but produce no usable input until the producer's pass has been run over
