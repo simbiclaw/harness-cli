@@ -593,6 +593,28 @@ repository's is occupied by `9006`, whose own `test_pev_tmux_e2e.py` asserts the
 convention gains a per-plan store (or `9006`'s assertions are moved with it), this section is 9023's
 record and the report is its presentation.
 
+**The gate is wrong, and `9008-audio2tree-rebuild` diagnosed it (2026-09-15).** Asked how it writes
+`state.json` with another plan's assertions in place, it answered that it did not handle them: it
+passed **by luck**. `test_milestones_cover_m0_to_m7` asserts `M0`…`M7` all exist, and 9008's
+milestones happen to run M0–M13, so the range covers itself and the test passes without anyone
+having thought about it. Had 9008 still been at M0–M5 it would have failed on M6 and M7 — the same
+wall.
+
+So the assertion is **over-fitted to 9006**. It reads as a schema check ("state.json must have the
+complete schema for the subagent architecture") and asserts a milestone *range* that belongs to one
+plan. Any plan whose milestones do not start at M0 and reach M7 fails it; any plan that happens to
+span that range passes it for no reason. The fix is to assert the *shape* rather than the range —
+the five top-level fields present, `milestones` a non-empty mapping, every value in the status
+vocabulary, `current_milestone` naming an existing key — which holds for 9006, 9008 and 9023 alike,
+and which would have caught what actually went wrong here: not "M0 is missing" but "the file no
+longer describes the plan being run".
+
+**Not fixed here, and deliberately.** `.claude/tests/**` is a sensitive path: `pre_tool_use.py`
+grants an edit only when an active plan carries the literal `Awaiting Steering: resolved` *and* names
+the path, and no active plan does. The correct move is the one taken — hand it up rather than around.
+Widening that assertion, and deciding what `state.json` should look like once one repository holds
+more than one plan's history, wants its own plan.
+
 ### Entries predating the cap record
 
 **The third defect is real, and the first account of it was wrong (2026-09-14, corrected after
