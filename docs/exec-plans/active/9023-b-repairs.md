@@ -176,10 +176,45 @@ nothing — a test that only accepts non-empty would fail on 6.5% of the corpus 
 
 - [x] M1: Fix B's two blocking crashes  (done 2026-09-14 — cleared by human ruling at the five-round cap; see the Decision Log)
 - [x] M2: Delete the role re-derivation; consume the producer's `speaker_role`  (done 2026-09-14 — verified at 9f0e8b3, round 1 CONFIRMED; amended 2026-09-14, was "add a confidence floor")
-- [ ] M3: Retire the reliability chain (not a signal; timestamps are not lost)  (amended 2026-09-14 — was "repair the chain")
+- [x] M3: Retire the reliability chain (not a signal; timestamps are not lost)  (done 2026-09-14 — verified at 03be621, round 1 CONFIRMED; amended 2026-09-14, was "repair the chain")
 - [ ] M4: B's first end-to-end test + the call-record contract's conformance test  (amended 2026-09-14)
 
 ## 5. Decision Log
+
+### M3 adversarial verification
+
+**Verdict: CONFIRMED** — round 1, no rejection-grade finding.
+
+**The edge cases the round designed and ran:**
+
+- *Deletion completeness, by two greps.* Tracked files via `git grep` and the working tree
+  including untracked, for every deleted name. No live reader survives; the only hits are the new
+  tests' own assertions. `models/prompts.py` now offers the model only
+  `"internal_policy/external_fact"` — the atomize prompt's offer of the deleted field is gone, and
+  `ATOMIZE_AGENT_PROMPT` inherits "格式同上" from it.
+- *`_parse_raw` byte-identical.* `sha256` of its body is the same at `0c2cccd`, `9f0e8b3`,
+  `5e6f039` and `59f0645`.
+- *`process()` differs only in the deleted fields.* A differential over sixteen transcripts — the
+  three known formats, the label-less and fullwidth variants, five the parser does not recognise,
+  CRLF, empty, whitespace-only, and the repo's own `data/transcripts/sample.txt` — dumps
+  `CleanTranscript.model_dump()` with the deleted keys scrubbed: **identical**.
+- *Routing is total by construction.* Exhaustive over `applicability ∈ {applicable, NA} × ClaimType`
+  (six pairs), every pair yields exactly one verdict. `Subquestion(claim_type='asr_uncertain')`
+  raises `ValidationError` and `ClaimType('asr_uncertain')` raises `ValueError`, so the branch the
+  deletion orphaned cannot be reached by a value the enum can hold.
+- *The behaviour change, measured.* See §6 — it is larger than the commit recorded, and the
+  measurement is what corrected the commit's own claim about it.
+- *Reintroduction.* The same two regexes reinstated under a new name, as a three-valued grade on
+  `CleanTranscript`: all four M3 tests stayed green. That falsified the source-grep test's
+  docstring, which is corrected; it is the second occurrence of that class in this file.
+- *The `SyntaxWarning`, at both revs.* `python -W error::SyntaxWarning -c "import core.asr_preprocessor"`
+  raises at base and imports clean at HEAD.
+- *The suite.* 36 collected, `36 passed`, 0 skipped, no xfails — and the inventory is unchanged
+  between `5e6f039` and HEAD, so nothing was weakened to reach green.
+
+**What CONFIRMED does not cover.** The round's findings are recorded in §6 and none blocks the flip:
+the measured blast radius of the one live behaviour change, two orphans the deletion created and
+this milestone then cleared, and the retired concept's survival in the design corpus.
 
 ### M2 adversarial verification
 
@@ -361,6 +396,48 @@ and `design/15_3Demos_expected_output.md:27` carry acceptance items reading
 exist. They are archival design records, not live specification, and are left as written under the
 same rule that left the experiment record alone; recorded here so the mismatch is known rather than
 discovered.
+
+**The deletion's blast radius was larger than the commit recorded, and measuring it corrected
+the commit (2026-09-14).** The accuracy-atom filter in `core/question_generator.py` was
+`atom_type in [...] and a.reliability == "high"`, so an atom sourced from a short turn — under four
+characters, or a repeated fragment — was excluded from accuracy questioning and therefore from the
+score's denominator. Deleting the filter lets it back in. Verification measured one call, same fake
+model and fake KB: **`100.0 / 优秀` at `9f0e8b3`, `50.0 / 不合格` at `59f0645`**, with
+`requires_human_review` moving too, because the newly generated question carries `rubric_id=None`,
+so `_get_weight(None)` gives it full weight 1.0 in the 准确性 dimension.
+
+The change is the unavoidable consequence of the deletion — keeping the filter would mean
+re-deriving a turn's trustworthiness from text, which is the defect M3 removes — and it is bounded
+to atoms from short or repetitive turns. But the implementation commit said the grade "has never
+affected a score", and the same message's next paragraph disproves it; the claim is corrected in a
+`git notes` correction on `59f0645`. **The coverage gap is the part that matters:** no test in the
+suite names `_atom_driven_literal` at all, so nothing pins either the new behaviour or a regression
+back to a short-turn filter. M4's end-to-end test is where that lands, and this entry is the
+hand-off.
+
+**The deletion left two orphans, and clearing them was this milestone's work (2026-09-14).** Path C
+was the only producer of `VerdictResult.HUMAN_REVIEW`, so deleting it orphaned both the enum member
+and the `requires_review` term that read it — a verdict could carry a result nothing could set.
+And `Aggregator.aggregate`'s `clean_transcript` parameter lost its only reader when the
+`asr_quality_warning` computation went. Both removed at `03be621`, along with the two call sites and
+the test helper and import that removing the parameter orphaned in turn. An orphan created by a
+deletion belongs to the milestone that deleted, not to whoever finds it next.
+
+**The retired concept is still readable in eleven `design/` files (2026-09-14).** No code reads
+`design/`, and M2's round-1 record already set the archival rule for this class — but M3 widens it,
+and the retrievable copies are not marginal: a full expected-output JSON
+(`design/20_e2e_example.md`), acceptance items for the deleted behaviour
+(`design/18_file_checklist.md`, `design/IMPLEMENTATION_CHECKLIST.md`), and path C's specification
+(`design/10_instructions4cc.md`, `design/skill4cc.md`). Read is possible; resurrection is not, by
+any live path. Left as written, under the rule that a record of what was designed is corrected by
+annotation rather than by editing the record.
+
+**A source grep catches names its author thought of, and this milestone proved it twice
+(2026-09-14).** `test_no_reliability_machinery_survives`'s docstring claimed the behavioural tests
+would notice a reimplementation. Verification reinstated the same two regexes under a new name, as
+a three-valued grade on `CleanTranscript` — all four M3 tests stayed green. M2's round 1 falsified
+the twin of that sentence in the same file, so this is the second occurrence of one already
+recorded error class, and the docstring now names it rather than repeating the claim.
 
 ### Entries predating the cap record
 
