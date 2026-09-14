@@ -719,6 +719,40 @@ verbatim span. `Revisit: M12`.
 
 **Confidence:** high.
 
+### Decision: M5 close criteria — the Contract's stated property, with fidelity work spun out (steering, 2026-09-14)
+
+**Rationale:** the human ruling, on the cloud session's explicit handoff of the question. Five
+adversarial rounds produced a floor whose surviving defects were each the generalization of the
+previous fix (the arc: hand-written tables → generated oracle → nine facts → perimeter → raw
+callables + MRO), while the Contract's own second acceptance clause — *a proposed score cannot
+enter the replay-bearing payload* — was green the whole time against the wrong artifact
+(`test_replay_payload_still_excludes_proposed_score` exercises 9020's `proposer_diagnostics`
+module, never `pipeline.py`; its docstring says so). That is the rounds-1-3 disease sitting in the
+Contract's named test.
+
+Resolved in three parts:
+1. **M5's flip gates on the Contract's stated acceptance property, both clauses bound.** Clause 2
+   is repaired by binding the port's model-produced fields (`Verdict.score`, `Verdict.confidence`)
+   to `core/replay.py`'s `_hashable()` allowlist: the names exist on the port, appear nowhere in
+   the hash's recursive keys, the hash is invariant to a model-proposed number riding along, and a
+   stand-in allowlist that admits the field moves the hash (liveness). Rounds 4 and 5 are
+   recorded as **REJECTED** verdicts with their defect lists below, per the cloud session's
+   request that the arc survive in the record rather than as "eventually passed."
+2. **Every round-4/5 fidelity fix is retained** in this plan's floor (aliases, constraints,
+   model_config, validators, enum bases/order/aliases/methods, freshness and identity probes,
+   exact class sets, namespace-smuggling audit, verified provenance, 21-row mutation sweep).
+3. **The unfinished fidelity work moves to a successor plan** — `9022-contract-fidelity-checker`:
+   raw callable + MRO-base facts with the defining-module filter dropped, the 25-row sweep, a
+   shared sweep runner (the pyc-taint promotion: one way to run a sweep, not a convention
+   paragraph), and — the part that makes it a plan rather than a round — a written threat model
+   separating **drift** (what this floor catches) from **sabotage** (what an unbounded
+   adversarial brief always finds, rounds 4-5 having demonstrated it). Five survivals of the same
+   shape across distinct rounds is the promotion rule's trigger, and the successor is where the
+   rule moves it.
+
+**Confidence:** high that this closes M5 honestly — the Contract is the binding document, and for
+the first time both its clauses will be tested against the artifact they name.
+
 ## 6. Surprises & Discoveries
 
 **The two codebases transcribed the same rubric.** `9003-pilot-item18/specific-rubric.yaml` cites
@@ -907,7 +941,36 @@ the existing entanglement check routes it to model judgment.
 suite pins these, but any node compiled before this change, and any downstream reference to
 `18-S02` or `18-S03`, now points at a different signal.
 
+**"INTENTS is a dangling symlink" was true of one environment, stated as if true of the repo
+(2026-09-14, local session).** The Surprises entry above — and the docstring in
+`src/argus/core/replay.py` — say INTENTS cannot be read. It dangles in every *fresh clone*; it
+resolves on the local machine, where M13 and M16 are therefore executable. Recorded explicitly
+rather than quietly fixed, because the dangling reading is currently steering other milestones'
+estimates.
+
+**M5's five-round adversarial arc (2026-09-12 → 2026-09-14).** Recorded here because each round's
+survivors were the *generalization* of the previous round's fix, one altitude up — the most
+valuable thing the milestone produced, kept in the record rather than summarized as "eventually
+passed": R1-R3 (cloud) REJECTED — hand-written tables → generated oracle → freshness; every
+rejection "a check that passes for a reason other than the property it names." R4 (local) REJECTED
+— #20 namespace smuggling (re-export defeats the ownership filter and the exact-set test), #21
+enum `_missing_` coercion, plus the pyc-taint hazard (same-second size-preserving mutations —
+exactly constant edits, the mutations most worth running — defeat CPython's pyc validator; all
+sweeps now pyc-disabled). R5 REJECTED — `model_post_init` unrecorded, the defining-module cut
+attacker-writable, plain mixins invisible; terminal repair direction: raw callable + MRO facts,
+filter dropped. R6 pending with a bounded brief. The full defect lists live in
+`9021-relayer-argus-eval-pipeline-notes/M5.md`.
+
 ## 7. Awaiting Steering
+
+**Q23: What does M5's flip gate on?** — Awaiting Steering: resolved 2026-09-14 (human ruling, on
+the cloud session's handoff of the question). The Contract's stated acceptance property, both
+clauses bound: clause 2 repaired by tying the port's `Verdict.score`/`confidence` to
+`core/replay.py`'s `_hashable()` allowlist (the #22 defect — five rounds of fidelity hardening
+while the stated clause tested a different module); rounds 4/5 fidelity fixes retained; the
+unfinished sabotage-resistance work (raw callables + MRO facts, 25-row sweep, shared sweep
+runner) moves to `9022-contract-fidelity-checker` with its threat model written down. Originally
+blocked M5's flip. See the Decision Log entry of the same date for the full disposition.
 
 **Q1: Approve the RE-LAYER strategy?** — Awaiting Steering: resolved 2026-09-12. Approved.
 Transplant and Absorb are closed. The decision rests on invariant integrity and domain-asset
@@ -931,6 +994,7 @@ Option (a): scored in Empathy & Tone, with the Problem Resolution axis recorded 
 No — adopt the deferral rule. M11 owns the change.
 
 **Q7: Attach `simbiclaw/INTENTS`?** — Awaiting Steering: resolved 2026-09-12. The local `INTENTS` directory will be attached, so M13 reads a real tree. Whether `_rubric/` and the L1/L2/L3 business KB are one tree or two is now answered by inspection at M13 rather than by steering. If two, record it in Surprises as a scope increase of 2-3 milestones rather than absorbing it silently. Originally blocked M13. The symlink
+dangles in every clone. **Answered by inspection, 2026-09-14 (earlier than M13 — the tree was mapped while writing M0-foundation fixtures): ONE tree.** Local `INTENTS` is a symlink to `/Users/prometheus/workspace/INTENTS`, holding `_rubric/` and the L1/L2/L3 business KB together; M13 is one provider, no scope increase.
 dangles in every clone. Whether this repository's `_rubric/` subtree and B's L1/L2/L3 business KB
 are one tree or two decides whether M13 is one provider or two. Default if not decided: attach and
 inspect before M13 opens, treating the two-tree case as a scope increase rather than a surprise.
@@ -980,6 +1044,13 @@ Default if not decided: open as its own plan owned by the 9003 compiler line.
 > cannot be checked from a clone where `INTENTS` dangles. **Settle it by listing the node ids in
 > the live tree before M15**, and delete or keep this warning on that basis rather than on either
 > document.
+>
+> **Settled, 2026-09-14, by listing the live tree (the instruction this entry gives).** The live
+> `_rubric/rules_criteria/` holds exactly **25 item nodes, ids 1–5 and 8–27; items 6 and 7 are
+> already excluded**. Issue #16's report verifies; the warning above is wrong on the live tree and
+> is retained here only as the record of what was contested. The two 25s coincide. (M16 note that
+> travels with it: item 9 and item 27 sit in Procedural Accuracy in the live tree — item 27
+> matching the Q3 compliance-layer routing.)
 
 **Q15: Reconcile implementation-notes-during-execution with the checkbox-flip gate.** — Awaiting Steering: resolved 2026-09-12. **Moved out of this plan** to [#18](https://github.com/simbiclaw/harness-cli/issues/18). It is a harness defect in `.claude/tests/**`, not a deliverable of re-layering Argus. The finding that travels with it: the gate derives a notes directory that does not match 9008's, so 9008's seven flipped milestones are never checked and the unflipped-milestone test passes vacuously — and 9008's directory name is the one the convention document actually specifies. It is **not** violation two under the promotion rule; the single historical trip predates the test by a day. Blocked nothing in this plan.
 
