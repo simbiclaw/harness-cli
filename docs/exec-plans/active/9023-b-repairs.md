@@ -109,7 +109,7 @@ port and can run them (see its M7, which also records the deviation in its own r
 - *Deliverable:* Speaker attribution consumed from the call record; no re-derivation in the consumer.
 - *Binding constraint:* I2's posture — an input nobody established is **absent**, not low. A fabricated role is the same class of defect as a fabricated score.
 - *Acceptance property:* A correctly-role-labelled call is evaluated against the agent's utterances; a call without a role is routed to a human, and no code path can manufacture one.
-- *Known evidence (advisory):* **0 of 718 archived calls carry `speaker_role`** — the corpus predates M9, and the re-run is gated on an archive backup that has not been made. **Consequence, recorded deliberately: until that run happens this milestone makes Argus produce no auto-final verdict at all — every call defers on absent role.** That is the honest state, not a regression to work around; a consumer that keeps its re-derivation to avoid it is keeping the tier violation.
+- *Known evidence (advisory):* **0 of 718 archived calls carry `speaker_role`** — the corpus predates M9, and the re-run is gated on an archive backup that has not been made. **Consequence, recorded deliberately: until that run happens this milestone makes Argus produce no auto-final verdict at all — every call defers on absent role.** That is the honest state, not a regression to work around; a consumer that keeps its re-derivation to avoid it is keeping the tier violation. **Clarified 2026-09-14:** that sentence describes **Argus**, where M2's consumer half lands (9024). It does **not** describe B, and B does the opposite — see §6's entry on the 0.0/不合格 report, and Q28.
 
 
 ### M3 — Retire the reliability chain (it is not a signal; the timestamps are not lost)
@@ -175,11 +175,48 @@ nothing — a test that only accepts non-empty would fail on 6.5% of the corpus 
 ## 4. Progress
 
 - [x] M1: Fix B's two blocking crashes  (done 2026-09-14 — cleared by human ruling at the five-round cap; see the Decision Log)
-- [ ] M2: Delete the role re-derivation; consume the producer's `speaker_role`  (amended 2026-09-14 — was "add a confidence floor")
+- [x] M2: Delete the role re-derivation; consume the producer's `speaker_role`  (done 2026-09-14 — verified at 9f0e8b3, round 1 CONFIRMED; amended 2026-09-14, was "add a confidence floor")
 - [ ] M3: Retire the reliability chain (not a signal; timestamps are not lost)  (amended 2026-09-14 — was "repair the chain")
 - [ ] M4: B's first end-to-end test + the call-record contract's conformance test  (amended 2026-09-14)
 
 ## 5. Decision Log
+
+### M2 adversarial verification
+
+**Verdict: CONFIRMED** — round 1, no rejection-grade finding.
+
+**The edge cases the round designed and ran:**
+
+- *Reintroduction by a route the tests do not name.* Added a module-level oracle and routed `role`
+  through a new helper, leaving the constructor untouched: **all five acceptance tests stayed
+  green**, and the demonstration fired — a correctly-labelled transcript shipped
+  `['agent','customer']` for `客户/客服`. The docstring and the commit trailer claiming the
+  capability was "unexpressible" are both corrected; what is true is narrower and is what the tests
+  actually pin (the route the re-derivation used is closed, and reopening it by the obvious path is
+  visible).
+- *The parser's third format, and five it does not know.* `_parse_raw` has three labelled branches
+  and the acceptance tests exercise two. The round swept all three plus `[00:01 -> 00:20]客户:`,
+  `[1.0s -> 20.0s]客户:`, `[1000ms -> 20000ms]客户:`, `[1s]客户:` and `speaker=客户:`, and edge
+  cases around them: an unlabelled line among labelled ones, CRLF endings, an empty transcript,
+  labels other than 客户/坐席/客服.
+- *Repo-wide, not module-wide.* Grepped the whole repository for any path that *decides* a role
+  rather than reads one. None does; the module now imports only `re` and `models.schemas`.
+- *Red→green.* At `64153da`: `5 failed, 29 passed` — exactly the five acceptance tests. At HEAD:
+  `34 passed, 34 collected, 0 skipped`. At base, `test_timestamp_parsing` failed with
+  `assert 'agent' == 'customer'`, and base shipped *every* role of a correctly-labelled transcript
+  inverted. One test was deleted — `test_role_swap_detection`, in the RED commit — correctly,
+  because it asserted the deleted behaviour.
+- *The absent-role boundary in B.* `CleanTurn(role=None)` raises `ValidationError`, so the plan's
+  "B leaves the role non-nullable" is a fact about the code and not a hope.
+- *M3's surface, by hash.* The `asr_quality` / `reliability` / `TurnFlag` surface hashes identically
+  at base and at HEAD: the deletion did not reach M3's subject.
+- *An unattributable call, end to end.* Labels stripped from `TRANSCRIPT_NORMAL` → 0 turns,
+  `overall_score=0.0`, `grade='不合格'`, `veto_triggered=True`. Recorded in §6; what B does today is
+  not what the acceptance property's second clause asks for, and that clause is 9024's.
+
+**What CONFIRMED does not cover.** The round's remaining findings are behaviours of the surface M2
+leaves behind rather than defects in the deletion. They are recorded in §6, and none blocks the
+flip.
 
 ### M1 adversarial verification
 
@@ -292,6 +329,38 @@ The findings narrowed every round — from a defect plus a regression, to one nu
 copy, to a scoping argument, to a command name — but the class did not go away, because the repairs
 were themselves unverified assertions. That is the same failure the rounds were catching, which is
 the honest reading of why five rounds did not converge.
+
+**What B does with a call it cannot attribute — and why it is not what the plan asks for (2026-09-14).**
+M2's acceptance property has two clauses: a correctly-labelled call is evaluated against the agent's
+utterances, and a call without a role is routed to a human. The first is demonstrated in B. The
+second is not, and M2's deletion is not what stands in its way. Measured end to end on
+`TRANSCRIPT_NORMAL` with its labels stripped: **0 turns, `overall_score=0.0`, `grade='不合格'`,
+`veto_triggered=True`.** `requires_human_review` is set, but incidentally — `core/fact_checker.py`
+derives it from NEI, low confidence, veto and implied questions, none of which knows that
+attribution was absent. So B does not defer an unattributable call; it grades it zero and vetoes
+it, and a reader who trusted the plan's sentence about "every call defers" would expect the
+opposite. That sentence is about Argus and is now marked as such; the clause itself is 9024's
+(T7's absent-role state and `test_absent_role_defers`), and Q28 asks whether a 0.0/不合格 report is
+an acceptable *form* of "routed to a human" once Argus does defer.
+
+**`_parse_raw` is now the sole role authority, and it recognises three formats (2026-09-14).**
+Pre-existing and unchanged by M2, but the *consequence* changed: with the re-derivation gone,
+nothing else can rescue a transcript the parser does not recognise. `[00:01 -> 00:20]客户:`,
+`[1.0s -> 20.0s]客户:`, `[1000ms -> 20000ms]客户:`, `[1s]客户:` and `speaker=客户:` all yield
+**0 turns** — the label is present and the role is neither consumed nor flagged. Two smaller
+artifacts of the same parser: the unnumbered branch keeps the label inside the turn text
+(`客户您好，我想咨询一下`), and a transcript mixing formats (`[1s -> 20s]客户: …` followed by
+`[T02] 坐席: …`) collapses to a single customer turn containing the agent's words, because the
+timestamp branch returns before the numbered branch is tried. None of these is M2's to fix — M2
+deletes a decider, it does not repair a parser — and all are recorded because M4's end-to-end test
+is where they will surface.
+
+**B's design documents still require the deleted behaviour (2026-09-14).** `design/18_file_checklist.md`
+and `design/15_3Demos_expected_output.md:27` carry acceptance items reading
+`role_swap_detected: True ← 必须检测到` — a stated expectation for something that can no longer
+exist. They are archival design records, not live specification, and are left as written under the
+same rule that left the experiment record alone; recorded here so the mismatch is known rather than
+discovered.
 
 ### Entries predating the cap record
 
@@ -441,6 +510,18 @@ consumer with nothing to consume. Recorded here because this is the plan that ow
 the re-run.
 
 ## 7. Awaiting Steering
+
+**Q28: Is a 0.0/不合格 report an acceptable form of "routed to a human"?** Raised 2026-09-14 by
+M2's verification. When a call cannot be attributed, B currently produces a *confident* negative —
+zero, 不合格, vetoed — rather than an absence, and `requires_human_review` happens to be set for
+unrelated reasons. Argus is supposed to do the opposite: no auto-final verdict, route to a human.
+Once 9024 lands the absent-role state, the question is what the routed verdict *looks like*: a
+deferral carrying no score at all, or a scored report flagged for review? The distinction matters
+because a zero that reaches a report is indistinguishable from a judgment, and the plan's whole
+posture is that an unestablished input is absent rather than low. Options: (a) the routed verdict
+carries no score and no grade; (b) it carries them, with the deferral signalled by a separate field;
+(c) it is a distinct record type. **Default if not decided: (a)**, which is what "absent, not low"
+means when written as a type. — deadline: 9024's M7 Plan phase.
 
 **Q27: A milestone whose code verifies clean but whose prose keeps failing — what closes it?**
 — **Awaiting Steering: resolved 2026-09-14.** The human ruled: *"这种不是代码出问题的，第三轮结束就
