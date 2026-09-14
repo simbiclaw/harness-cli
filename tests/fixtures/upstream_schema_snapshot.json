@@ -1,116 +1,414 @@
 {
+  "declared_classes": [
+    "ASRQuality",
+    "TurnFlag",
+    "CleanTurn",
+    "CleanTranscript",
+    "RubricCategory",
+    "RubricItem",
+    "KBContent",
+    "SessionKBContext",
+    "Turn",
+    "Session",
+    "ClientAtomType",
+    "AgentAtomType",
+    "Atom",
+    "CoverageStatus",
+    "CoverageRelation",
+    "IntentSwitch",
+    "IntentInference",
+    "ClaimType",
+    "ImpliedQType",
+    "QuestionSource",
+    "Subquestion",
+    "EvidenceItem",
+    "VerdictResult",
+    "Verdict",
+    "DimensionScore",
+    "QAReport"
+  ],
+  "digest": "sha256:1e58d9eb480ed3761748564c78e82365a2c87d287994fa92227ba6f39241368f",
   "enums": {
     "ASRQuality": {
-      "FAIR": "fair",
-      "GOOD": "good",
-      "POOR": "poor"
+      "bases": [
+        "str",
+        "Enum",
+        "object"
+      ],
+      "members": [
+        [
+          "GOOD",
+          "good"
+        ],
+        [
+          "FAIR",
+          "fair"
+        ],
+        [
+          "POOR",
+          "poor"
+        ]
+      ]
     },
     "AgentAtomType": {
-      "BUSINESS_JUDGMENT": "业务判断",
-      "CLOSING_ACTION": "结案行为",
-      "FACT_STATEMENT": "事实陈述",
-      "FAULT_DIAGNOSIS": "故障定性",
-      "OPERATION_GUIDE": "操作指引",
-      "POLICY_CITATION": "政策引用",
-      "SERVICE_ACTION": "服务行为",
-      "SERVICE_PROMISE": "服务承诺",
-      "SOLUTION_OFFER": "解决方案"
+      "bases": [
+        "str",
+        "Enum",
+        "object"
+      ],
+      "members": [
+        [
+          "BUSINESS_JUDGMENT",
+          "业务判断"
+        ],
+        [
+          "FACT_STATEMENT",
+          "事实陈述"
+        ],
+        [
+          "POLICY_CITATION",
+          "政策引用"
+        ],
+        [
+          "FAULT_DIAGNOSIS",
+          "故障定性"
+        ],
+        [
+          "SOLUTION_OFFER",
+          "解决方案"
+        ],
+        [
+          "OPERATION_GUIDE",
+          "操作指引"
+        ],
+        [
+          "SERVICE_PROMISE",
+          "服务承诺"
+        ],
+        [
+          "CLOSING_ACTION",
+          "结案行为"
+        ],
+        [
+          "SERVICE_ACTION",
+          "服务行为"
+        ]
+      ]
     },
     "ClaimType": {
-      "ASR_UNCERTAIN": "asr_uncertain",
-      "DIALOGUE_CONSISTENCY": "dialogue_consistency",
-      "EXTERNAL_FACT": "external_fact",
-      "INTERNAL_POLICY": "internal_policy"
+      "bases": [
+        "str",
+        "Enum",
+        "object"
+      ],
+      "members": [
+        [
+          "DIALOGUE_CONSISTENCY",
+          "dialogue_consistency"
+        ],
+        [
+          "EXTERNAL_FACT",
+          "external_fact"
+        ],
+        [
+          "INTERNAL_POLICY",
+          "internal_policy"
+        ],
+        [
+          "ASR_UNCERTAIN",
+          "asr_uncertain"
+        ]
+      ]
     },
     "ClientAtomType": {
-      "EXPLICIT_REQUEST": "明确诉求",
-      "FACT_CLAIM": "事实声明",
-      "FAULT_DESCRIPTION": "故障描述",
-      "HISTORICAL_CLAIM": "历史声称",
-      "INFERRED_CLAIM": "推断声称",
-      "OBJECTION": "异议"
+      "bases": [
+        "str",
+        "Enum",
+        "object"
+      ],
+      "members": [
+        [
+          "FACT_CLAIM",
+          "事实声明"
+        ],
+        [
+          "FAULT_DESCRIPTION",
+          "故障描述"
+        ],
+        [
+          "EXPLICIT_REQUEST",
+          "明确诉求"
+        ],
+        [
+          "HISTORICAL_CLAIM",
+          "历史声称"
+        ],
+        [
+          "INFERRED_CLAIM",
+          "推断声称"
+        ],
+        [
+          "OBJECTION",
+          "异议"
+        ]
+      ]
     },
     "CoverageStatus": {
-      "IGNORED": "ignored",
-      "PARTIAL": "partial",
-      "RESPONDED": "responded"
+      "bases": [
+        "str",
+        "Enum",
+        "object"
+      ],
+      "members": [
+        [
+          "RESPONDED",
+          "responded"
+        ],
+        [
+          "PARTIAL",
+          "partial"
+        ],
+        [
+          "IGNORED",
+          "ignored"
+        ]
+      ]
     },
     "ImpliedQType": {
-      "CONTEXT": "CONTEXT",
-      "DOMAIN_KNOWLEDGE": "DOMAIN_KNOWLEDGE",
-      "IMPLICIT_MEANING": "IMPLICIT_MEANING",
-      "STATISTICAL_RIGOR": "STATISTICAL_RIGOR"
+      "bases": [
+        "str",
+        "Enum",
+        "object"
+      ],
+      "members": [
+        [
+          "DOMAIN_KNOWLEDGE",
+          "DOMAIN_KNOWLEDGE"
+        ],
+        [
+          "CONTEXT",
+          "CONTEXT"
+        ],
+        [
+          "IMPLICIT_MEANING",
+          "IMPLICIT_MEANING"
+        ],
+        [
+          "STATISTICAL_RIGOR",
+          "STATISTICAL_RIGOR"
+        ]
+      ]
     },
     "QuestionSource": {
-      "ATOM_IMPLIED": "atom_implied",
-      "ATOM_LITERAL": "atom_literal",
-      "RUBRIC_DRIVEN": "rubric_driven"
+      "bases": [
+        "str",
+        "Enum",
+        "object"
+      ],
+      "members": [
+        [
+          "RUBRIC_DRIVEN",
+          "rubric_driven"
+        ],
+        [
+          "ATOM_LITERAL",
+          "atom_literal"
+        ],
+        [
+          "ATOM_IMPLIED",
+          "atom_implied"
+        ]
+      ]
     },
     "RubricCategory": {
-      "ACCURACY": "准确性",
-      "ATTITUDE": "态度规范",
-      "PROCESS": "流程遵守",
-      "SKILL": "技能技巧",
-      "SPECIAL": "特殊项"
+      "bases": [
+        "str",
+        "Enum",
+        "object"
+      ],
+      "members": [
+        [
+          "PROCESS",
+          "流程遵守"
+        ],
+        [
+          "ATTITUDE",
+          "态度规范"
+        ],
+        [
+          "SKILL",
+          "技能技巧"
+        ],
+        [
+          "SPECIAL",
+          "特殊项"
+        ],
+        [
+          "ACCURACY",
+          "准确性"
+        ]
+      ]
     },
     "TurnFlag": {
-      "ASR_ERROR": "ASR_ERROR",
-      "INCOMPLETE": "INCOMPLETE",
-      "NORMAL": "NORMAL",
-      "ROLE_SWAPPED": "ROLE_SWAPPED"
+      "bases": [
+        "str",
+        "Enum",
+        "object"
+      ],
+      "members": [
+        [
+          "INCOMPLETE",
+          "INCOMPLETE"
+        ],
+        [
+          "ASR_ERROR",
+          "ASR_ERROR"
+        ],
+        [
+          "ROLE_SWAPPED",
+          "ROLE_SWAPPED"
+        ],
+        [
+          "NORMAL",
+          "NORMAL"
+        ]
+      ]
     },
     "VerdictResult": {
-      "FAIL": "fail",
-      "HUMAN_REVIEW": "human_review",
-      "NA": "NA",
-      "NEI": "NEI",
-      "PARTIAL": "partial",
-      "PASS": "pass"
+      "bases": [
+        "str",
+        "Enum",
+        "object"
+      ],
+      "members": [
+        [
+          "PASS",
+          "pass"
+        ],
+        [
+          "FAIL",
+          "fail"
+        ],
+        [
+          "PARTIAL",
+          "partial"
+        ],
+        [
+          "NEI",
+          "NEI"
+        ],
+        [
+          "NA",
+          "NA"
+        ],
+        [
+          "HUMAN_REVIEW",
+          "human_review"
+        ]
+      ]
     }
   },
   "generated_by": "scripts/build_schema_snapshot.py",
   "models": {
     "Atom": {
+      "config": {},
+      "decorators": {
+        "computed_fields": [],
+        "field_serializers": [],
+        "field_validators": [],
+        "model_serializers": [],
+        "model_validators": [],
+        "root_validators": [],
+        "validators": []
+      },
       "fields": {
         "atom_type": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "content": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "decontextualized": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "id": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "intent_group": {
-          "annotation": "typing.Optional[str]",
+          "alias": null,
+          "annotation": "str | None",
+          "constraints": [],
           "default": "None",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "reliability": {
+          "alias": null,
           "annotation": "typing.Literal['high', 'low']",
+          "constraints": [],
           "default": "'high'",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "role": {
+          "alias": null,
           "annotation": "typing.Literal['client', 'agent']",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "source_turn_ids": {
-          "annotation": "typing.List[str]",
+          "alias": null,
+          "annotation": "list[str]",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         }
       },
       "order": [
@@ -125,31 +423,71 @@
       ]
     },
     "CleanTranscript": {
+      "config": {},
+      "decorators": {
+        "computed_fields": [],
+        "field_serializers": [],
+        "field_validators": [],
+        "model_serializers": [],
+        "model_validators": [],
+        "root_validators": [],
+        "validators": []
+      },
       "fields": {
         "asr_quality": {
+          "alias": null,
           "annotation": "<enum 'ASRQuality",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "low_reliability_turn_ids": {
-          "annotation": "typing.List[str]",
+          "alias": null,
+          "annotation": "list[str]",
+          "constraints": [],
           "default": "[]",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "role_swap_detected": {
+          "alias": null,
           "annotation": "bool",
+          "constraints": [],
           "default": "False",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "session_id": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "turns": {
-          "annotation": "typing.List[CleanTurn]",
+          "alias": null,
+          "annotation": "list[CleanTurn]",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         }
       },
       "order": [
@@ -161,41 +499,93 @@
       ]
     },
     "CleanTurn": {
+      "config": {},
+      "decorators": {
+        "computed_fields": [],
+        "field_serializers": [],
+        "field_validators": [],
+        "model_serializers": [],
+        "model_validators": [],
+        "root_validators": [],
+        "validators": []
+      },
       "fields": {
         "flags": {
-          "annotation": "typing.List[TurnFlag]",
+          "alias": null,
+          "annotation": "list[TurnFlag]",
+          "constraints": [],
           "default": "[]",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "id": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "reliability": {
+          "alias": null,
           "annotation": "typing.Literal['high', 'low']",
+          "constraints": [],
           "default": "'high'",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "role": {
+          "alias": null,
           "annotation": "typing.Literal['customer', 'agent']",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "text": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "timestamp_end": {
-          "annotation": "typing.Optional[int]",
+          "alias": null,
+          "annotation": "int | None",
+          "constraints": [],
           "default": "None",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "timestamp_start": {
-          "annotation": "typing.Optional[int]",
+          "alias": null,
+          "annotation": "int | None",
+          "constraints": [],
           "default": "None",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         }
       },
       "order": [
@@ -209,26 +599,60 @@
       ]
     },
     "CoverageRelation": {
+      "config": {},
+      "decorators": {
+        "computed_fields": [],
+        "field_serializers": [],
+        "field_validators": [],
+        "model_serializers": [],
+        "model_validators": [],
+        "root_validators": [],
+        "validators": []
+      },
       "fields": {
         "agent_atom_id": {
-          "annotation": "typing.Optional[str]",
+          "alias": null,
+          "annotation": "str | None",
+          "constraints": [],
           "default": "None",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "client_atom_id": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "note": {
-          "annotation": "typing.Optional[str]",
+          "alias": null,
+          "annotation": "str | None",
+          "constraints": [],
           "default": "None",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "status": {
+          "alias": null,
           "annotation": "<enum 'CoverageStatus",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         }
       },
       "order": [
@@ -239,31 +663,71 @@
       ]
     },
     "DimensionScore": {
+      "config": {},
+      "decorators": {
+        "computed_fields": [],
+        "field_serializers": [],
+        "field_validators": [],
+        "model_serializers": [],
+        "model_validators": [],
+        "root_validators": [],
+        "validators": []
+      },
       "fields": {
         "applicable_count": {
+          "alias": null,
           "annotation": "int",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "name": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "passed_count": {
+          "alias": null,
           "annotation": "int",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "total_weight": {
+          "alias": null,
           "annotation": "float",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "weighted_score": {
+          "alias": null,
           "annotation": "float",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         }
       },
       "order": [
@@ -275,31 +739,71 @@
       ]
     },
     "EvidenceItem": {
+      "config": {},
+      "decorators": {
+        "computed_fields": [],
+        "field_serializers": [],
+        "field_validators": [],
+        "model_serializers": [],
+        "model_validators": [],
+        "root_validators": [],
+        "validators": []
+      },
       "fields": {
         "doc_path": {
-          "annotation": "typing.Optional[str]",
+          "alias": null,
+          "annotation": "str | None",
+          "constraints": [],
           "default": "None",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "score": {
+          "alias": null,
           "annotation": "float",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "supports": {
+          "alias": null,
           "annotation": "bool",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "text": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "turn_id": {
-          "annotation": "typing.Optional[str]",
+          "alias": null,
+          "annotation": "str | None",
+          "constraints": [],
           "default": "None",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         }
       },
       "order": [
@@ -311,36 +815,82 @@
       ]
     },
     "IntentInference": {
+      "config": {},
+      "decorators": {
+        "computed_fields": [],
+        "field_serializers": [],
+        "field_validators": [],
+        "model_serializers": [],
+        "model_validators": [],
+        "root_validators": [],
+        "validators": []
+      },
       "fields": {
         "agent_behavior_pattern": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "customer_deep_intent": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "customer_surface_intent": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "intent_switches": {
-          "annotation": "typing.List[IntentSwitch]",
+          "alias": null,
+          "annotation": "list[IntentSwitch]",
+          "constraints": [],
           "default": "[]",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "key_tension": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "unresolved_intents": {
-          "annotation": "typing.List[str]",
+          "alias": null,
+          "annotation": "list[str]",
+          "constraints": [],
           "default": "[]",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         }
       },
       "order": [
@@ -353,26 +903,60 @@
       ]
     },
     "IntentSwitch": {
+      "config": {},
+      "decorators": {
+        "computed_fields": [],
+        "field_serializers": [],
+        "field_validators": [],
+        "model_serializers": [],
+        "model_validators": [],
+        "root_validators": [],
+        "validators": []
+      },
       "fields": {
         "agent_recognized": {
+          "alias": null,
           "annotation": "bool",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "from_intent": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "to_intent": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "turn_id": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         }
       },
       "order": [
@@ -383,26 +967,60 @@
       ]
     },
     "KBContent": {
+      "config": {},
+      "decorators": {
+        "computed_fields": [],
+        "field_serializers": [],
+        "field_validators": [],
+        "model_serializers": [],
+        "model_validators": [],
+        "root_validators": [],
+        "validators": []
+      },
       "fields": {
         "content": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "level": {
+          "alias": null,
           "annotation": "int",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "node_type": {
+          "alias": null,
           "annotation": "typing.Literal['primary', 'parent', 'sibling']",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "path": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         }
       },
       "order": [
@@ -413,96 +1031,214 @@
       ]
     },
     "QAReport": {
+      "config": {},
+      "decorators": {
+        "computed_fields": [],
+        "field_serializers": [],
+        "field_validators": [],
+        "model_serializers": [],
+        "model_validators": [],
+        "root_validators": [],
+        "validators": []
+      },
       "fields": {
         "agent_id": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "asr_quality_warning": {
+          "alias": null,
           "annotation": "bool",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "dimension_scores": {
-          "annotation": "typing.List[DimensionScore]",
+          "alias": null,
+          "annotation": "list[DimensionScore]",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "grade": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "human_review_items": {
-          "annotation": "typing.List[str]",
+          "alias": null,
+          "annotation": "list[str]",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "improvement_suggestions": {
-          "annotation": "typing.List[str]",
+          "alias": null,
+          "annotation": "list[str]",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "low_kb_coverage_warning": {
+          "alias": null,
           "annotation": "bool",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "multi_intent_detected": {
+          "alias": null,
           "annotation": "bool",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "overall_score": {
+          "alias": null,
           "annotation": "float",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "questions": {
-          "annotation": "typing.List[Subquestion]",
+          "alias": null,
+          "annotation": "list[Subquestion]",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "requires_human_review": {
+          "alias": null,
           "annotation": "bool",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "role_swap_detected": {
+          "alias": null,
           "annotation": "bool",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "session_id": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "summary": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "unresolved_intents": {
-          "annotation": "typing.List[str]",
+          "alias": null,
+          "annotation": "list[str]",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "verdicts": {
-          "annotation": "typing.List[Verdict]",
+          "alias": null,
+          "annotation": "list[Verdict]",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "veto_items": {
-          "annotation": "typing.List[str]",
+          "alias": null,
+          "annotation": "list[str]",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "veto_triggered": {
+          "alias": null,
           "annotation": "bool",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         }
       },
       "order": [
@@ -527,66 +1263,148 @@
       ]
     },
     "RubricItem": {
+      "config": {},
+      "decorators": {
+        "computed_fields": [],
+        "field_serializers": [],
+        "field_validators": [],
+        "model_serializers": [],
+        "model_validators": [],
+        "root_validators": [],
+        "validators": []
+      },
       "fields": {
         "always_check": {
+          "alias": null,
           "annotation": "bool",
+          "constraints": [],
           "default": "True",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "category": {
+          "alias": null,
           "annotation": "<enum 'RubricCategory",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "fail_criteria": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "id": {
+          "alias": null,
           "annotation": "int",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "is_veto": {
+          "alias": null,
           "annotation": "bool",
+          "constraints": [],
           "default": "False",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "is_weighted": {
+          "alias": null,
           "annotation": "bool",
+          "constraints": [],
           "default": "False",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "na_criteria": {
-          "annotation": "typing.Optional[str]",
+          "alias": null,
+          "annotation": "str | None",
+          "constraints": [],
           "default": "None",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "name": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "pass_criteria": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "requires_domain_kb": {
+          "alias": null,
           "annotation": "bool",
+          "constraints": [],
           "default": "False",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "trigger_keywords": {
-          "annotation": "typing.List[str]",
+          "alias": null,
+          "annotation": "list[str]",
+          "constraints": [],
           "default": "[]",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "weight": {
+          "alias": null,
           "annotation": "float",
+          "constraints": [],
           "default": "1.0",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         }
       },
       "order": [
@@ -605,31 +1423,71 @@
       ]
     },
     "Session": {
+      "config": {},
+      "decorators": {
+        "computed_fields": [],
+        "field_serializers": [],
+        "field_validators": [],
+        "model_serializers": [],
+        "model_validators": [],
+        "root_validators": [],
+        "validators": []
+      },
       "fields": {
         "agent_id": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "'UNKNOWN'",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "duration_sec": {
-          "annotation": "typing.Optional[int]",
+          "alias": null,
+          "annotation": "int | None",
+          "constraints": [],
           "default": "None",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "metadata": {
-          "annotation": "typing.Dict[str, typing.Any]",
+          "alias": null,
+          "annotation": "dict[str, typing.Any]",
+          "constraints": [],
           "default": "{}",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "session_id": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<factory:str:fresh>",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "turns": {
-          "annotation": "typing.List[Turn]",
+          "alias": null,
+          "annotation": "list[Turn]",
+          "constraints": [],
           "default": "[]",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         }
       },
       "order": [
@@ -641,51 +1499,115 @@
       ]
     },
     "SessionKBContext": {
+      "config": {},
+      "decorators": {
+        "computed_fields": [],
+        "field_serializers": [],
+        "field_validators": [],
+        "model_serializers": [],
+        "model_validators": [],
+        "root_validators": [],
+        "validators": []
+      },
       "fields": {
         "all_rubric_items": {
-          "annotation": "typing.List[RubricItem]",
+          "alias": null,
+          "annotation": "list[RubricItem]",
+          "constraints": [],
           "default": "[]",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "applicable_rubrics": {
-          "annotation": "typing.List[RubricItem]",
+          "alias": null,
+          "annotation": "list[RubricItem]",
+          "constraints": [],
           "default": "[]",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "coverage_score": {
+          "alias": null,
           "annotation": "float",
+          "constraints": [],
           "default": "0.0",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "domain_knowledge_summary": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "''",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "kb_contents": {
-          "annotation": "typing.List[KBContent]",
+          "alias": null,
+          "annotation": "list[KBContent]",
+          "constraints": [],
           "default": "[]",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "low_coverage_warning": {
+          "alias": null,
           "annotation": "bool",
+          "constraints": [],
           "default": "False",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "primary_intent_path": {
-          "annotation": "typing.Optional[str]",
+          "alias": null,
+          "annotation": "str | None",
+          "constraints": [],
           "default": "None",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "secondary_intent_paths": {
-          "annotation": "typing.List[str]",
+          "alias": null,
+          "annotation": "list[str]",
+          "constraints": [],
           "default": "[]",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "unmatched_entities": {
-          "annotation": "typing.List[str]",
+          "alias": null,
+          "annotation": "list[str]",
+          "constraints": [],
           "default": "[]",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         }
       },
       "order": [
@@ -701,76 +1623,170 @@
       ]
     },
     "Subquestion": {
+      "config": {},
+      "decorators": {
+        "computed_fields": [],
+        "field_serializers": [],
+        "field_validators": [],
+        "model_serializers": [],
+        "model_validators": [],
+        "root_validators": [],
+        "validators": []
+      },
       "fields": {
         "applicability": {
+          "alias": null,
           "annotation": "typing.Literal['applicable', 'NA']",
+          "constraints": [],
           "default": "'applicable'",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "claim_type": {
+          "alias": null,
           "annotation": "<enum 'ClaimType",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "dimension": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "hypothesis_neg": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "hypothesis_pos": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "id": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "implied_q_type": {
-          "annotation": "typing.Optional[ImpliedQType]",
+          "alias": null,
+          "annotation": "ImpliedQType | None",
+          "constraints": [],
           "default": "None",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "is_veto": {
+          "alias": null,
           "annotation": "bool",
+          "constraints": [],
           "default": "False",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "na_reason": {
-          "annotation": "typing.Optional[str]",
+          "alias": null,
+          "annotation": "str | None",
+          "constraints": [],
           "default": "None",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "q_type": {
+          "alias": null,
           "annotation": "typing.Literal['literal', 'implied']",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "question": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "rubric_id": {
-          "annotation": "typing.Optional[int]",
+          "alias": null,
+          "annotation": "int | None",
+          "constraints": [],
           "default": "None",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "source": {
+          "alias": null,
           "annotation": "<enum 'QuestionSource",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "source_atom_ids": {
-          "annotation": "typing.List[str]",
+          "alias": null,
+          "annotation": "list[str]",
+          "constraints": [],
           "default": "[]",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         }
       },
       "order": [
@@ -791,31 +1807,71 @@
       ]
     },
     "Turn": {
+      "config": {},
+      "decorators": {
+        "computed_fields": [],
+        "field_serializers": [],
+        "field_validators": [],
+        "model_serializers": [],
+        "model_validators": [],
+        "root_validators": [],
+        "validators": []
+      },
       "fields": {
         "flags": {
-          "annotation": "typing.List[TurnFlag]",
+          "alias": null,
+          "annotation": "list[TurnFlag]",
+          "constraints": [],
           "default": "[]",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "id": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "reliability": {
+          "alias": null,
           "annotation": "typing.Literal['high', 'low']",
+          "constraints": [],
           "default": "'high'",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "role": {
+          "alias": null,
           "annotation": "typing.Literal['customer', 'agent']",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "text": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         }
       },
       "order": [
@@ -827,56 +1883,126 @@
       ]
     },
     "Verdict": {
+      "config": {},
+      "decorators": {
+        "computed_fields": [],
+        "field_serializers": [],
+        "field_validators": [],
+        "model_serializers": [],
+        "model_validators": [],
+        "root_validators": [],
+        "validators": []
+      },
       "fields": {
         "checking_path": {
+          "alias": null,
           "annotation": "typing.Literal['A', 'B', 'C']",
+          "constraints": [],
           "default": "'A'",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "confidence": {
+          "alias": null,
           "annotation": "float",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "evidence": {
-          "annotation": "typing.List[EvidenceItem]",
+          "alias": null,
+          "annotation": "list[EvidenceItem]",
+          "constraints": [],
           "default": "[]",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "question_id": {
+          "alias": null,
           "annotation": "str",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "requires_human_review": {
+          "alias": null,
           "annotation": "bool",
+          "constraints": [],
           "default": "False",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "result": {
+          "alias": null,
           "annotation": "<enum 'VerdictResult",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "review_reason": {
-          "annotation": "typing.Optional[str]",
+          "alias": null,
+          "annotation": "str | None",
+          "constraints": [],
           "default": "None",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "rubric_id": {
-          "annotation": "typing.Optional[int]",
+          "alias": null,
+          "annotation": "int | None",
+          "constraints": [],
           "default": "None",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "score": {
+          "alias": null,
           "annotation": "float",
+          "constraints": [],
           "default": "<required>",
-          "required": true
+          "exclude": null,
+          "frozen": null,
+          "required": true,
+          "serialization_alias": null,
+          "validation_alias": null
         },
         "weight": {
+          "alias": null,
           "annotation": "float",
+          "constraints": [],
           "default": "1.0",
-          "required": false
+          "exclude": null,
+          "frozen": null,
+          "required": false,
+          "serialization_alias": null,
+          "validation_alias": null
         }
       },
       "order": [
@@ -893,10 +2019,11 @@
       ]
     }
   },
-  "note": "Generated, not transcribed. A diff here is an on-disk format change (Tier C) and needs a steering entry, not a regenerate-and-move-on.",
+  "note": "Generated, not transcribed, from a git-verified upstream checkout. A diff here is an on-disk format change (Tier C) and needs a steering entry, not a regenerate-and-move-on. Hand-editing this file breaks `digest` and fails tests/test_schemas.py.",
   "source": {
-    "commit": "0c2cccd",
+    "commit": "0c2cccd178a5696c59ffa90dca129511af5ae5c0",
     "path": "models/schemas.py",
-    "repo": "simbiclaw/sim"
+    "repo": "simbiclaw/sim",
+    "sha256": "4685ad54cea2b68587bc496d2d1289810023c71ad9d186328cba729b4fa7b15d"
   }
 }
