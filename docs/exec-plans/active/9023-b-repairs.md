@@ -174,12 +174,58 @@ nothing — a test that only accepts non-empty would fail on 6.5% of the corpus 
 
 ## 4. Progress
 
-- [ ] M1: Fix B's two blocking crashes  (created 2026-09-12)
+- [x] M1: Fix B's two blocking crashes  (done 2026-09-14 — cleared by human ruling at the five-round cap; see the Decision Log)
 - [ ] M2: Delete the role re-derivation; consume the producer's `speaker_role`  (amended 2026-09-14 — was "add a confidence floor")
 - [ ] M3: Retire the reliability chain (not a signal; timestamps are not lost)  (amended 2026-09-14 — was "repair the chain")
 - [ ] M4: B's first end-to-end test + the call-record contract's conformance test  (amended 2026-09-14)
 
 ## 5. Decision Log
+
+### M1 adversarial verification
+
+**Verdict: CONFIRMED** — *cleared by the human's ruling at the five-round cap, not by a round's
+verdict. No round returned CONFIRMED; five returned REJECTED.*
+
+Rounds 1 and 2 found defects in the artifact: round 1 a real regression the first repair introduced
+— a working MPS pipeline moved silently onto the CPU, fixed at `f7af485` — and round 2 the device
+probe asking a weaker question than the pipeline asks, fixed at `067e449`. **Rounds 3, 4 and 5 found
+nothing in the artifact at all**, and the artifact did not change between them: every finding was
+against the prose describing the work, and each round's repair to that prose became the next round's
+finding. The human's ruling of 2026-09-14 closes it — *"这种不是代码出问题的，第三轮结束就应该翻牌了"*
+— and the rule is now `docs/conventions/pev-loop.md`, "When the loop changes object". Under that
+rule, `Verdict: CONFIRMED` above is the structural gate's only vocabulary for *cleared to flip*; it
+is not a claim that a round confirmed.
+
+**The edge cases the rounds designed and ran** — what this milestone is actually confirmed against:
+
+- *Each crash fix reverted on its own* (round 3, clone): Stage 0 alone → `AttributeError: 'QAAgent'
+  object has no attribute 'kb_builder'` at `agents/qa_agent.py:66`; Stage 6 alone → `KeyError:
+  'grade'` at `:125`. Neither fix carries the other, and both land on the lines M1 cites.
+- *Every device case falsified by targeted mutation* (rounds 3 and 4): a deliberately wrong
+  `_resolve_device()` per branch kills exactly the test covering it — fallback returns `0`, CUDA
+  branch removed, MPS branch removed, `getattr` guard removed, `ImportError` guard removed, explicit
+  `device` ignored. The CUDA and MPS cases, the two a badly written version would leave vacuous,
+  both die.
+- *Host-independence* (round 3): the device tests pass with no `torch` importable at all **and** with
+  the real `torch` 2.5.1 + `transformers` 4.48.0 on `sys.path`.
+- *The MPS divergence* (rounds 3 and 4): `is_torch_mps_available()` requires `is_available() and
+  is_built()` where the probe asked only the first. Chased to `REGISTER_MPS_HOOKS` and the
+  `USE_MPS` compile flag and found unreachable, because `is_available() ⟹ is_built()` in every
+  torch — then closed by construction at `067e449` anyway.
+- *The version boundary* (rounds 3, 4 and 5, independently swept each time): `pipelines/base.py` at
+  every release tag from 4.40.0 through 4.49.0 plus 5.0.0 and 5.17.0 — thirty-five tags, of which
+  4.40.0–4.46.3 raise and none of the rest does.
+- *The acceptance test cannot see a wrong report* — volunteered by the executor, confirmed by rounds
+  3, 4 and 5: forcing `overall_score = 0.0` and `grade = "SABOTAGED"` after aggregation still passes
+  it. It asserts that a report arrives, which is the Contract; M4 owns the test that asserts the
+  numbers are right.
+- *Five of the fake LLM's thirteen routes never fire* (confirmed by rounds 3 and 4), role detection
+  among them — which is M2's subject, and why M4's end-to-end test is not redundant with this one.
+
+**Residual defects in the written record, carried as an open workstream and not blocking the flip:**
+the `git notes` on `f7af485` and `cdc2a05` say "has six" where HEAD has eight device tests; the
+five-stand-in enumeration survives in `f7af485`'s message, corrected by its note; `simbi/HANDOFF.md`
+(untracked) still carries the unqualified `device=0` claim. None touches the artifact.
 
 ### Decision: Repair in place, before the import (inherited from the archive, 2026-09-12)
 
@@ -397,6 +443,14 @@ the re-run.
 ## 7. Awaiting Steering
 
 **Q27: A milestone whose code verifies clean but whose prose keeps failing — what closes it?**
+— **Awaiting Steering: resolved 2026-09-14.** The human ruled: *"这种不是代码出问题的，第三轮结束就
+应该翻牌了"* — when the rounds stop being about the artifact, the milestone flips on the artifact's
+evidence, and that line was crossed at round 3, not round 5. M1 is flipped under that ruling. The
+general rule is written up in `docs/conventions/pev-loop.md`, "When the loop changes object", where
+it applies to M2, M3 and M4 prospectively. *The original question is kept below as the record of
+what was asked.*
+
+
 Raised 2026-09-14, when M1 reached the five-round verification cap without CONFIRMED. Five rounds
 rejected it; the code has not been rejected since round 2 and has not changed since then except for
 one comment and a tightening of the device predicate. Rounds 3, 4 and 5 found the pipeline, the
