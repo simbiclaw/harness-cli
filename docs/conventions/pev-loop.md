@@ -208,8 +208,23 @@ One PEV iteration is bounded by:
 | **End** | Subagent B CONFIRMED verdict in the Decision Log, checkbox flipped |
 | **Restart** | Subagent B REJECTED verdict — return to Plan with B's findings as input |
 | **Block** | Tier C question unresolved — park in Awaiting Steering, end session |
+| **Cap** | At most **5 Verify rounds** per milestone. A 6th is refused — record, and escalate to the human |
 
 A milestone may take multiple PEV iterations to converge. Each iteration produces a commit (or set of commits). The Decision Log records the reason for each restart.
+
+### The cap is five rounds, and each round must converge (2026-09-14, human ruling)
+
+**Convergence is a measurable claim, not a mood.** Each round's findings must close strictly more of the contract than the round before: a round whose findings are a strict subset of the previous round's, and which re-opens nothing the previous round recorded as closed, has converged. A round that returns a defect class the previous round already addressed — or that re-opens a finding it said was closed — is not convergence, and it counts against the cap as a repeat rather than as progress. Repeated rounds of the same shape are the signal that the **brief** is wrong, not that the implementation needs another pass.
+
+**The cap exists because the failure it prevents is already on the record.** 9021's M5 took **six** round-B dispatches, and the sixth closed not because the fidelity floor had stopped leaking but because the human narrowed the brief's scope (`9021` Q23: gate on the Contract's stated properties, spin the rest out). Five rounds is where the loop admits it cannot answer its own question.
+
+**When the fifth round is not CONFIRMED, the milestone stops.** The orchestrator does not dispatch a sixth, and does not flip the checkbox. It records, in the owning ExecPlan:
+
+- the round count, and each round's findings as B reported them;
+- what changed between rounds — so a reader can see whether the arc was converging or oscillating;
+- the one question the loop could not answer by itself.
+
+That record is the deliverable of a capped milestone. A milestone that ends at the cap with its findings written down is a **closed** iteration — the loop did its job and reached the edge of what it can decide. An abandoned one is a milestone that stopped without saying why. `Source:` human ruling, 2026-09-14. Enforced by the orchestrator, not yet by a structural test — this is the rule's first violation, and the promotion rule moves a rule left on its **second**.
 
 ## Permissioned State Transition
 
@@ -313,7 +328,7 @@ The PEV tmux arbiter (`pev_subagent_adversarial.sh`) runs as a Claude Code sessi
 
 ## When this rubric is wrong
 
-If a milestone consistently takes more than 3 PEV iterations to converge, the milestone is likely too large — split it. If the adversarial verification repeatedly catches the same class of error across different milestones, the Plan phase is missing a structural guard — promote it (documentation → structural test → hook → CI gate).
+If a milestone consistently takes more than 3 PEV iterations to converge, the milestone is likely too large — split it. **That hint diagnoses at three; the hard cap is five** (see Loop boundaries). Three rounds is a signal to consider splitting mid-flight; five is where the loop stops of its own accord and a human decides. The two thresholds answer different questions and neither replaces the other. If the adversarial verification repeatedly catches the same class of error across different milestones, the Plan phase is missing a structural guard — promote it (documentation → structural test → hook → CI gate).
 
 ---
 Last reviewed: 2026-07-29.
