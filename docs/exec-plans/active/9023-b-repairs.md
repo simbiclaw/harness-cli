@@ -51,6 +51,8 @@ is the state adversarial verification found on 2026-09-14.
 
 In `simbiclaw/sim`. `agents/qa_agent.py:66` calls `self.kb_builder`, never assigned (`:31` assigns
 `self.kb_context_builder`). `:125` raises `KeyError: 'grade'`. Both sit on the single happy path.
+*Line numbers are as of `0c2cccd`, the commit before the repair; both sites now hold fixed code, so
+a reader opening the file at HEAD and finding nothing wrong will have found nothing wrong.*
 
 `Acceptance Test:` `tests/test_qa_agent.py::test_pipeline_reaches_report` — the orchestrator runs
 end to end against a fake LLM and returns a report object.
@@ -239,28 +241,53 @@ them by execution rather than by argument:
   machine; round 1 disproved that. The second said "4.40 through 4.45 … 4.46 onward", which round
   2 disproved — the boundary is one release later than that, so the sentence *understated* the
   raising set by the four published 4.46.x releases and *overstated* the fallback. **Round 3 then
-  swept it properly** — `pipelines/base.py` at every release in [4.40.0, 4.49.0] plus 5.0.0 and
-  5.17.0, thirty-three tags: 4.40.0–4.46.3 raise, 4.47.0 onward fall back, and no release does
-  neither. The earlier statement of this paragraph described four tag files, which is what the
+  swept it properly** — `pipelines/base.py` at every release tag from 4.40.0 through 4.49.0
+  (thirty-three tags) plus 5.0.0 and 5.17.0 (thirty-five in all): 4.40.0–4.46.3 raise, 4.47.0
+  onward fall back, and no release does neither. **Corrected 2026-09-14 by round 4:** this sentence
+  previously said "thirty-three tags" while listing the two extra ones, so it was wrong by two and
+  disagreed with the docstring, which names the 4.40.0–4.49.0 range alone. The earlier statement of this paragraph described four tag files, which is what the
   author had read, not what had been verified; the boundary is now pinned by the sweep and not by
   the author's sample.
 
-  **The range is stated once, in `utils/nli.py::_resolve_device`'s docstring** — in the code that
-  depends on it. This entry carries the evidence and the pointer, `tests/test_nli.py` carries
-  neither, and no third live copy exists. Five restatements of one fact is what produced the second
-  wrong range; the correction is one statement plus pointers, not six corrected copies.
+  **Where the range lives now: two places, and that is the rule (corrected 2026-09-14 by round
+  4).** This entry earlier claimed the range was "stated once" and that "no third live copy exists".
+  Both were false on this file's own text — the number appeared here three times, at §5's Decision
+  Log and twice in this section — which is the same overstatement that rejected rounds 2 and 3,
+  surviving inside the paragraph written to remove it. The honest rule is: **the operative statement
+  is `utils/nli.py::_resolve_device`'s docstring, and this entry may restate the number as
+  evidence, because a plan that cannot state the fact that justified its milestone is not a record.**
+  What must not recur is a *third* location — a test docstring, a comment, a second plan — repeating
+  it as if it were the authority. `tests/test_nli.py` carries none and points at the code.
 
-  **What "stated once" scopes to, and what it does not (round 3).** Round 3 rejected the milestone
-  because the range survives in `f7af485`'s commit message, still reading "4.40-4.45" — and found
-  a second false statement in the same message, an enumeration of five device tests where the file
-  has six. Both are true findings and neither is fixable in place: a commit message is immutable,
-  this repository blocks force-push by hook, and this plan's own constraint keeps B's commits
-  local. The criterion is therefore scoped to **live artifacts** — every file in either tree states
-  the range correctly, which round 3 confirmed by grepping both — and history is corrected
-  forward, by naming the wrong statement, as this entry and `29c796c`'s message do. A bar of "no
-  false byte anywhere reachable" cannot be met without rewriting history, and a criterion that
-  cannot be met by any correct artifact has stopped measuring the artifact. The two surviving false
-  statements are named here so the record is a correction rather than a silence.
+  **History is corrected in place, with `git notes` (rewritten 2026-09-14 by round 4).** Round 3
+  rejected the milestone because the range survives in `f7af485`'s commit message, still reading
+  "4.40-4.45" — and found a second false statement in the same message, an enumeration of five
+  device tests where the file has six. `cdc2a05` carries two more of the same kind. This entry's
+  first answer to that was **wrong in every part**, and round 4 reproduced the falsifications:
+
+  - It said the statements were "not fixable in place". They are: `git notes add -m "…" <sha>`
+    attaches a correction that prints directly beneath the message in `git log` and `git show`,
+    with no SHA change, no rewrite and no push.
+  - It justified itself with "this repository blocks force-push by hook" — an argument that is not
+    merely weak but inverted. These commits are **unpublished** (`origin/main` is still `0c2cccd`),
+    so amending them would need no force-push and would trip no hook. The constraint this plan
+    placed on B's repository — local-only, never pushed — is what makes correcting them *cheap*,
+    not what makes it impossible.
+  - It said naming the error in the plan was a correction. Round 4's reader test is right and this
+    entry accepts it: a disclosure *about* an error, in a different document, is not a correction
+    *at* it. The reader who runs `git show f7af485` and no more formed the wrong belief and
+    nothing they saw contradicted it.
+
+  **What was actually done.** Notes are attached to `f7af485` (the wrong range, the five-test
+  enumeration) and `cdc2a05` (the "found by execution" provenance, the "a GPU box keeps the old
+  behaviour" claim). The messages are left as written — they record what was believed when they
+  were written — and each now carries its correction at the point of reading. Verified by running
+  `git log --oneline -1 <sha>` with no flags: the note prints by default, because notes on
+  `refs/notes/commits` are shown unless suppressed.
+
+  The criterion is therefore **not** scoped to live artifacts: a false statement in a reachable
+  record is a defect, corrected where it stands. What *remains* scoped is the experiment record,
+  which is the next paragraph's subject.
 
   **A third class, decided the same way and deliberately left alone.** Round 3 also flagged
   `docs/experiments/9021-ab-investigation/report-B.md:930`, whose dependency audit cites
@@ -273,8 +300,11 @@ them by execution rather than by argument:
   described the discovery as the executor's.
 
 **What this machine actually fails on is one level above the device:** `utils/nli.py:2` imports
-`transformers` at module scope, and no interpreter the repository uses has it installed. The fix
-does not touch that, and the tests only import at all because `tests/conftest.py` installs a
+`transformers` at module scope, and the pipeline cannot be imported by any interpreter the
+repository itself provides — because it provides none: there is no `.venv` and no CI. The
+`transformers` on this machine belongs to another project's virtualenv and reaches B only through
+`PYTHONPATH`, which is how this milestone's own real-library checks were run. The fix does not
+touch the import, and the tests only import at all because `tests/conftest.py` installs a
 stand-in.
 
 **The probe asked a weaker question than the pipeline does (round 3, repaired at `067e449`).**
