@@ -117,37 +117,24 @@ default as "none — M2 does not start", but M2 shipped on 2026-08-27. A deadlin
 flipped milestone. Restated as Q10 with a default that can actually execute.
 
 **File Scope:**
-- `src/argus/io/**` (new — B's proposal half, re-namespaced)
-- `src/argus/core/score.py` (new)
-- `src/argus/core/grounding.py` (new)
-- `src/argus/core/corroboration.py` (new)
-- `src/argus/core/adjust.py` (new)
-- `src/argus/core/route.py` (new)
-- `src/argus/core/escape_rate.py` (new)
-- `src/argus/types/**` (new + modify — B's schemas replace the 9020 stand-ins)
-- `src/argus/config/**` (new — gated on Q11)
-- `src/argus/cli/main.py` (modify — gated on Q17)
-- `tests/test_schemas.py` (new)
-- `tests/test_evidence_anchor.py` (new)
-- `tests/test_io_import.py` (new)
-- `tests/test_fences.py` (new)
-- `tests/test_i8_provenance_separation.py` (modify — widen the live scan)
-- `tests/test_score.py` (new)
-- `tests/test_grounding.py` (new)
-- `tests/test_intents_provider.py` (new)
-- `tests/test_signals.py` (modify — polarity regression)
-- `tests/test_rubric_input.py` (new)
-- `tests/test_rubric_compile.py` (new)
-- `tests/test_corroboration.py` (new)
-- `tests/test_adjust.py` (new)
-- `tests/test_route.py` (new)
-- `tests/test_divergence.py` (modify — disjoint-key guard)
-- `tests/test_replay.py` (new)
-- `tests/test_cli.py` (new)
-- `.importlinter` (modify — the four forbidden contracts)
-- `docs/conventions/layering.md` (modify — Q16: amend :41 so the convention and the lint agree)
-- `pyproject.toml` (modify — dependency changes)
-- `docs/decisions/dep-vet-transformers.md` (new)
+- `docs/exec-plans/active/9021-relayer-argus-eval-pipeline.md` (this plan — the shared record)
+
+**Every other path this plan once declared now belongs to a successor, and is deliberately not
+declared here.** The 23 milestones were redistributed across `9023`–`9029` on 2026-09-14 (§9), so
+each path in the original block — `src/argus/io/**`, `src/argus/core/*.py`, `src/argus/types/**`,
+`src/argus/config/**`, `src/argus/cli/main.py`, the `tests/` suites, `.importlinter`,
+`docs/conventions/layering.md`, `pyproject.toml`, `docs/decisions/dep-vet-transformers.md` — is
+declared by whichever successor owns the milestone that touches it. Re-declaring them here collides
+with all seven by construction: `.claude/tests/test_plan_collisions.py` intersects declared paths
+with no read/write distinction, so this plan's `src/argus/io/**` against 9024's
+`src/argus/io/proposer.py` is 45 overlapping pairs and a red structural test. This plan executes
+nothing — it is the shared record (§2's architecture review, the Decision Log, §9's split note) —
+and its scope is itself. The pattern is 9022's *deferred, not claimed*, read the other way round.
+
+The three paragraphs above stand, and their Tier C surfaces belong to the successors that carry the
+milestones: the INTENTS staging-only rule is M16's (`9026`); Q17's CLI surface and Q19's run
+manifest are M21's (`9027`), Q19 also touching M22 (`9029`); Q11's config surface is M22's
+(`9029`).
 - `docs/rubric/specific-rubric-27.yaml` (new — B's table as compiler input)
 - `docs/experiments/9021-ab-investigation/**` (new — the evidence base this plan cites)
 - `build/rubric-staging/**` (new — M16's compiled-node output, a build artifact: never committed, never read at runtime; the epoch commit that lands these nodes is an upstream act)
@@ -1592,9 +1579,14 @@ this plan is already at twenty-two milestones, and the Provider is orthogonal to
 
 *Written at completion or cancellation.*
 
-## 9. Archive note (2026-09-14)
+## 9. Split note (2026-09-14)
 
-**Status: split — superseded by seven focused plans.** The human's ruling: *"9021 计划过于庞大，
+**Status: split — its work is carried by seven focused plans; this file stays active as their shared
+record.** *The parent was moved to `archived/` on 2026-09-14 and returned to `active/` the same day
+by the human's ruling — "父计划先不急着归档" — because the record it holds is the one a fresh reader
+needs first, and an archived file is the one nobody opens. Nothing about the milestones changed with
+the move; only this plan's File Scope did, since an active plan's declared paths collide with its
+successors' by construction.* The human's ruling: *"9021 计划过于庞大，
 为避免失焦，对这个计划进行分拆，每个子计划都有且只有一个焦点"*. Nothing was cancelled; every
 milestone this plan carried now lives in exactly one successor, and every Progress checkbox was
 carried across unchanged:
