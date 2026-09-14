@@ -34,18 +34,41 @@ machinery are retained and, for the first time, pointed at real code.
 ## 2. Big Picture
 
 The layer boundary this repository specifies and `simbiclaw/sim` ignores falls close to where B's
-module graph already splits. B's stages −1 through 5 are *proposal*: they consume a transcript and
-emit labels, atoms, questions, evidence pointers and one routing confidence. B's stage 6 is
-*derivation*: arithmetic over rubric constants with no model in it. Moving the first group into
-`io/` makes quarantine a directory move rather than a rewrite; that is this plan's whole thesis.
+module graph already splits — **close, but not at it, and the difference was initially mistaken for
+the boundary itself.** B runs eight stages across four tiers: S0 ingest, audio2tree's routing
+decision, the rubric compiler's derivation, and the consumer's proposal-plus-derivation. Only the
+last belongs to Argus. The first revision of this plan cut the import along B's module graph
+because *"B's module graph splits close to the layer boundary, which is why this is a move rather
+than a rewrite"* — a seam chosen for being cheap, then justified by its cheapness. The seam that
+matters is not where B's imports separate; it is **does this stage decide something the tree already
+records.** A module that re-decides what a producer decides is not the consumer's, wherever it sits.
 
-In scope: the import and re-layering of B's pipeline; the pure stages S3, S4a, S4b and S5; epoch
-pinning; replay; the four layer fences as enforced artifacts; compiling B's rubric through 9003.
+**The thesis, narrowed and stated honestly.** Moving B's *model-calling* modules into `io/` makes
+quarantine a directory move rather than a rewrite — that much holds, and it is what makes this plan
+cheap. But it was never true of the pure stages: M10's own Contract says "not a move", M17's says
+"not a port", M18's says "neither codebase has any notion of precedent", and M12, M19 and M21 are
+new. The thesis describes the S2 half and nothing else.
+
+In scope: the import and re-layering of B's **proposal half** (as delimited in M7); the pure stages
+S3, S4a, S4b and S5; epoch pinning; replay; the four layer fences as enforced artifacts; compiling
+B's rubric through 9003; and the call-record contract that delimits the seam.
 
 Deliberately out of scope: any change to the 9003 compiler's own design; audio ingest (S0 is
-upstream); Metis and Hermes; multi-language support — this plan commits Argus to zh-CN
-customer-service QA at the code level, and a future multi-language requirement is a rewrite rather
-than a configuration.
+upstream — and this is enforced, not merely declared: M7 no longer imports `asr_preprocessor` or
+`preprocessor`, M2 consumes the producer's `speaker_role` rather than re-deriving it, and M3
+retires the reliability chain instead of repairing it); routing and per-call intent assignment
+(audio2tree's D5 protocol, which alone writes `bottom_up`); Metis and Hermes; multi-language
+support — this plan commits Argus to zh-CN customer-service QA at the code level, and a future
+multi-language requirement is a rewrite rather than a configuration.
+
+**The three epistemic classes and the eight expertise types** are the consumer's real interface to
+the tree, and they are not B's "double knowledge base". ADR-0001 separates Versioned Rubric,
+Descriptive Facts and Accumulated History, and PMCA §A.5 assigns each a lane: facts and standards
+into the raw lane (`score(facts, rubric)`), accumulated history into the adjust lane
+(`adjust(raw, history)`), measurements into none. Argus's three category readers (M13) are that
+separation at the code level. B's model — build one KB context blob, inject it into every stage's
+prompt, let the model apply it — makes the model the applier of knowledge, which is precisely what
+S1–S5 exist to prevent.
 
 **Two-repository note.** Milestones M1–M4 execute in `simbiclaw/sim`, not here: B's defects are
 fixed in place before the import so they surface in their own diffs rather than hidden inside a
@@ -167,51 +190,85 @@ end to end against a fake LLM and returns a report object.
 - *Acceptance property:* A transcript entering the orchestrator yields a report object with no unhandled exception on the happy path.
 - *Known evidence (advisory):* Two crashes were identified — an unassigned attribute in Stage 0 and a missing key at Stage 6. Treat the cited paths as leads and confirm against the tree you execute in.
 
-### M2 — Fix the role-swap false positive
+### M2 — Delete the role re-derivation; consume the producer's `speaker_role`
 
-`_verify_roles` returns `should_swap=True` on a correctly-labelled transcript; `:41-42` then
-inverts every role, checking agent criteria against customer utterances. Add a confidence floor
-so a low-confidence swap routes to a human rather than silently inverting.
+**Superseded 2026-09-14 — this milestone was "add a confidence floor to `_verify_roles`".** The
+floor was the wrong repair: `_verify_roles` re-derives speaker identity from Chinese keyword
+heuristics plus an LLM call, and the producer establishes the same fact deterministically. The
+tier violation is the defect; a better heuristic at the wrong tier is still at the wrong tier.
+audio2tree's 9008 M9 now produces `speakers[].speaker_role` (`agent`/`customer`/`null`),
+`speakers[].speaker_role_source` (`voiceprint`/`keywords`/`null`) and `config.voiceprint`
+provenance, from an enrolled-agent database with a declared keyword fallback — and **declines
+rather than guessing** when either speaker has no eligible segment. The consumer reads that, and
+an absent role is an absent input.
 
-`Acceptance Test:` `tests/test_asr_preprocessor.py::test_timestamp_parsing` — currently failing;
-passes without a swap. Plus `::test_low_confidence_swap_defers` — a marginal case routes to human.
+Do not repair, port, or import `_verify_roles`, `AGENT_INDICATORS`, `AGENT_OPENING`,
+`ROLE_SWAPPED` or the swap application. Delete them with `asr_preprocessor.py` (M7).
 
-
-**Contract.**
-- *Deliverable:* Speaker-role assignment that does not silently invert a correctly-labelled transcript.
-- *Binding constraint:* No numbered invariant, but a wrong role inverts every downstream verdict, so an uncertain swap defers to a human rather than applying.
-- *Acceptance property:* A correctly-labelled transcript is left unswapped; an ambiguous one routes to a human instead of guessing.
-- *Known evidence (advisory):* The heuristic currently returns swap-true on a correct transcript. **Measure its actual error rate before choosing any threshold — do not adopt a number from this plan.**
-
-### M3 — Repair the ASR-reliability chain
-
-`core/preprocessor.py` drops `timestamp_start`/`timestamp_end` when building `Turn`, and path C's
-reliability branch is dead. The atomiser propagates `reliability=low` to no effect.
-
-`Acceptance Test:` `tests/test_fact_checker.py::test_low_reliability_forces_human_review` — a
-turn marked low-reliability produces a verdict requiring review.
-
+`Acceptance Test:` `tests/test_io_import.py::test_no_role_re_derivation` — no module under
+`src/argus/` computes an agent/customer role from transcript text (structural: no keyword list,
+no role-detection prompt, no swap path). `tests/test_call_record.py::test_absent_role_defers` —
+a call whose `speaker_role` is null routes to a human rather than being scored.
 
 **Contract.**
-- *Deliverable:* The reliability signal the atomiser computes reaches the verdict that consumes it.
-- *Binding constraint:* None beyond the floor. A dropped uncertainty signal is a silent-confidence defect.
-- *Acceptance property:* A turn marked low-reliability demonstrably changes the routing of a verdict resting on it.
-- *Known evidence (advisory):* The chain is reported broken at its last link, and timestamps appear to be dropped when the turn type is built. Confirm both.
+- *Deliverable:* Speaker attribution consumed from the call record; no re-derivation in the consumer.
+- *Binding constraint:* I2's posture — an input nobody established is **absent**, not low. A fabricated role is the same class of defect as a fabricated score.
+- *Acceptance property:* A correctly-role-labelled call is evaluated against the agent's utterances; a call without a role is routed to a human, and no code path can manufacture one.
+- *Known evidence (advisory):* **0 of 718 archived calls carry `speaker_role`** — the corpus predates M9, and the re-run is gated on an archive backup that has not been made. **Consequence, recorded deliberately: until that run happens this milestone makes Argus produce no auto-final verdict at all — every call defers on absent role.** That is the honest state, not a regression to work around; a consumer that keeps its re-derivation to avoid it is keeping the tier violation.
 
-### M4 — B's first end-to-end test
+### M3 — Retire the reliability chain (it is not a signal; the timestamps are not lost)
 
-B has zero integration tests, which is why M1's two crashes survived. Needs a fake LLM covering
-14 call sites and a stub NLI, since `transformers` cannot be installed in CI.
+**Superseded 2026-09-14 — this milestone was "repair the ASR-reliability chain".** Two corrections
+on contact with the code and with the producer:
+
+1. **The timestamps are not lost.** `calls/*.json` carries `start_sec`/`end_sec` on every turn and
+   every segment, on the original wall-clock axis (Q6a). What drops them is simbi's *internal*
+   `Session` object — a type this plan does not import. There is nothing to repair on the record
+   side; the call-record contract already carries time (M4 tests it).
+2. **Path C is retired by decision, not repaired.** `fact_checker.py:33` reads `q.reliability`
+   behind a `hasattr` guard that is always false, so the "low-reliability → human review" path has
+   never fired. But reviving it would import a **fabricated** signal: `asr_quality` is two text
+   regexes turned into a three-valued call-level grade, its consumers are display-level, and the
+   recording-trust indicators that would measure the property are unproduced by human direction
+   (Q6c). **`asr_quality`, `reliability`, `INCOMPLETE`, `ASR_ERROR` and path C are deleted, not
+   ported.** The consequence of a garbled transcript is already caught structurally: its findings
+   fail exact-quote verification, land in `ungrounded`, and route to a human (I2).
+
+`Acceptance Test:` `tests/test_grounding.py::test_garbled_transcript_routes_ungrounded` — a
+transcript whose quotes cannot be matched produces no auto-final verdict and no fabricated quality
+number anywhere in the record.
+
+**Contract.**
+- *Deliverable:* No input-quality grade anywhere in the consumer; a bad transcript fails through the anchor gate.
+- *Binding constraint:* I2 — an unanchorable finding routes to a human. A text-derived grade standing in for an unmeasured acoustic property is the defect, not the safety net.
+- *Acceptance property:* Bad input changes routing through quote failure, never through a fabricated score or grade.
+- *Known evidence (advisory):* `asr_quality` has zero effect on any score simbi has produced (its three consumers are a log line, a report field, and display). The repetition half of the phenomenon belongs to audio2tree's M11 (a per-turn 3-gram run-length measurement, in flight) — **Argus waits for that rather than building a second detector.** If an input-triage signal is ever wanted before the hunt pass, the named route is reviving one of Q6c's five indicators as a deliberate act — which would produce a measurement, not a grade. Both are optimisations; I2 catches the consequence regardless.
+
+### M4 — B's first end-to-end test, and the call-record contract's conformance test
+
+**Amended 2026-09-14 — promoted to the definition of the seam.** B has zero integration tests,
+which is why M1's two crashes survived; it needs a fake LLM covering 14 call sites and a stub NLI,
+since `transformers` cannot be installed in CI. That much is unchanged.
+
+What is added: this test becomes **the call record's executable contract**. The seam between the
+perception tier and the consumer currently has no runnable definition on either side — the record
+schema exists, the consumer's reader does not, and the boundary was being described in prose in
+two repositories. M4 makes it executable in the one place both sides can see it: a real call
+record entering the pipeline and producing a report, with every field the consumer depends on
+asserted present and typed.
 
 `Acceptance Test:` `tests/test_e2e.py::test_transcript_to_report` — a real transcript from
 `data/transcripts/` produces a complete report with no network access.
-
+`::test_call_record_carries_the_consumer_contract` — the record the pipeline consumes carries
+`speakers[].speaker_role` + `speaker_role_source` (M2), `start_sec`/`end_sec` on turns and
+segments (M3), per-segment acoustic blocks aligned to spans, and per-call `stats`; each asserted
+present, with the absent case exercised as a routing input rather than a crash.
 
 **Contract.**
-- *Deliverable:* An executable end-to-end test over a real transcript, with no network.
-- *Binding constraint:* The verification floor: an externally observable property exercised against real data.
-- *Acceptance property:* The pipeline runs from a real transcript file to a report, deterministically, offline.
-- *Known evidence (advisory):* B has no integration test, which is why M1's crashes survived. The NLI dependency may not be installable in every environment.
+- *Deliverable:* An executable end-to-end test over a real transcript, with no network; and the runnable definition of what the consumer may depend on from the producer.
+- *Binding constraint:* The verification floor — an externally observable property exercised against real data — plus the boundary rule this review established: a field the consumer re-derives is a field the contract failed to carry.
+- *Acceptance property:* The pipeline runs from a real transcript file to a report, deterministically and offline; and every field the consumer reads is present in the record it was promised, or the run defers explicitly.
+- *Known evidence (advisory):* B has no integration test, which is why M1's crashes survived. The NLI dependency may not be installable in every environment. **This milestone's baseline is also the reference M7 compares against after the move** — same input, same output.
 
 ### M5 — Port B's schemas into `types/`
 
@@ -251,21 +308,47 @@ turn text occurring twice fails rather than guessing.
 - *Acceptance property:* Any stored evidence item resolves to a verbatim substring of the raw transcript; an unresolvable one fails rather than passing.
 - *Known evidence (advisory):* A round-trip on the sample transcript recovered every turn exactly. Capturing offsets at parse time was suggested as more robust than recovering them later. Short turns may collide on longer calls — verify.
 
-### M7 — Move B's proposal half into `io/`
+### M7 — Move B's proposal half into `io/` (import list redrawn along the architecture's seam)
 
-Eleven modules re-namespaced, behaviour unchanged: asr_preprocessor, preprocessor, atomizer,
-intent_inferrer, question_generator, kb_context_builder, intent_retriever, llm_client, nli,
-prompts, qa_agent. Squashed import commit citing `simbiclaw/sim@0c2cccd`.
+**Amended 2026-09-14 — the original list was cut along B's module graph, and that graph is not the
+architecture's seam.** B runs eight stages across four tiers; only the S2 half belongs to the
+consumer. The list as first written — *"B's module graph splits close to the layer boundary, which
+is why this is a move rather than a rewrite"* — chose the seam because it was cheap and then
+justified it by its cheapness. It would have imported S0 ingest, audio2tree's routing decision and
+intent interpretation with the model-calling code. The seam that matters is not where B's imports
+separate; it is **does this stage decide something the tree already records.**
+
+**Imported** (re-namespaced, behaviour unchanged): `atomizer`, `question_generator` (input
+changed, see M15), `llm_client`, `nli`, `prompts`, `qa_agent` orchestration, and `fact_checker`
+**path A only**.
+
+**Not imported, each with the owner named:**
+- `asr_preprocessor`, `preprocessor` — S0 ingest; the producer's `calls/*.json` carries the
+  structure, and M2/M3 consume it rather than recompute it
+- `intent_inferrer` — routing is audio2tree's D5 protocol; `bottom_up` is written by exactly one
+  mechanism, and a second decider is how one call acquires two intents
+- `kb_context_builder`, `intent_retriever`, `knowledge/indexer.py` — retired in favour of M13's
+  Provider. Both halves of B's "double knowledge base" are empty stubs (an empty `INTENTS/`
+  directory, a 0-byte `rubrics.md`); these modules have never run against real input
+- `fact_checker` path B — suspended until M13 gives it a real source; its evidence is
+  unanchorable under I2 (M12)
+- `asr_quality`, `reliability`, `INCOMPLETE`, `ASR_ERROR`, path C — deleted by decision (M3)
+
+Squashed import commit citing `simbiclaw/sim@0c2cccd` as the **base**, with the local repair
+commits recorded alongside: the fixes are local-only and unpushed, and the citation must not imply
+they are reachable upstream.
 
 `Acceptance Test:` `tests/test_io_import.py::test_pipeline_runs_from_io` — the moved pipeline
 produces the same output as M4's baseline on the same input.
-
+`::test_no_producer_logic_in_io` — no imported module re-implements a producer's decision: no role
+inference, no intent assignment, no rubric→question derivation from the flat table, no knowledge
+tree traversal.
 
 **Contract.**
-- *Deliverable:* Every model-touching module lives under `io/`.
-- *Binding constraint:* I1 — model nondeterminism exists only in S2, which lives in `io/`.
-- *Acceptance property:* The pipeline produces the same output after the move as before it, and no module outside `io/` reaches a model.
-- *Known evidence (advisory):* Fourteen call sites across nine modules. B's module graph splits close to the layer boundary, which is why this is a move rather than a rewrite.
+- *Deliverable:* Every model-touching module that belongs to the consumer lives under `io/`.
+- *Binding constraint:* I1 — model nondeterminism exists only in S2, which lives in `io/`. Plus the boundary this review established: **a module that re-decides what a producer decides is not the consumer's, wherever it sits** — sitting in `io/` violates no import direction, which is why M8's fences cannot express it (new item 8 carries the artifact).
+- *Acceptance property:* The pipeline produces the same output after the move as before it; no module outside `io/` reaches a model; and no module inside `io/` re-decides something the tree already records.
+- *Known evidence (advisory):* Fourteen call sites across nine modules — but that is a fact about B's graph, not about the architecture. Treat the file list here as binding and the call-site count as description.
 
 ### M8 — Land the four `forbidden` import-linter contracts
 
@@ -311,11 +394,35 @@ byte-identical `raw`. `::test_score_receives_no_history`. `::test_weight_comes_f
 `::test_core_no_model_client`.
 
 
+**Amended 2026-09-14 — the dimension weights are missing, and they were specified all along.**
+The formula is `(Empathy×3 + Resolution×3 + Procedure×2 + Proactive×1) ÷ 9`, stated verbatim in
+`docs/PRD/eval/skills/evaluator/SKILL.md:221` and `:310`, and it was carried into this line's
+design: the legacy v1 node format held the field (`_rubric/rules_criteria/c21-active-flexible-marketing.yaml:50`
+still carries `dimension_weight: 1.0`), and patch-1's `AuthoredNode` schema **dropped it** with no
+re-adding. **Neither codebase implements it** — simbi's `core/aggregator.py:66-69` and this
+repository's shipped `core/score.py:241-242` both sum flat across dimensions, so every score
+either has produced weights all dimensions equally. Per-item `deduction` is uniformly 1.0 (the
+source rubric is 1/0/NA scored, with no per-item weight column), so the dimension multiplier is
+the only weighting that exists.
+
+This milestone therefore carries: `Rubric` gains a dimension-weight map, and `tally()` groups by
+dimension before summing. The weights are read from the compiled rubric, never hardcoded (M22's
+binding constraint). Their home is `_rubric/gates/{dimension}.yaml`, which gains `dimension_weight`
+alongside `hard_fail_rule` — the co-location §3.4 of the authoring spec describes. **That is a
+compiled-output change: it requires a recompile and republish at a new epoch, and is a Tier C
+decision recorded in Awaiting Steering.**
+
+`Acceptance Test:` `tests/test_score.py::test_i3_determinism_canary` — identical inputs give
+byte-identical `raw`. `::test_score_receives_no_history`. `::test_weight_comes_from_rubric_not_verdict`.
+`::test_core_no_model_client`. `::test_dimension_weights_are_applied` — a call failing item(s) in a
+3× dimension scores strictly lower than the same failures in the 1× dimension; the ÷9 normalisation
+is asserted against the formula, and the weights are read from the compiled rubric, not a literal.
+
 **Contract.**
-- *Deliverable:* A pure scoring function taking grounded facts and the rubric.
-- *Binding constraint:* I3 — `raw = score(facts, rubric)`, and `score` never receives history. I1 — `core/` imports no model client.
-- *Acceptance property:* Identical grounded findings and rubric version produce an identical raw score, and the rubric's weight reaches the arithmetic from `core/` rather than from inside the quarantine.
-- *Known evidence (advisory):* B's aggregator is a report builder with no rubric parameter, and weight and veto are stamped inside modules bound for `io/`. This is a redesign, not a move — the shape of the redesign is yours.
+- *Deliverable:* A pure scoring function taking grounded facts and the rubric, with the dimension weighting the spec specifies actually applied.
+- *Binding constraint:* I3 — `raw = score(facts, rubric)`, and `score` never receives history. I1 — `core/` imports no model client. M22 — no verdict-altering value lives as a hardcoded constant.
+- *Acceptance property:* Identical grounded findings and rubric version produce an identical raw score; the rubric's weight reaches the arithmetic from `core/` rather than from inside the quarantine; and a failure in a 3× dimension counts three times a failure in the 1× dimension, as the formula says.
+- *Known evidence (advisory):* B's aggregator is a report builder with no rubric parameter, and weight and veto are stamped inside modules bound for `io/`. This is a redesign, not a move. **The weighting gap is not B's alone — the shipped M10 has it too**, which is why this milestone's acceptance test names the dimension multiplier explicitly rather than leaving it to the redesign.
 
 ### M11 — Re-litigate NEI scoring
 
@@ -350,23 +457,49 @@ a non-existent node moves to `ungrounded`. `::test_quote_fidelity_red`. `::test_
 - *Acceptance property:* A finding that anchors to nothing real is routed, never dropped, and quote fidelity is verified against the transcript rather than asserted.
 - *Known evidence (advisory):* Evidence on B's document-verification path is model-authored prose rather than a quotation, so it is not anchorable in its current form.
 
-### M13 — Build `io/intents_provider.py` and the epoch reader (I4)
+### M13 — Build `io/intents_provider.py` and the epoch reader (I4) — the sole read surface
 
-Read-only access to `INTENTS/` at a pinned git SHA from `EPOCH.yaml`. Record the model-selected KB
-path in the run manifest so referent selection becomes replayable rather than re-guessed — B's
-drill-down picks the node by asking the model, with no depth cap and no visited set.
+**Amended 2026-09-14.** Read-only access to `INTENTS/` at a pinned git SHA from `EPOCH.yaml`, with
+three category readers — and it is the **only** path by which anything under `src/argus/` reads the
+tree. The three readers are not an implementation detail: they are the consumer's end of the
+architecture's three epistemic classes (ADR-0001) — Versioned Rubric, Descriptive Facts,
+Accumulated History — which is what B's two-bucket "double knowledge base" was a coarser
+approximation of.
+
+The Provider implements the read protocol `INTENTS/AGENTS.md` already specifies, which is
+deterministic and by-id: confirm the call's L1/L2/L3 attribution from the manifests, read that
+node's `intent_manifest.json` (`top_down`/`bottom_up`), read the `_rubric/` items for the cited
+dimension, return `deferred` for signals on a node whose `source == "audio2tree"`, and treat an L2
+with no Item as a routing label rather than a scored one. **Discovery is not this milestone's job:**
+deciding which node a call belongs to is audio2tree's routing protocol (vectorised request, cosine
+over L2 descriptions, 0.60 threshold) and it writes `bottom_up` alone. A second decider is how one
+call acquires two intents.
+
+**The capsule parsing contract** (doc2graph's, one page, M13's reader implements it directly): a
+leaf is `index.md` + `assets/` + optional `intent_manifest.json`; **`ui_steps.yaml` does not exist**
+— PRODUCERS.md's name is legacy, and the Flesh steps are embedded in `index.md` as one fenced JSON
+block per routine after the `## Part 1: Bone` / `## Part 2: Flesh` sections; `ui_binding_ref` is
+`<routine_id>#<step_order>`, and the Operation Manual's ordered-match sequence is a routine's
+`step_instruction` values ascending by `step_order`. Read by id and pin the epoch; do not read
+`.pipeline/`. Parent-capsule cascade loading and model-compressed summaries are **not** part of the
+contract — capsules are authored per-leaf self-sufficient, and hierarchy is carried by the manifest
+chain.
 
 `Acceptance Test:` `tests/test_intents_provider.py::test_reads_at_pinned_epoch`.
 `::test_no_write_path` — the provider exposes no mutating method.
 `::test_s1_no_write_path_into_intents` — an AST scan confirms no `src/argus/` path opens an INTENTS
 file for writing. This is 9002's M7 fixture, which was specified and never written.
-
+`::test_sole_read_surface` — no module outside the Provider reads `INTENTS/` (structural).
+`::test_capsule_parse_by_id` — a routine's step sequence resolves from `index.md` by id, with
+`step_order` ascending, and no traversal by content.
+`::test_audio2tree_source_defers` and `::test_manifest_without_item_is_routing_only` — the
+protocol's two routing rules, which the plan previously did not implement.
 
 **Contract.**
-- *Deliverable:* Read-only access to INTENTS at a pinned epoch.
-- *Binding constraint:* I4 — pinned referents. D15 — no write path into INTENTS from `src/argus/`.
-- *Acceptance property:* Two runs against the same epoch reproduce the same grounding outcomes, and no code path opens an INTENTS file for writing.
-- *Known evidence (advisory):* Reported as one tree rather than two. The fork and the local tree sit at different revisions, so the real question is which revision, not which tree.
+- *Deliverable:* Read-only access to INTENTS at a pinned epoch, implementing the documented read protocol, as the sole read surface.
+- *Binding constraint:* I4 — pinned referents. D15 — no write path into INTENTS from `src/argus/`. **One reader, one epoch:** an unpinned second reader means part of an evaluation reads whatever the working tree says, which is an I4 hole rather than an untidiness.
+- *Acceptance property:* Two runs against the same epoch reproduce the same grounding outcomes; no code path opens an INTENTS file for writing; and no module outside this Provider reads the tree.
+- *Known evidence (advisory):* One tree, confirmed by inspection (Q7): `_rubric/` and the L1/L2/L3 business KB are co-located, so this is one provider, not two.
 
 ### M14 — Fix the polarity-blind FAIL signal before compiling anything
 
@@ -396,11 +529,41 @@ lossy in at least two places (item 18 drops a counter-example, item 1 has an emp
 reaches the denominator. `::test_25_items_scored`. `::test_no_empty_fail_standard`.
 
 
+**Amended 2026-09-14 — the item count is settled, the `(*)` reading is not, and the diff re-points.**
+The live tree settles the count: `_rubric/rules_criteria/` holds **25 item nodes, ids 1–5 and 8–27**;
+items 6 and 7 are already excluded, so this plan's operational 25 and patch 3's ontology 25 are the
+same 25. (Recorded where the contest lived, at Q14.) B's transcription remains lossy in at least two
+places.
+
+**`(*)` is undefined in the source and read two ways.** `docs/PRD/eval/rubric_com_hotline.md`
+contains the marker exactly twice — on items 6 and 7 — with no legend anywhere in the document.
+B reads it as weight 2.0 (`config/rubric_items.py:80-94`, comment `# (*) 项`); this line's
+compiler reads it as data-dependency/deferred, and that reading has the content support: both
+marked items are precisely the ones whose criteria need external systems (the service-record store;
+the escalation workflow). Under either reading the shipped number is identical — 25 items at weight
+1.0, total 25.0 — **because the only two weighted items are the two excluded ones.** The plan's
+earlier "total weight 29.0 → 25.0" line was numerically correct and rhetorically misleading: it
+presented the weights as load-bearing when they cancel.
+
+**The diff re-points.** M15 was framed as diffing B's hand-assigned **weights** against the
+compiler's; weights are uniform across the shipped set, so there is nothing to diff there. The
+interesting divergence is **which items are excluded and on what grounds** — data-dependency versus
+weight — and that is what this milestone's divergence record covers.
+
+`Acceptance Test:` `tests/test_rubric_input.py::test_27_rows_parse_as_specific_rubric`.
+`::test_items_6_and_7_are_permanently_inapplicable` — both carry a `data_dependency` and neither
+reaches the denominator. `::test_25_items_scored` — asserted against the live node ids, and
+**without encoding a per-item weight semantics**: the scored set is uniform at 1.0 and the
+dimension multiplier lives in M10. `::test_no_empty_fail_standard`.
+`::test_star_marker_divergence_recorded` — where B's transcription and the compiler disagree on the
+`(*)` items, the disagreement is recorded as a finding rather than resolved by importing B's
+reading.
+
 **Contract.**
-- *Deliverable:* The human rubric available as compiler input.
-- *Binding constraint:* The rubric is a public artifact. Items excluded for data dependency are recorded with their reason, not deleted.
-- *Acceptance property:* The scored set matches the operational scope, and an excluded item never reaches the denominator.
-- *Known evidence (advisory):* The item count is contested — settle it by listing the live node ids before starting. B's transcription is lossy in at least two places.
+- *Deliverable:* The human rubric available as compiler input, with the `(*)` ambiguity recorded rather than silently resolved.
+- *Binding constraint:* The rubric is a public artifact. Items excluded for data dependency are recorded with their reason, not deleted. **A contested reading in the source is a finding, not a value to import** — and the shipped arithmetic must not depend on which reading wins.
+- *Acceptance property:* The scored set matches the operational scope, an excluded item never reaches the denominator, and the `(*)` divergence is visible in the record.
+- *Known evidence (advisory):* The count is settled by the live tree (25, ids 1–5 and 8–27). B's transcription is lossy in at least two places. Do not let `test_25_items_scored` acquire weight semantics it does not have.
 
 ### M16 — Compile the rubric through 9003
 
@@ -552,20 +715,20 @@ against a real transcript. `::test_json_mode_is_machine_readable`.
 ## 4. Progress
 
 - [ ] M1: Fix B's two blocking crashes  (created 2026-09-12)
-- [ ] M2: Fix the role-swap false positive  (created 2026-09-12)
-- [ ] M3: Repair the ASR-reliability chain  (created 2026-09-12)
-- [ ] M4: B's first end-to-end test  (created 2026-09-12)
+- [ ] M2: Delete the role re-derivation; consume the producer's `speaker_role`  (amended 2026-09-14 — was "add a confidence floor")
+- [ ] M3: Retire the reliability chain (not a signal; timestamps are not lost)  (amended 2026-09-14 — was "repair the chain")
+- [ ] M4: B's first end-to-end test + the call-record contract's conformance test  (amended 2026-09-14)
 - [x] M5: Port B's schemas into types/  (done 2026-09-14 16:40 PT; round-6 CONFIRMED at `3315bd6`)
 - [ ] M6: Extend EvidenceItem to an I2 anchor slot  (created 2026-09-12)
-- [ ] M7: Move B's proposal half into io/  (created 2026-09-12)
+- [ ] M7: Move B's proposal half into io/ — import list redrawn along the architecture's seam  (amended 2026-09-14)
 - [ ] M8: Land the four forbidden import-linter contracts  (created 2026-09-12)
 - [ ] M9: Repoint the I8 checker at the populated tree  (created 2026-09-12)
-- [ ] M10: Extract score(facts, rubric)  (created 2026-09-12)
+- [ ] M10: Extract score(facts, rubric) + apply the dimension weights  (amended 2026-09-14)
 - [ ] M11: Re-litigate NEI scoring  (created 2026-09-12)
 - [ ] M12: Build core/grounding.py (I2)  (created 2026-09-12)
-- [ ] M13: Build io/intents_provider.py and the epoch reader (I4)  (created 2026-09-12)
+- [ ] M13: Build io/intents_provider.py and the epoch reader (I4) — sole read surface  (amended 2026-09-14)
 - [ ] M14: Fix the polarity-blind FAIL signal  (created 2026-09-12)
-- [ ] M15: Land B's 27 items as SpecificRubric input  (created 2026-09-12)
+- [ ] M15: Land B's 27 items as SpecificRubric input — `(*)` divergence recorded  (amended 2026-09-14)
 - [ ] M16: Compile the rubric through 9003  (created 2026-09-12)
 - [ ] M17: Build core/corroboration.py (I6)  (created 2026-09-12)
 - [ ] M18: Build core/adjust.py (S4b)  (created 2026-09-12)
@@ -772,7 +935,142 @@ REJECTED (#20 namespace smuggling, #21 enum behavior hooks, pyc-taint hazard), R
 (model-hook/MRO recording gap, attacker-writable module cut, plain mixins), R6 **CONFIRMED**
 under the Q23 bounded mandate. Full defect lists: `9021-relayer-argus-eval-pipeline-notes/M5.md`.
 
+### Decision: The import seam is drawn by ownership, not by B's module graph (2026-09-14)
+
+**Rationale:** `Source:` the human's architecture review of 2026-09-14, run against
+`docs/PRD/PMCA.txt` (the perception/memory/cognition/action mapping), spec v5's stage table, and
+`INTENTS/PRODUCERS.md` §1 — each consulted after the seam had already been chosen by M7's original
+text. B runs eight stages across four tiers (S0 ingest, audio2tree's routing, the rubric compiler's
+derivation, the consumer's proposal-plus-derivation) and only the last is this repository's. The
+original list would have imported `asr_preprocessor` and `preprocessor` — whose work is structural
+transcription, which spec v5 assigns to S0, "Transformation tier — not this repo" — while §2 of
+this same plan declared audio ingest out of scope — and the two statements sat four lines apart,
+because nothing in this repository compares a plan's stated exclusions against its milestone
+contents. That missing check is itself a finding, filed alongside the M5 pattern as promotable.
+Four independent inputs converged: the plan's author (who wrote M7's seam and confirmed the error
+was choosing the cheap boundary and justifying it by its cheapness), audio2tree, doc2graph and
+soft-compiler, each ruling on its own rows and each ruling "obsolete" or "not mine". The new
+criterion is stated once and used throughout: **does this stage decide something the tree already
+records.**
+
+**Confidence:** high — the boundary was checked four ways and every one of B's eight stages now has
+a named owner. `Revisit:` M7's execution, if any imported module turns out to need something the
+producers do not emit — which would be a producer gap to record, not a reason to import the
+derivation.
+
+### Decision: The `(*)` marker is contested in the source and neither reading ships as data (2026-09-14)
+
+**Rationale:** `Source:` `docs/PRD/eval/rubric_com_hotline.md` — the marker appears exactly twice
+(items 6 and 7) and the document defines it nowhere. B reads it as weight 2.0
+(`config/rubric_items.py:80-94`); the compiler reads it as data-dependency, which the items'
+content supports (both need external systems). Under either reading the shipped arithmetic is
+identical — 25 items at 1.0, total 25.0 — because the only two weighted items are the two excluded
+ones. The contested value never reaches a shipped number, so the plan neither adopts B's reading
+nor silently discards it: it records the divergence (M15) and states that the shipped set does not
+depend on the resolution.
+
+**Confidence:** high on the arithmetic (recomputed from the live table under both readings);
+`Confidence: low` on which reading the source sheet intended — `Revisit:` when someone can consult
+the rubric's author, which is the only authority that can settle it.
+
+### Decision: Dimension weights are specified, unimplemented on both sides, and belong in the compiled gate (2026-09-14)
+
+**Rationale:** `Source:` `docs/PRD/eval/skills/evaluator/SKILL.md:221,310` states the formula
+verbatim — `(Empathy×3 + Resolution×3 + Procedure×2 + Proactive×1) ÷ 9`; the legacy v1 node format
+carried the field (`_rubric/rules_criteria/c21-active-flexible-marketing.yaml:50`,
+`dimension_weight: 1.0`) and patch-1's `AuthoredNode` schema dropped it with nothing re-adding it;
+soft-compiler confirmed no dimension weight exists anywhere in the current compiled tree. Meanwhile
+`Source:` `simbiclaw/sim core/aggregator.py:66-69` and this repository's shipped
+`src/argus/core/score.py:241-242` both sum flat across dimensions — **so every score either
+codebase has produced weights all dimensions equally**, and the gap is not B's alone. Human ruling
+(2026-09-14): the weight is compiled into `_rubric/gates/{dimension}.yaml` alongside
+`hard_fail_rule`, which is the co-location the authoring spec's §3.4 describes. That is a
+compiled-output change → recompile and republish at a new epoch (Tier C, Awaiting Steering).
+
+**Confidence:** high on the specification and on the implementation gap (both verified in code);
+`Confidence: medium` that the gate file is the better of the two candidate homes — the alternative
+was re-adding the field to the node schema, rejected because it denormalises a dimension-level fact
+across 25 nodes. `Revisit:` at recompile, if the gate file turns out not to be where the scorer
+wants to read from.
+
+### Decision: No input-quality signal in the consumer; the repetition phenomenon is the producer's (2026-09-14)
+
+**Rationale:** `Source:` `simbiclaw/sim core/asr_preprocessor.py:68-76` — `asr_quality` is two text
+regexes turned into a three-valued call-level grade (GOOD/FAIR/POOR from the ratio of
+`reliability == "low"` turns), and its three consumers are a log line, a report field and a display
+(`qa_agent.py:56`, `aggregator.py:108`, `cli.py:41`). The one place it was intended to affect a
+verdict, path C, is dead behind a `hasattr` guard (`fact_checker.py:33`) — **so the grade has had
+zero effect on any score simbi has produced.** audio2tree, consulted at the human's direction:
+the conclusion is right but the reason must not be "the producer has no input-trust signal" —
+`_is_incomplete`'s phenomenon is **M11's**, arriving as a per-turn 3-gram run-length *measurement*,
+and Argus should wait for that rather than build a second detector. `_has_asr_error` is genuinely
+unowned. Q6c's five recording-trust indicators stay defined-but-unproduced, so the route to a real
+triage signal (a measurement, never a grade) stays named. The consequence of a garbled transcript
+is already caught structurally: unanchored quotes → `ungrounded` → human (I2).
+
+**Confidence:** high — the dead-code claim and the zero-effect claim are both verified in the
+source; the sequencing claim (M11 owns it) is the producer's own.
+
 ## 6. Surprises & Discoveries
+
+**The import seam was a module graph, and the module graph is not the architecture (2026-09-14).**
+M7's original "Known evidence" line — *"B's module graph splits close to the layer boundary, which
+is why this is a move rather than a rewrite"* — is the defect in one sentence: the seam was chosen
+because it was cheap and then justified by its cheapness. Its import list would have carried S0
+ingest, audio2tree's routing decision and intent interpretation into the consumer, while §2 four
+lines above declared ingest out of scope. Four parties converged independently on the error; the
+plan's own author confirmed it and named the missing artifact: **nothing in this repository checks a
+plan's stated exclusions against its milestone contents.** A File Scope collision detector and four
+import-linter fences exist; none of them reads a plan against itself.
+
+**simbi's knowledge-base integration is two empty stubs (2026-09-14).** `data/knowledge_base/INTENTS/`
+is an empty directory and `QA_RUBRICS/rubrics.md` is 0 bytes; `data/` holds only
+`transcripts/sample.txt`. Every KB-consuming stage — Stage 0's context, Stage 5 path B's
+fact-checking — has run against nothing, which is *why* path-B evidence is unanchorable (M12):
+there was never a document to anchor to. This does not sink the plan's thesis, because B's S2 units
+are fixture-tested (`tests/test_fact_checker.py` builds `MagicMock`/`AsyncMock` and inline
+`KBContent`), which is how a quarantined stage should be tested. What it does retire is the KB
+*readers*, which the amendment already retired.
+
+**The "double knowledge base" is a superseded decomposition (2026-09-14).** B's two buckets are
+business knowledge and rubric text. The architecture that supersedes them separates knowledge by
+**epistemic class** (ADR-0001: Versioned Rubric / Descriptive Facts / Accumulated History) and by
+**expertise type** (eight of them), because the class decides *which lane* a piece of knowledge
+reaches — the raw lane, the adjust lane, or no lane — and the type decides where it lives and
+whether it is embedded or referenced. Argus's three category readers are that separation at the
+code level. B's model injects one undifferentiated context blob into every stage's prompt and lets
+the model apply it, which makes the model the applier of knowledge — the thing S1–S5 exist to
+prevent. The two-bucket split is recorded as history, not migrated.
+
+**The dimension weights were specified, then dropped in a schema migration, then missed by both
+implementations (2026-09-14).** The formula `(Empathy×3 + Resolution×3 + Procedure×2 + Proactive×1)
+÷ 9` is stated verbatim in the evaluator skill; v1 nodes carried `dimension_weight`; patch-1's
+`AuthoredNode` schema removed the field and nothing re-added it; and neither simbi's aggregator nor
+this repository's shipped `core/score.py` groups by dimension before summing. So every score either
+codebase has produced has weighted Empathy & Tone and Proactive Value equally. A three-week-old
+field drop survived two reviews and a shipped milestone because no test asserts what the score
+*should* be, only that it re-derives.
+
+**`(*)` has no definition and two readings (2026-09-14).** The source rubric marks items 6 and 7
+with a glyph it never defines. B read it as double weight; the compiler read it as data dependency.
+Both agree on the affected items, and — because the only two weighted items are the two excluded
+ones — both readings give the same shipped total. The plan's "29.0 → 25.0" line was numerically
+right and rhetorically misleading, presenting a cancelling weight as load-bearing.
+
+**The consumer's contract with the producers has no executable definition (2026-09-14).** Role
+attribution (`speaker_role` — 0 of 718 calls carry it; the capability landed the same day, the
+re-run is gated on an archive backup), intent placement (532 of 718 calls sit in `_unassigned`),
+and the capsule read protocol (`ui_steps.yaml` does not exist; the Flesh steps are embedded in
+`index.md`) were each being described in prose across two repositories with nothing that fails when
+the descriptions diverge. M2, M4 and M13 now carry the executable form.
+
+**My own first scan of the corpus was invalid (2026-09-14).** I read `speakers[].label` and
+concluded the corpus carries no role information. `label` is the *stereo-per-channel* field and is
+null on every mono call **by design** — a check pointed at it would keep reporting "no role
+information" forever, including after the fix. The role lives in the parallel `speaker_role`/
+`speaker_role_source`/`config.voiceprint` fields. The audio2tree session corrected this; the lesson
+generalises to every probe in this repository: **ask what the field you are reading is for before
+concluding from its silence.**
 
 **The two codebases transcribed the same rubric.** `9003-pilot-item18/specific-rubric.yaml` cites
 `docs/PRD/eval/rubric_com_hotline.md`; B's `config/rubric_items.py` has the same 27 items with the
@@ -981,6 +1279,17 @@ filter dropped. R6 pending with a bounded brief. The full defect lists live in
 `9021-relayer-argus-eval-pipeline-notes/M5.md`.
 
 ## 7. Awaiting Steering
+
+**Q24: Recompile for the dimension weights — accept the compiled-output change?** **Resolved
+2026-09-14 (human ruling):** the weight is compiled into `_rubric/gates/{dimension}.yaml` alongside
+`hard_fail_rule`; the compiler line recompiles and republishes at a new epoch. Tier C because a
+compiled output changes on disk. Recorded here rather than in the Decision Log alone because the
+recompile is an act by another line at a moment this plan does not control — M10's
+`test_dimension_weights_are_applied` cannot pass until it lands. The alternative considered and
+rejected: re-adding `dimension_weight` to the `AuthoredNode` schema (denormalises a dimension-level
+fact across 25 nodes, and reverses the direction patch-1 moved). **Blocked by this entry:** M10's
+weighted-scoring assertion only; the rest of M10 (extracting `score()` from B's report builder) is
+unblocked.
 
 **Q23: What does M5's flip gate on?** — Awaiting Steering: resolved 2026-09-14 (human ruling, on
 the cloud session's handoff of the question). The Contract's stated acceptance property, both

@@ -18,7 +18,7 @@ Inherits from 9021 M5 (committed on `claude/9021-m5-handoff-local`): the round-4
 - `docs/exec-plans/active/9022-contract-fidelity-checker-notes/**` (new)
 - `scripts/run_sweep.sh` (new — the shared sweep runner: pyc purge + `PYTHONDONTWRITEBYTECODE=1` + collection-error grading, one way to run a sweep)
 - `docs/experiments/9022-fidelity-threat-model/**` (new — the written threat model)
-- `src/argus/types/pipeline.py`, `scripts/build_schema_snapshot.py`, `tests/test_schemas.py`, `scripts/mutate_m5_contract.py` — **TBD — will be filled when 9021 completes and ceases to own these paths** (declaring them now trips `test_plan_collisions.py` against the active 9021; the deferral is the negotiation, and this plan does not open its first milestone until then)
+- `scripts/build_schema_snapshot.py`, `tests/test_schemas.py`, `scripts/mutate_m5_contract.py` — **TBD — will be filled when 9021 completes and ceases to own these paths** (declaring them now trips `test_plan_collisions.py` against the active 9021; the deferral is the negotiation, and this plan does not open its first milestone until then). *`src/argus/types/pipeline.py` is deliberately absent: this plan observes the port and never edits it (see Big Picture), and declaring it collided with 9021's `src/argus/types/**`. If F1 ever needs to touch the port, that is a different plan.*
 
 ## 3. Milestones
 
@@ -71,7 +71,10 @@ Record every callable on every contract class (name + defining module, descripto
 
 ## 7. Awaiting Steering
 
-1. **Does F1's oracle land in `build_schema_snapshot.py` or a successor script?** The current builder is 9021-owned; F1 opens after 9021 archives, at which point the question answers by inspection. Default if not decided: extend in place. — deadline: 9021 completion.
+pre_steering_sha: d1a975a (9021's M5 flip — the branch point this plan shares; rollback target if
+any Tier C decision below is rejected)
+
+1. **Does F1's oracle land in `build_schema_snapshot.py` or a successor script?** pre_steering_sha: d1a975a. The current builder is 9021-owned; F1 opens after 9021 archives, at which point the question answers by inspection. Default if not decided: extend in place. — deadline: 9021 completion.
 2. **CI wiring for the shared runner.** Whether `.github/workflows/**` should invoke `run_sweep.sh` on PRs touching contract files is a Tier C question (workflow changes are sensitive-path). Default if not decided: local-only until someone asks for CI. — deadline: F3 completion.
 
 ## 8. Outcomes & Retrospective
