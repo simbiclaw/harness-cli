@@ -35,6 +35,12 @@ this plan's code lives in B's repository and cannot test `src/argus/`:
   2026-09-14:** adversarial verification found this test named here and homed nowhere — this plan
   disclaims the repository it lives in, and 9025 did not name it — which is the same defect, in
   the same section, as the M2 exception above.
+- **M4's call-record conformance.**
+  `tests/test_call_record.py::test_call_record_carries_the_consumer_contract` executes **in
+  `9024-port-and-fences`**, which owns the consumer's reader. **Added 2026-09-14:** the test was
+  named here on the premise that B could consume a call record. It cannot — B's parser takes
+  labelled transcript text, and the records carry anonymous diarization labels with no role — so
+  the premise was wrong rather than the test. See M4.
 
 Splitting either any other way leaves the change claimed by a plan with no milestone for it, which
 is the state adversarial verification found on 2026-09-14.
@@ -57,6 +63,9 @@ a reader opening the file at HEAD and finding nothing wrong will have found noth
 `Acceptance Test:` `tests/test_qa_agent.py::test_pipeline_reaches_report` — the orchestrator runs
 end to end against a fake LLM and returns a report object.
 
+
+
+`Structural Test: none —` this milestone repairs B's code. It introduces or modifies no harness rule of *this* repository, so there is no structural test it owes; what `.claude/tests/` owes it is the floor it must not redden, which is a different thing and is recorded in `docs/conventions/pev-loop.md`.
 
 **Contract.**
 - *Deliverable:* B's pipeline runs end to end without raising.
@@ -105,6 +114,9 @@ gone, and no keyword list or role-detection prompt survives). The two **consumer
 `tests/test_schemas.py::test_absent_role_is_representable` — execute in **9024**, which owns the
 port and can run them (see its M7, which also records the deviation in its own register).
 
+
+`Structural Test: none —` the convention this milestone enforces (a consumer never re-decides what a producer decided) is a plan-family rule, and its structural form is `9024`'s M8 import fences, not a test that can be written here. **`test_no_role_re_derivation_survives` is not a structural test and is no longer described as one:** it reads B's source for deleted names, which asserts no convention of this repository and is defeated by renaming — verification demonstrated that twice. It is a tripwire for accidental survival, and it is worth exactly that.
+
 **Contract.**
 - *Deliverable:* Speaker attribution consumed from the call record; no re-derivation in the consumer.
 - *Binding constraint:* I2's posture — an input nobody established is **absent**, not low. A fabricated role is the same class of defect as a fabricated score.
@@ -135,6 +147,9 @@ transcript whose quotes cannot be matched produces no auto-final verdict and no 
 number anywhere in the record. **This test executes in `9025-read-and-anchor`** (the grounding gate
 is that plan's `core/grounding.py`), not here — see §2's second exception.
 
+
+`Structural Test: none —` the work is a deletion in B's repository, and the gate it points at (`tests/test_grounding.py::test_garbled_transcript_routes_ungrounded`) is `9025`'s. `test_no_reliability_machinery_survives` has the same status as its M2 twin: a tripwire, not a structural test.
+
 **Contract.**
 - *Deliverable:* No input-quality grade anywhere in the consumer; a bad transcript fails through the anchor gate.
 - *Binding constraint:* I2 — an unanchorable finding routes to a human. A text-derived grade standing in for an unmeasured acoustic property is the defect, not the safety net.
@@ -156,14 +171,33 @@ record entering the pipeline and producing a report, with every field the consum
 asserted present and typed.
 
 `Acceptance Test:` `tests/test_e2e.py::test_transcript_to_report` — a real transcript from
-`data/transcripts/` produces a complete report with no network access.
-`::test_call_record_carries_the_consumer_contract` — the record the pipeline consumes carries
-`speakers[].speaker_role` + `speaker_role_source` (M2), `start_sec`/`end_sec` on turns and
-segments (M3), per-segment acoustic blocks aligned to spans, and per-call `stats`; each asserted
-present, with the absent case exercised as a routing input rather than a crash. **Declared-empty
-is a third state, not a failure:** 47 of the 718 archived records carry empty `turns` and
-`segments` **lists** (values `[]`, not `0`), so "present" means the field exists and holds a value *or* the record says it holds
-nothing — a test that only accepts non-empty would fail on 6.5% of the corpus for the wrong reason.
+`data/transcripts/` produces a complete report with no network access, **and the stages that had
+never run together did run**. `::test_the_same_transcript_twice_gives_the_same_report` — the
+determinism the consumer's replay depends on.
+
+**The milestone's second named test moved to 9024 (2026-09-14).** It read:
+`test_call_record_carries_the_consumer_contract` — the record carries `speakers[].speaker_role` +
+`speaker_role_source` (the producer's, 9008 M9), `start_sec`/`end_sec` on turns and segments (9008
+M11), per-segment acoustic blocks aligned to spans, and per-call `stats`; each asserted present,
+with the absent case exercised as a routing input rather than a crash. **Declared-empty is a third
+state, not a failure:** 47 of the 718 archived records carry empty `turns` and `segments` **lists**
+(values `[]`, not `0`), so "present" means the field exists and holds a value *or* the record says
+it holds nothing — a test that only accepts non-empty would fail on 6.5% of the corpus for the wrong
+reason.
+
+**It cannot execute here, and the plan's premise for putting it here was wrong.** This section
+originally said B is "the one place both sides can see it: a real call record entering the pipeline
+and producing a report". B's pipeline consumes labelled transcript *text* — `_parse_raw` matches
+`客户`/`坐席`/`客服` prefixes — while the records under `INTENTS/**/calls/**` carry `turns[].speaker`
+as an anonymous diarization label (`S0`, `S1`, …), `speakers[].label` **null**, and no
+`speaker_role` on any of the 718. A record is not renderable into B's input without an adapter B
+does not have, so "a real call record entering the pipeline" describes something that cannot happen
+in this repository. The test's actual subject — whether the record carries what the consumer reads —
+is a question about the consumer's reader, `9024-port-and-fences`' `src/argus/io/call_record.py`, and
+it executes there in the `tests/test_call_record.py` that plan already declares.
+
+
+`Structural Test: none —` the milestone adds test infrastructure to B's repository and changes no harness rule of this one.
 
 **Contract.**
 - *Deliverable:* An executable end-to-end test over a real transcript, with no network; and the runnable definition of what the consumer may depend on from the producer.

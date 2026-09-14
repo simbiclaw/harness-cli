@@ -178,6 +178,19 @@ legitimately imports.)
 - *Acceptance property:* The pipeline produces the same output after the move as before it; no module outside `io/` reaches a model; and no module inside `io/` re-decides something the tree already records.
 - *Known evidence (advisory):* B's original eleven-module list spanned fourteen call sites across nine modules; the amended list names seven modules and the call-site count no longer describes it. Treat the file list above as binding and the count as historical.
 
+**M7 also carries the call-record conformance test, inherited from 9023's M4 (2026-09-14).**
+`tests/test_call_record.py::test_call_record_carries_the_consumer_contract` asserts that the record
+the pipeline consumes carries `speakers[].speaker_role` + `speaker_role_source`, `start_sec`/
+`end_sec` on turns and segments, per-segment acoustic blocks aligned to spans, and per-call `stats`
+— each present, with the absent case exercised as a routing input rather than a crash.
+**Declared-empty is a third state:** 47 of the 718 archived records carry `turns` and `segments` as
+empty **lists**, so "present" means the field holds a value *or* the record says it holds nothing.
+It is here because the subject is this plan's reader, not B's: B parses labelled transcript text,
+and the records carry `turns[].speaker` as `S0`/`S1` with `speakers[].label` null and no
+`speaker_role` on any of the 718 — so today the honest form of this test is that the record does
+**not** carry a role and the consumer must defer, which is exactly what M7's absent-role state and
+`test_absent_role_defers` establish from the other side.
+
 **M7 also carries the role-type deviation — the consumer must be able to say "not established."**
 This arrived split across plans and had no executable home (found 2026-09-14 by adversarial
 verification): `9023`'s M2 requires an absent-role state and names the acceptance test, but 9023's

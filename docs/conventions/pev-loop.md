@@ -261,6 +261,27 @@ because a correction belongs at the error rather than in a document that may nev
 verification, where the plan is the deliverable, is unchanged and keeps asking the document's
 questions.
 
+**What the brief must make the verifier run.** Asking only about the artifact is not the same as
+asking only about the *new* artifact. Every Verify dispatch names `.claude/tests/`, `ruff check` and
+`ruff format --check` as Tier 1 structural coverage, and a failure there is REJECTED whatever the
+adversarial probes found — the Verify phase above says this already; this is the dispatch-side
+reminder, because a brief that omits the floor turns the whole loop adversarial and the floor is the
+cheaper layer. The brief does not get to drop them because the milestone "is only test code" or
+because a red one looks unrelated. **Recorded 2026-09-14 after four milestones were verified without
+it.**
+
+**The floor is red, and this is a recorded exception rather than a waiver.** `.claude/tests/` fails
+on `test_commit_messages.py` — six commits published on `origin/claude/9021-m5-handoff-local` carry
+a bare `Plan: 9021` trailer instead of a resolvable one — and on the two `test_quality_score_regrade.py`
+date checks, whose remedy is a doc-gardener regrade rather than an edit. Both predate this plan
+family and neither is caused by it. The consequence is stated rather than hidden: **on the
+repository's own invariant — "a structural test or lint failure invalidates the implementation
+regardless of the Acceptance Test result" — M1 through M4 of `9023` were flipped over a red floor,
+and their flips are not sound until it is green.** Until that is repaired, a Verify dispatch
+*reports* the floor's state and does not charge a pre-existing red to the milestone under review;
+the exception has an owner and a date, and it is written here so the next reader finds it rather
+than rediscovering it.
+
 **How to tell which one you are doing.** Read the milestone's Contract and ask what its Deliverable
 names. If that is code or a test, the plan is a report; if the deliverable *is* the plan, the plan is
 the artifact. `9023` M2 was the first round briefed this way and it confirmed in one round, against
