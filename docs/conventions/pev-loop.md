@@ -270,11 +270,22 @@ cheaper layer. The brief does not get to drop them because the milestone "is onl
 because a red one looks unrelated. **Recorded 2026-09-14 after four milestones were verified without
 it.**
 
-**The floor is red, and this is a recorded exception rather than a waiver.** `.claude/tests/` fails
-on `test_commit_messages.py` — six commits published on `origin/claude/9021-m5-handoff-local` carry
-a bare `Plan: 9021` trailer instead of a resolvable one — and on the two `test_quality_score_regrade.py`
-date checks, whose remedy is a doc-gardener regrade rather than an edit. Both predate this plan
-family and neither is caused by it. The consequence is stated rather than hidden: **on the
+**The floor is red, and this is a recorded exception rather than a waiver — corrected 2026-09-14
+by verification, which caught the first version of this paragraph being wrong about its own
+cause.** `.claude/tests/` fails on `test_commit_messages.py` and on the two
+`test_quality_score_regrade.py` date checks, and the two failures have different owners:
+
+- *The regrade dates* predate this plan family and belong to the doc-gardener's schedule.
+- *The commit-format failure* does not. It charges **two groups**. Six commits published on
+  `origin/claude/9021-m5-handoff-local` carry a bare `Plan: 9021` trailer, where `ABBREV_PLAN`
+  wants `NNNN-slug`. And **three commits this plan family made on 2026-09-14** — `flip(9023 M1):`,
+  `flip(9023 M2):`, `flip(9023 M3):` — fail `SUBJECT_RE` for a different reason: the scope
+  `[\w\-]+` admits no space, so `flip(9023-M1):` passes and `flip(9023 M1):` does not. Those three
+  are **local only**; no remote ref contains them, so "published" does not describe them and the
+  history question they raise is smaller than the other six's.
+
+**Consequence, stated because it is forward-looking:** a flip commit written `flip(9023 M4):`
+fails the same test. Write `flip(9023-M4):`. The consequence is stated rather than hidden: **on the
 repository's own invariant — "a structural test or lint failure invalidates the implementation
 regardless of the Acceptance Test result" — M1 through M4 of `9023` were flipped over a red floor,
 and their flips are not sound until it is green.** Until that is repaired, a Verify dispatch

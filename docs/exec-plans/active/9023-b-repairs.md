@@ -200,9 +200,9 @@ it executes there in the `tests/test_call_record.py` that plan already declares.
 `Structural Test: none —` the milestone adds test infrastructure to B's repository and changes no harness rule of this one.
 
 **Contract.**
-- *Deliverable:* An executable end-to-end test over a real transcript, with no network; and the runnable definition of what the consumer may depend on from the producer.
+- *Deliverable:* An executable end-to-end test over a real transcript, with no network. **The second half — the runnable definition of what the consumer may depend on from the producer — moved to `9024-port-and-fences` on 2026-09-14**, because its subject is the consumer's reader and B cannot consume a record. The Contract names both halves because it was written before that was known; round-2 verification checked it clause by clause and found the second half not met here, which is why this line now says where it went.
 - *Binding constraint:* The verification floor — an externally observable property exercised against real data — plus the boundary rule this review established: a field the consumer re-derives is a field the contract failed to carry.
-- *Acceptance property:* The pipeline runs from a real transcript file to a report, deterministically and offline; and every field the consumer reads is present in the record it was promised, or the run defers explicitly.
+- *Acceptance property:* The pipeline runs from a real transcript file to a report, deterministically and offline. **The second clause — every field the consumer reads is present in the record it was promised, or the run defers explicitly — is `9024`'s**, for the same reason as the Deliverable's second half.
 - *Known evidence (advisory):* B has no integration test, which is why M1's crashes survived. The NLI dependency may not be installable in every environment. **This milestone's baseline is also the reference M7 compares against after the move** — same input, same output.
 
 
@@ -211,7 +211,7 @@ it executes there in the `tests/test_call_record.py` that plan already declares.
 - [x] M1: Fix B's two blocking crashes  (done 2026-09-14 — cleared by human ruling at the five-round cap; see the Decision Log)
 - [x] M2: Delete the role re-derivation; consume the producer's `speaker_role`  (done 2026-09-14 — verified at 9f0e8b3, round 1 CONFIRMED; amended 2026-09-14, was "add a confidence floor")
 - [x] M3: Retire the reliability chain (not a signal; timestamps are not lost)  (done 2026-09-14 — verified at 03be621, round 1 CONFIRMED; amended 2026-09-14, was "repair the chain")
-- [ ] M4: B's first end-to-end test + the call-record contract's conformance test  (amended 2026-09-14)
+- [ ] M4: B's first end-to-end test  (amended 2026-09-14 — the call-record conformance half moved to 9024)
 
 ## 5. Decision Log
 

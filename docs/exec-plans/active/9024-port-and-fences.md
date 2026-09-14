@@ -53,7 +53,7 @@ hazard it carried came with it, and there is no longer a second plan to negotiat
 - `src/argus/io/prompts.py`
 - `src/argus/io/qa_agent.py` (new — the imported proposal half, re-namespaced)
 - `src/argus/io/call_record.py` (new — the consumer's half of the seam: builds `Session` from the producer's `calls/*.json` per M7's data-flow table. The archive covered this path with its `src/argus/io/**` glob; the split enumerated files and the glob's coverage was lost with it.)
-- `tests/test_call_record.py` (new — M7's absent-role assertion, and the call record's consumer-side conformance. Named as an acceptance test by the archive's M2 and by 9023's M2, and declared by no plan's File Scope on either side of the split — same class of gap as the two dependency paths that close this list.)
+- `tests/test_call_record.py` (new — M7's absent-role assertion, the call record's consumer-side conformance inherited from 9023's **M4**, and the arrival-side assertion for the role-type deviation. Declared by no plan's File Scope on either side of the split until 2026-09-14 — same class of gap as the two dependency paths that close this list.)
 - `.importlinter` (modify — the four forbidden contracts)
 - `docs/conventions/layering.md` (modify — Q16: amend so the convention and the lint agree)
 - `tests/test_io_import.py`
@@ -214,6 +214,13 @@ milestone here performed the schema change this plan's File Scope already claime
 
 `Acceptance Test (this plan):` `tests/test_call_record.py::test_absent_role_defers` — a call whose
 role is not established routes to a human rather than being scored.
+`tests/test_call_record.py::test_call_record_carries_the_consumer_contract` — **inherited from
+9023's M4** and now gated here rather than only described here: the record carries
+`speakers[].speaker_role` + `speaker_role_source`, `start_sec`/`end_sec` on turns and segments,
+per-segment acoustic blocks aligned to spans, and per-call `stats`; each asserted present, with the
+absent case exercised as a routing input rather than a crash. Declared-empty is a third state — 47
+of the 718 archived records carry `turns` and `segments` as empty **lists** — so "present" means the
+field holds a value *or* the record says it holds nothing.
 `tests/test_schemas.py::test_absent_role_is_representable` — the port expresses "not established",
 and the deviation is listed in this plan's register rather than surfacing as drift.
 
