@@ -226,6 +226,39 @@ A milestone may take multiple PEV iterations to converge. Each iteration produce
 
 That record is the deliverable of a capped milestone. A milestone that ends at the cap with its findings written down is a **closed** iteration — the loop did its job and reached the edge of what it can decide. An abandoned one is a milestone that stopped without saying why. `Source:` human ruling, 2026-09-14. Enforced by the orchestrator, not yet by a structural test — this is the rule's first violation, and the promotion rule moves a rule left on its **second**.
 
+### When the loop changes object: flip once the rounds stop being about the artifact (2026-09-14, human ruling)
+
+The cap above bounds *how many* rounds a milestone may take. This bounds something the cap does not
+name: **what the rounds are about.** A round that returns no finding against the artifact, and whose
+every finding is against the *written record describing* it, is not testing the milestone any more.
+The loop has changed object — it is verifying prose — and continuing it produces a characteristic
+failure: each repair to the record is itself an unverified assertion, so the next round rejects the
+repair, and the milestone cannot close however correct the artifact is.
+
+**The rule.** Once **two consecutive rounds** return findings entirely about the written record — no
+defect in the code, the tests, or whatever the milestone builds, and the artifact unchanged between
+them — the milestone **flips on the artifact's evidence**. The record's residual defects do not block
+the flip. They are logged as an open workstream on the owning plan and fixed there.
+
+**Why two, and why this is not licence to ignore the record.** One non-code round is ordinary; a plan
+entry can simply be wrong. Two in a row, with nothing found in the artifact in between, is the signal
+that the verifier has been pointed at prose — usually because the executor kept rewriting the account
+*while the verification was in flight*. `9023`'s M1 is the worked example: round 1 found a real
+regression in the code, round 2 found only a wrong sentence, round 3 found only a wrong sentence.
+Under this rule the milestone flips at the end of round 3. It actually ran two more rounds — round 4
+falsified the paragraph written to answer round 3, and round 5 falsified the sentence written to
+answer round 4 — for a milestone whose code four rounds had verified clean.
+
+**What the flip records.** The plan's verification entry states, in its body, that the flip rests on
+the human's ruling rather than on a CONFIRMED verdict, and names which rounds found non-code
+findings. The `Verdict: CONFIRMED` line that `.claude/tests/test_adversarial_verification_gate.py`
+reads is that gate's only vocabulary for "cleared to flip"; its presence means the milestone was
+cleared, not that a round confirmed it. Writing the body honestly is what keeps the marker from
+becoming a lie — and a marker that lies about its own authority is the exact defect this rule exists
+to stop.
+
+`Source:` human ruling, 2026-09-14 — *"这种不是代码出问题的，第三轮结束就应该翻牌了"*.
+
 ## Permissioned State Transition
 
 **Permissioned State Transition** (paper §3.4.3) is the principle that no state change in the harness occurs without verification gating it. The paper names this as a first-class architectural component alongside contract formation and deterministic verification. In this repository, it is enforced through four concrete mechanisms:
