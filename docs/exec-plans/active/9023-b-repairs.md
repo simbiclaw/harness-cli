@@ -60,7 +60,7 @@ end to end against a fake LLM and returns a report object.
 - *Deliverable:* B's pipeline runs end to end without raising.
 - *Binding constraint:* None beyond the verification floor. This is defect repair in B's own repository.
 - *Acceptance property:* A transcript entering the orchestrator yields a report object with no unhandled exception on the happy path.
-- *Known evidence (advisory):* Two crashes were identified — an unassigned attribute in Stage 0 and a missing key at Stage 6. Treat the cited paths as leads and confirm against the tree you execute in. **Confirmed 2026-09-14: there were three.** The third is `utils/nli.py`'s hardcoded `device=0`, which fails in `QAAgent.__init__` before any transcript is read; see §6.
+- *Known evidence (advisory):* Two crashes were identified — an unassigned attribute in Stage 0 and a missing key at Stage 6. Treat the cited paths as leads and confirm against the tree you execute in. **2026-09-14: a third defect sits on the same path** — `utils/nli.py` hardcoded `device=0`. It is *not* an instance of the two above and does *not* fail on this machine; §6 states what it actually is, and why the first account of it was wrong.
 
 
 ### M2 — Delete the role re-derivation; consume the producer's `speaker_role`
@@ -195,13 +195,19 @@ their own plans — `Revisit:` when 9024 opens, since M2/M3's acceptance tests r
 ### Decision: The third crash is repaired inside M1, with its own acceptance test (2026-09-14)
 
 **Rationale:** `Source:` M1's Contract — *"Deliverable: B's pipeline runs end to end without
-raising"* — together with its own Known evidence, *"treat the cited paths as leads and confirm
-against the tree you execute in."* The NLI device index fails exactly that deliverable, on the
-machine B is developed on, so the repair is this milestone's work rather than a new milestone's.
-It carries its own test (`tests/test_nli.py`) rather than riding on M1's acceptance test, because
-that test replaces `NLIModel` wholesale and cannot observe what the constructor passes to
-`transformers` — and a change the milestone's named test cannot see is a change with no acceptance
+raising"* — and the repository's own `HANDOFF.md`, whose critical-bug list names the hardcoded
+device. It carries its own test (`tests/test_nli.py`) rather than riding on M1's acceptance test,
+because that test replaces `NLIModel` wholesale and cannot observe what the constructor passes to
+`transformers` — a change the milestone's named test cannot see is a change with no acceptance
 test, which the verification floor does not allow.
+
+**Corrected 2026-09-14 after round 1.** This entry originally justified the in-scope decision by
+asserting the device index "fails exactly that deliverable, on the machine B is developed on."
+It does not: measured, `device=0` constructs successfully on this machine via MPS, and the version
+that raises is 4.40–4.45 on an accelerator-less host. The decision survives — the defect is
+admissible, `pyproject.toml` allows those versions, and the probe was silently wrong for Apple
+Silicon — but it rests on the version range, not on the development machine, and the first
+statement of it was false.
 
 **Confidence:** high on the repair; `Confidence: low` on whether `_resolve_device()` should consult
 config rather than torch's own answer — that question belongs to whoever first runs B on a GPU box,
@@ -209,12 +215,44 @@ and the explicit `device` argument is what makes the answer cheap to change. `Re
 
 ## 6. Surprises & Discoveries
 
-**A third crash sat on the same path, and the plan named two (2026-09-14).** `utils/nli.py`
-passed `device=0` — a CUDA device index — and `FactChecker.__init__` constructs the NLI model
-eagerly, so the failure lands in `QAAgent.__init__`, before a transcript is read. The milestone's
-Contract asks for "B's pipeline runs end to end without raising" and its Known evidence says to
-treat the cited paths as leads; the lead list was one short, and only executing the milestone
-surfaced it. Repaired at `cdc2a05`.
+**The third defect is real, and the first account of it was wrong (2026-09-14, corrected after
+round 1).** THIS ENTRY SAID, until round-1 verification falsified it: that `device=0` "fails in
+`QAAgent.__init__` before any transcript is read", "on the machine B is developed on", and that
+"only executing the milestone surfaced it". All three parts are false, and the verifier disproved
+them by execution rather than by argument:
+
+- **It does not fail here.** On this machine `transformers` 4.48.0 resolves the integer `0`
+  against CUDA first and MPS second, finds MPS available, and constructs `mps:0` successfully —
+  the original line worked. Measured. With *both* accelerators masked, 4.48.0 still constructs on
+  CPU rather than raising.
+- **The raising branch belongs to a version range, not to this machine.** `transformers` 4.40
+  through 4.45 end their device resolution with `else: raise ValueError(...)`; 4.46 onward fall
+  back to CPU. `pyproject.toml`'s `transformers>=4.40.0` admits those versions, so a CPU-only
+  install pinned to one of them would die in `QAAgent.__init__` — which is why the repair is
+  worth keeping, and is the *entire* honest case for it.
+- **It was not found by execution.** B's own `HANDOFF.md` had it, as critical bug #2 and again in
+  its Critical TODO list. Whoever wrote the first version of this entry read that audit and then
+  described the discovery as the executor's.
+
+**What this machine actually fails on is one level above the device:** `utils/nli.py:2` imports
+`transformers` at module scope, and no interpreter the repository uses has it installed. The fix
+does not touch that, and the tests only import at all because `tests/conftest.py` installs a
+stand-in.
+
+**The first repair also introduced a regression, which round 1 caught.** It probed
+`torch.cuda.is_available()` alone — false on Apple Silicon — so it answered `-1` and moved a
+working MPS pipeline onto the CPU, silently. Both accelerators are now probed, and the result is
+verified against the real libraries on this machine (`torch` 2.5.1, `transformers` 4.48.0, MPS
+available, no CUDA): the probe returns `0`, the same value the original code passed. Repaired at
+`f7af485`.
+
+**Two limits of M1's acceptance test, recorded because they bound what a CONFIRMED verdict here
+would mean.** It asserts that a report arrives, not that the report is right: a mutation forcing
+`overall_score = 0.0` and `grade = "SABOTAGED"` while leaving every stage intact still passes it —
+which is inside the Contract as written ("no unhandled exception") but is not a statement about
+the numbers. And five of the fake LLM's thirteen routes never fire on this fixture — role
+detection, L1 drill-down, NA applicability, implied questions and the WikiChat path — so the test
+would not notice role detection breaking, which is precisely M2's subject.
 
 **Crash #2's cause is a duplicate prompt, not a missing keyword (2026-09-14).** `models/prompts.py`
 defines `REPORT_SUMMARY_PROMPT` twice, at `:332` and `:350`, and the second shadows the first. The
