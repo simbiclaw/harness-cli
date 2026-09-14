@@ -447,7 +447,10 @@ affected a score", and the same message's next paragraph disproves it; the claim
 `git notes` correction on `59f0645`. **The coverage gap is the part that matters:** no test in the
 suite names `_atom_driven_literal` at all, so nothing pins either the new behaviour or a regression
 back to a short-turn filter. M4's end-to-end test is where that lands, and this entry is the
-hand-off.
+hand-off. **Closed 2026-09-14 by M4:** `tests/test_e2e.py::test_transcript_to_report` asserts that
+the accuracy-question route fires at all — one of the six `INTERACTING_ROUTES` whose firing is the
+difference between exercising the pipeline and exercising the fake — so the change is now pinned and
+a regression back to a short-turn filter would go red.
 
 **The deletion left two orphans, and clearing them was this milestone's work (2026-09-14).** Path C
 was the only producer of `VerdictResult.HUMAN_REVIEW`, so deleting it orphaned both the enum member
