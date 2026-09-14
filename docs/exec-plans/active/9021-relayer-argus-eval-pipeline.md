@@ -35,9 +35,12 @@ machinery are retained and, for the first time, pointed at real code.
 
 The layer boundary this repository specifies and `simbiclaw/sim` ignores falls close to where B's
 module graph already splits — **close, but not at it, and the difference was initially mistaken for
-the boundary itself.** B runs eight stages across four tiers: S0 ingest, audio2tree's routing
-decision, the rubric compiler's derivation, and the consumer's proposal-plus-derivation. Only the
-last belongs to Argus. The first revision of this plan cut the import along B's module graph
+the boundary itself.** B runs eight stages across four tiers: S0 ingest (stages −1 and 1); the
+producer-side decisions it makes for itself (stage 0's call routing and knowledge assembly, stage
+3's intent inference); the consumer's proposal (stages 2, 4, 5); and the consumer's arithmetic
+(stage 6). Only the last two belong to Argus — the earlier sentence here claimed a "rubric
+compiler's derivation" among B's tiers, and B has none: it reads a flat table rather than compiling
+one, which is why the compiler is this repository's. The first revision of this plan cut the import along B's module graph
 because *"B's module graph splits close to the layer boundary, which is why this is a move rather
 than a rewrite"* — a seam chosen for being cheap, then justified by its cheapness. The seam that
 matters is not where B's imports separate; it is **does this stage decide something the tree already
@@ -102,7 +105,7 @@ supersession.
 | What 9020 left | Where | This plan's disposition |
 |:---|:---|:---|
 | `types/proposer_diagnostics.py` stand-ins — `QuarantinedFindingGraph`, `EvaluationResult`, `derive_evaluation` | self-declared "placeholders ... which are unstarted" | Retired by M5–M6; `_replay_payload`'s three-key allowlist is kept as the executable form of I5 |
-| `divergence.py:assess_drift` — "provisional detector" | `core/divergence.py` | Kept; M17 supplies its missing consumer |
+| `divergence.py:assess_drift` — "provisional detector" | `core/divergence.py` | Kept; **M19.5 (new, 2026-09-14) supplies its missing consumer.** The module's own docstring defers to "9002 M5.5", which was overturned — so this deferral chain terminated in nothing until this milestone existed. M17 is corroboration (I6) and never was the drift detector. |
 | `escape_sampler.py:compute_escape_rate` — "9002 M5.5 owns the real one" | `core/escape_sampler.py` | Reconciled in M19; the split between sampler and estimator ends there |
 | Letter-scale token-id mapping is a first-g placeholder | `local_proposer.py:_scale_slice` | Unresolved; it fails silently on a real model. Gated behind Q11 (config) and the M20 demotion |
 | `llama-cpp-python` dep-vet records the downloads check as unverified | `docs/decisions/dep-vet-llama-cpp-python.md` | Carried; a human with unproxied network confirms |
@@ -147,6 +150,7 @@ flipped milestone. Restated as Q10 with a default that can actually execute.
 - `docs/decisions/dep-vet-transformers.md` (new)
 - `docs/rubric/specific-rubric-27.yaml` (new — B's table as compiler input)
 - `docs/experiments/9021-ab-investigation/**` (new — the evidence base this plan cites)
+- `build/rubric-staging/**` (new — M16's compiled-node output, a build artifact: never committed, never read at runtime; the epoch commit that lands these nodes is an upstream act)
 - `docs/exec-plans/active/9021-relayer-argus-eval-pipeline.md` (modify — this plan)
 
 ## 3. Milestones
@@ -205,10 +209,30 @@ an absent role is an absent input.
 Do not repair, port, or import `_verify_roles`, `AGENT_INDICATORS`, `AGENT_OPENING`,
 `ROLE_SWAPPED` or the swap application. Delete them with `asr_preprocessor.py` (M7).
 
+**The schema change this milestone needs, and who owns it (added 2026-09-14).** "An absent role is
+an absent input" is not representable in the schema M5 landed: `src/argus/types/pipeline.py:142`
+is `role: Literal["customer", "agent"]` — non-nullable, a faithful port of upstream's
+`CleanTurn.role` (`:61`). Nothing in the plan mentioned `Turn`, and M5 is already flipped and
+CONFIRMED, so the change had no owner. **This milestone owns it.** The port gains an explicit
+absent state (nullable, or a third member — the shape is M2's to choose), and two consequences
+follow that must be handled here rather than discovered later:
+
+1. **It is a declared deviation from a CONFIRMED port.** The plan's own boundary rule is that a
+   field the consumer re-derives is a field the contract failed to carry; this is the converse —
+   the contract must be able to *say* "not established", which upstream's type cannot. The
+   deviation is recorded in the Decision Log with its rationale, not left for the fidelity floor
+   to flag as a drift.
+2. **It interacts with 9022's floor.** `9022-contract-fidelity-checker` compares the port against
+   upstream mechanically, and a deliberate divergence is indistinguishable from an accidental one
+   unless a register says so. That plan needs an **intentional-deviation register** as part of its
+   scope; this milestone is its first entry. (Filed on 9022 rather than solved here.)
+
 `Acceptance Test:` `tests/test_io_import.py::test_no_role_re_derivation` — no module under
 `src/argus/` computes an agent/customer role from transcript text (structural: no keyword list,
 no role-detection prompt, no swap path). `tests/test_call_record.py::test_absent_role_defers` —
-a call whose `speaker_role` is null routes to a human rather than being scored.
+a call whose role is not established routes to a human rather than being scored.
+`tests/test_schemas.py::test_absent_role_is_representable` — the port can express "not
+established", and the deviation is registered as intentional rather than surfacing as drift.
 
 **Contract.**
 - *Deliverable:* Speaker attribution consumed from the call record; no re-derivation in the consumer.
@@ -262,7 +286,10 @@ asserted present and typed.
 `::test_call_record_carries_the_consumer_contract` — the record the pipeline consumes carries
 `speakers[].speaker_role` + `speaker_role_source` (M2), `start_sec`/`end_sec` on turns and
 segments (M3), per-segment acoustic blocks aligned to spans, and per-call `stats`; each asserted
-present, with the absent case exercised as a routing input rather than a crash.
+present, with the absent case exercised as a routing input rather than a crash. **Declared-empty
+is a third state, not a failure:** 47 of the 718 archived records carry `turns: 0` and
+`segments: 0`, so "present" means the field exists and holds a value *or* the record says it holds
+nothing — a test that only accepts non-empty would fail on 6.5% of the corpus for the wrong reason.
 
 **Contract.**
 - *Deliverable:* An executable end-to-end test over a real transcript, with no network; and the runnable definition of what the consumer may depend on from the producer.
@@ -318,15 +345,17 @@ justified it by its cheapness. It would have imported S0 ingest, audio2tree's ro
 intent interpretation with the model-calling code. The seam that matters is not where B's imports
 separate; it is **does this stage decide something the tree already records.**
 
-**Imported** (re-namespaced, behaviour unchanged): `atomizer`, `question_generator` (input
-changed, see M15), `llm_client`, `nli`, `prompts`, `qa_agent` orchestration, and `fact_checker`
-**path A only**.
+**Imported unchanged** (re-namespaced, behaviour identical): `llm_client`, `nli`, `prompts`, and
+`fact_checker` **path A only** — plus `atomizer` and `question_generator` *once their arguments are
+supplied from the sources named below*. `qa_agent` is imported **rewired, not unchanged** (below).
 
 **Not imported, each with the owner named:**
 - `asr_preprocessor`, `preprocessor` — S0 ingest; the producer's `calls/*.json` carries the
   structure, and M2/M3 consume it rather than recompute it
-- `intent_inferrer` — routing is audio2tree's D5 protocol; `bottom_up` is written by exactly one
-  mechanism, and a second decider is how one call acquires two intents
+- `intent_inferrer` — **as a routing decision**. The call-level placement is audio2tree's D5
+  protocol; `bottom_up` is written by exactly one mechanism, and a second decider is how one call
+  acquires two intents. Its *within-call* output returns as the consumer's own proposal (below),
+  never as a referent.
 - `kb_context_builder`, `intent_retriever`, `knowledge/indexer.py` — retired in favour of M13's
   Provider. Both halves of B's "double knowledge base" are empty stubs (an empty `INTENTS/`
   directory, a 0-byte `rubrics.md`); these modules have never run against real input
@@ -334,21 +363,43 @@ changed, see M15), `llm_client`, `nli`, `prompts`, `qa_agent` orchestration, and
   unanchorable under I2 (M12)
 - `asr_quality`, `reliability`, `INCOMPLETE`, `ASR_ERROR`, path C — deleted by decision (M3)
 
+**The type-level data flow after the drop — the part the first revision of this list missed.**
+Deleting a module deletes its *output type* as well, and the retained modules' signatures name
+those types. This table is the executable form of the seam; the import list is not executable
+without it.
+
+| Argument type | Consumed by | Was produced by | **Produced by, after this milestone** |
+|:---|:---|:---|:---|
+| `Session` | `atomizer.atomize`, `atomizer.build_coverage_matrix`, `fact_checker.verify_all` | `preprocessor.build_session` (dropped) | **The consumer, from the call record** (M4's contract): turns, speakers, timestamps and spans already exist in `calls/*.json`. This is the legitimate fixture step, not a re-derivation. |
+| `SessionKBContext` | `atomizer` (reads `.domain_knowledge_summary[:1500]` as prompt text), `question_generator` (7 sites), `fact_checker` | `kb_context_builder` + `intent_retriever` (dropped) | **The consumer, from M13's Provider**: `all_rubric_items`/`applicable_rubrics` from the compiled `_rubric/` nodes; the domain summary from the node's capsule and manifest. It goes into the proposer's prompt as **declared exposure** (patch 3's crutch — versioned, and disjoint from the measurement set) and is **never a grounding referent**. |
+| `IntentInference` | `question_generator.generate_all` (serialized whole into the implied-question prompt) | `intent_inferrer` (dropped) | **The consumer's own S2 proposal step.** audio2tree ruled within-call intent its own decision and not the producer's ("nothing in the routing protocol speaks to it"), so this is not a duplicated authority — but its output is proposal material, quarantined with the rest of S2, and the *call-level* attribution still comes from the manifest rather than from it. The two display-only fields (`intent_switches`, `unresolved_intents`) are dropped. |
+| `CleanTranscript` | nothing retained | `asr_preprocessor` (dropped) | Not needed — the call record replaces it. |
+
+**`qa_agent` is rewired.** Its `run()` currently calls all five dropped modules by name
+(`agents/qa_agent.py:53-56, 70-75, 88-92`) and its constructor instantiates them (`:24-28`), so
+"moved verbatim" was wrong. The orchestrator's new wiring is: call record → consumer-built
+`Session`; Provider → `SessionKBContext`; atoms; the proposer's own intent step; questions;
+verification; score. It keeps its shape as the single entry point and loses its ingest stages.
+
 Squashed import commit citing `simbiclaw/sim@0c2cccd` as the **base**, with the local repair
 commits recorded alongside: the fixes are local-only and unpushed, and the citation must not imply
 they are reachable upstream.
 
 `Acceptance Test:` `tests/test_io_import.py::test_pipeline_runs_from_io` — the moved pipeline
-produces the same output as M4's baseline on the same input.
+produces the same output as M4's baseline on the same input, **with the arguments supplied from
+the sources in the table above**.
 `::test_no_producer_logic_in_io` — no imported module re-implements a producer's decision: no role
-inference, no intent assignment, no rubric→question derivation from the flat table, no knowledge
-tree traversal.
+inference from transcript text, no call-level intent assignment, no knowledge-tree traversal, no
+ASR text parsing. (The fifth prohibition — no rubric→question derivation from the flat table — is
+**M15's**, because switching `question_generator`'s input from `config/rubric_items.py` to the
+compiled nodes is that milestone's work; asserting it here would fail against code this milestone
+legitimately imports.)
 
 **Contract.**
 - *Deliverable:* Every model-touching module that belongs to the consumer lives under `io/`.
 - *Binding constraint:* I1 — model nondeterminism exists only in S2, which lives in `io/`. Plus the boundary this review established: **a module that re-decides what a producer decides is not the consumer's, wherever it sits** — sitting in `io/` violates no import direction, which is why M8's fences cannot express it (new item 8 carries the artifact).
 - *Acceptance property:* The pipeline produces the same output after the move as before it; no module outside `io/` reaches a model; and no module inside `io/` re-decides something the tree already records.
-- *Known evidence (advisory):* Fourteen call sites across nine modules — but that is a fact about B's graph, not about the architecture. Treat the file list here as binding and the call-site count as description.
+- *Known evidence (advisory):* B's original eleven-module list spanned fourteen call sites across nine modules; the amended list names seven modules and the call-site count no longer describes it. Treat the file list above as binding and the count as historical.
 
 ### M8 — Land the four `forbidden` import-linter contracts
 
@@ -408,7 +459,7 @@ the only weighting that exists.
 This milestone therefore carries: `Rubric` gains a dimension-weight map, and `tally()` groups by
 dimension before summing. The weights are read from the compiled rubric, never hardcoded (M22's
 binding constraint). Their home is `_rubric/gates/{dimension}.yaml`, which gains `dimension_weight`
-alongside `hard_fail_rule` — the co-location §3.4 of the authoring spec describes. **That is a
+alongside `hard_fail_rule` — the co-location the authoring spec describes (§3.5; earlier revisions cited "§3.4", which does not exist in that document). **That is a
 compiled-output change: it requires a recompile and republish at a new epoch, and is a Tier C
 decision recorded in Awaiting Steering.**
 
@@ -417,6 +468,15 @@ byte-identical `raw`. `::test_score_receives_no_history`. `::test_weight_comes_f
 `::test_core_no_model_client`. `::test_dimension_weights_are_applied` — a call failing item(s) in a
 3× dimension scores strictly lower than the same failures in the 1× dimension; the ÷9 normalisation
 is asserted against the formula, and the weights are read from the compiled rubric, not a literal.
+`::test_purity_assert_fires` — **the runtime purity assert, restored 2026-09-14.** Spec §2.5.3 says
+the invariant is *"enforced twice, on purpose … the signature stops it going in; the gate catches it
+if it somehow appears"*, and §8 M4's acceptance names the firing case explicitly. The shipped
+`core/score.py:11-13` argues the runtime half away — *"a signature that cannot express one is the
+cheaper version of the same check"* — which is a reasonable engineering preference and **not the
+spec**. This milestone lands the assert: a confirmed finding carrying `cites_precedent=True` reaching
+`score()` raises rather than scoring, and the test proves it fires by planting one. If the plan's
+authority concludes the signature alone is sufficient, that is a spec deviation to record in the
+Decision Log — not a change to make by leaving the test out.
 
 **Contract.**
 - *Deliverable:* A pure scoring function taking grounded facts and the rubric, with the dimension weighting the spec specifies actually applied.
@@ -475,8 +535,18 @@ deciding which node a call belongs to is audio2tree's routing protocol (vectoris
 over L2 descriptions, 0.60 threshold) and it writes `bottom_up` alone. A second decider is how one
 call acquires two intents.
 
+**The evaluation record carries the attributed node (restored 2026-09-14).** The first revision of
+this milestone deleted the original's *"record the model-selected KB path in the run manifest so
+referent selection becomes replayable rather than re-guessed"* and replaced it with read-by-id —
+correct about *how* the node is chosen, silent about *whether the choice is recorded*. Nothing now
+records which L1/L2/L3 node a call was attributed to, and **532 of 718 calls sit in `_unassigned`**,
+so that is not a corner case. The run manifest records the attributed node id (or its explicit
+absence) for every evaluation: I4 pins *which revision* of the tree was read, and this records
+*which node* was read from it — without both, two runs against the same epoch with different
+attributions replay identically, which is the failure I5's hash exists to make detectable.
+
 **The capsule parsing contract** (doc2graph's, one page, M13's reader implements it directly): a
-leaf is `index.md` + `assets/` + optional `intent_manifest.json`; **`ui_steps.yaml` does not exist**
+leaf is `index.md` + `assets/` + optional `intent_manifest.json`; **`ui_steps.yaml` does not exist** (0 of 48 capsules carry one — the Flesh steps are embedded in `index.md`. **Discrepancy recorded 2026-09-14:** `INTENTS/PRODUCERS.md` — human-ratified 2026-08-18, and named by this plan as the producer-footprint authority — still lists `ui_steps.yaml` in doc2graph's footprint twice, in §1 and §2. This plan follows the tree, not the ledger, and records the divergence rather than silently overriding a declared authority)
 — PRODUCERS.md's name is legacy, and the Flesh steps are embedded in `index.md` as one fenced JSON
 block per routine after the `## Part 1: Bone` / `## Part 2: Flesh` sections; `ui_binding_ref` is
 `<routine_id>#<step_order>`, and the Operation Manual's ordered-match sequence is a routine's
@@ -550,6 +620,23 @@ compiler's; weights are uniform across the shipped set, so there is nothing to d
 interesting divergence is **which items are excluded and on what grounds** — data-dependency versus
 weight — and that is what this milestone's divergence record covers.
 
+**The `question_generator` input switch lives here** — this is the "input changed" M7 refers to.
+`core/question_generator.py:14` imports `RUBRIC_ITEMS, RUBRIC_BY_ID` from `config/rubric_items.py`
+and `_rubric_driven` (`:53-96`) iterates `kb_context.applicable_rubrics`, which
+`kb_context_builder.py:65` sets from that flat table. That is a second, model-mediated derivation
+path from rubric to machine-checkable question, running in parallel with the compiler's
+deterministic one — the two cannot even be checked for agreement. This milestone re-points the
+read at `_rubric/` through M13's Provider: the questions come from the compiled nodes
+(`signals[].description`, the `facets` split into programmatic and model_based), and the flat YAML
+becomes compile input only, never a runtime source. The prohibition M7 defers here — *no
+rubric→question derivation from the flat table* — is asserted in this milestone's tests.
+
+`Acceptance Test (additions):` `tests/test_rubric_input.py::test_question_generator_reads_compiled_nodes`
+— no module under `src/argus/` imports `config/rubric_items.py` or reads the flat table at
+runtime; the generated questions resolve to compiled node ids.
+`::test_no_second_rubric_path` — the compiled nodes are the only runtime source of
+machine-checkable questions.
+
 `Acceptance Test:` `tests/test_rubric_input.py::test_27_rows_parse_as_specific_rubric`.
 `::test_items_6_and_7_are_permanently_inapplicable` — both carry a `data_dependency` and neither
 reaches the denominator. `::test_25_items_scored` — asserted against the live node ids, and
@@ -572,6 +659,15 @@ Empathy & Tone, items 23–25 to Problem Resolution, item 26 to Empathy & Tone w
 Resolution axis recorded as `within_dimension` residue, item 27 to Procedural Accuracy at the
 compliance layer. Compiler output is diffed against B's hand-assigned weight and veto; divergences
 are findings, not overrides.
+
+**Where the output goes (declared 2026-09-14 — it was named nowhere).** §2 asserts that this
+milestone *"emits them to a staging path and stops there"*, and neither the Contract nor the File
+Scope said what that path is. It is **`build/rubric-staging/`** (repo-relative, gitignored, not
+under `INTENTS/`): the compiled nodes are emitted there, and committing them into
+`INTENTS/_rubric/rules_criteria/**` is an upstream write-time epoch act performed by the compiler
+line or a human — never by this repository reaching into its own referent (D15, ADR-0003). The
+path is a build artifact, so it must not be committed and must not be read by anything at runtime;
+the plan's File Scope carries it as the one path this milestone writes.
 
 `Acceptance Test:` `tests/test_rubric_compile.py::test_all_27_compile_or_declare_residue`.
 `::test_item_27_is_compliance_layer` — the veto item does not depend on the judgment gates.
@@ -641,9 +737,50 @@ ends 9020's split between sampler and estimator. B's five-condition escalation r
 
 **Contract.**
 - *Deliverable:* S5 routing, and the escape estimator reconciled with the sampler.
-- *Binding constraint:* D10 — auto-final requires both axes clear. The estimator consumes the random tranche only, and that tranche respects its declared floor.
+- *Binding constraint:* D10 — auto-final requires both axes clear. **patch-1 D22** — the escape sampler splits into a random floor and a prioritized tranche, and the estimator consumes the **random tranche only** (the prioritized tranche is excluded from the escape-rate computation); that tranche respects its declared floor. **patch-1 I8** bounds what may reach routing at all.
 - *Acceptance property:* A call carrying ungrounded findings never auto-finalises; a biased sample cannot reach the estimator; the floor holds whatever the prioritisation asks for.
 - *Known evidence (advisory):* 9020 shipped the sampler with a floor test that must survive this reconciliation. **The floor has no declared value anywhere — declare one during execution and record its basis.**
+
+### M19.5 — The §6 agreement instrument and `CriterionHealth` (added 2026-09-14)
+
+**This milestone was missing entirely, and two shipped acceptance tests depended on it.** M19's
+`test_auto_final_requires_both_axes` and M17's `test_corroboration_never_clears_criterion_below_tau`
+both assert over a two-axis gate whose **criterion axis had no producer**. `core/divergence.py`'s
+docstring defers the real detector to "9002 M5.5" — overturned — so the chain terminated in
+nothing; the plan inherited the deferral without noticing that its addressee no longer existed.
+The spec requires it in §8 M5 (*"Argus-vs-human κ store; τ gate; drift detector; per-call coverage
+computation and the two-axis auto-final gate"*) and §8 M5.5 (*"Escape-rate sampler +
+CriterionHealth"*), and §3.6 defines the type.
+
+Land, in `core/` (pure computation) and `io/` (persistence):
+- **`compute_kappa(argus_verdicts, human_verdicts)`** — Cohen's κ per criterion. Argus-vs-human,
+  **never** Argus-vs-Argus (§6.4): the instrument measures agreement with the human label, and a
+  second model sample is not a second opinion.
+- **The τ gate** — a criterion at κ < τ is `untrusted`, and a finding resting on it defers with
+  `criterion_below_tau`. τ defaults to 0.8.
+- **`check_drift(criterion_id, windowed_kappas)`** — the falling-κ detector. This is the consumer
+  `assess_drift` was written for; the two must be reconciled rather than allowed to coexist as two
+  notions of drift.
+- **`CriterionHealth`** — computation in `core/`, persistence in `io/`. `types/compiler_schemas.py`
+  already declares the field as *"filled by rolling sample at runtime"*; this is what fills it.
+- **Per-call coverage** — the fraction of the verdict resting on grounded findings (D10's first
+  axis), computable per call, never a per-call *residue* gate (the hard prohibition).
+
+`Acceptance Test:` `tests/test_agreement_instrument.py::test_kappa_is_argus_vs_human` — the
+instrument takes a human-labelled sample and refuses a model-only one.
+`::test_criterion_below_tau_defers` — κ < τ defers the finding and no corroboration clears it (D4).
+`::test_falling_kappa_demotes` — drift moves the criterion's health, and only the κ pathway writes
+health.
+`::test_criterion_health_is_populated` — the CriterionHealth the two-axis gate reads has a
+producer, asserted end to end rather than by construction.
+`::test_coverage_is_per_call` — coverage is computable for a single call; nothing attempts a
+per-call residue figure.
+
+**Contract.**
+- *Deliverable:* The agreement instrument, the τ gate, the drift detector and the criterion-health store — the producer of the two-axis gate's second axis.
+- *Binding constraint:* §6.4 — agreement is Argus-vs-human, never model self-agreement. D10 — the two axes are orthogonal: corroboration clears `finding_thin` and never `criterion_below_tau`. D12 — resample variance measures difficulty, and never touches routing.
+- *Acceptance property:* A criterion cited by a verdict has a health state produced from a human-labelled sample; an untrusted criterion defers regardless of how well corroborated the finding is; and drift demotes through κ alone.
+- *Known evidence (advisory):* `core/divergence.py` already exists with a provisional detector and no consumer — reconcile rather than reimplement. 9020's escape sampler carries the floor; 9020's agreement seed is in `tests/test_agreement_seed.py` and `core/compiler/agreement.py` (9003's authoring-side κ, a **different** instrument at a different layer — do not conflate them).
 
 ### M20 — Demote the 9020 proposer to a drift probe, safely
 
@@ -733,6 +870,7 @@ against a real transcript. `::test_json_mode_is_machine_readable`.
 - [ ] M17: Build core/corroboration.py (I6)  (created 2026-09-12)
 - [ ] M18: Build core/adjust.py (S4b)  (created 2026-09-12)
 - [ ] M19: Build core/route.py and reconcile the escape estimator (S5)  (created 2026-09-12)
+- [ ] M19.5: The §6 agreement instrument and CriterionHealth  (added 2026-09-14 — was missing entirely; two tests depended on it)
 - [ ] M20: Demote the 9020 proposer to a drift probe, safely  (created 2026-09-12)
 - [ ] M21: Persist the replay record (I5)  (created 2026-09-12)
 - [ ] M22: Surface — CLI, config, record format  (created 2026-09-12)
@@ -978,14 +1116,28 @@ the rubric's author, which is the only authority that can settle it.
 **Rationale:** `Source:` `docs/PRD/eval/skills/evaluator/SKILL.md:221,310` states the formula
 verbatim — `(Empathy×3 + Resolution×3 + Procedure×2 + Proactive×1) ÷ 9`; the legacy v1 node format
 carried the field (`_rubric/rules_criteria/c21-active-flexible-marketing.yaml:50`,
-`dimension_weight: 1.0`) and patch-1's `AuthoredNode` schema dropped it with nothing re-adding it;
-soft-compiler confirmed no dimension weight exists anywhere in the current compiled tree. Meanwhile
+`dimension_weight: 1.0`); and soft-compiler confirmed no dimension weight exists anywhere in the
+current compiled tree (nodes carry no weight field, the four `gates/*.yaml` carry only
+`hard_fail_rule`, the manifest carries none — re-verified against the current epoch). Meanwhile
 `Source:` `simbiclaw/sim core/aggregator.py:66-69` and this repository's shipped
 `src/argus/core/score.py:241-242` both sum flat across dimensions — **so every score either
-codebase has produced weights all dimensions equally**, and the gap is not B's alone. Human ruling
-(2026-09-14): the weight is compiled into `_rubric/gates/{dimension}.yaml` alongside
-`hard_fail_rule`, which is the co-location the authoring spec's §3.4 describes. That is a
-compiled-output change → recompile and republish at a new epoch (Tier C, Awaiting Steering).
+codebase has produced weights all dimensions equally**, and the gap is not B's alone.
+
+*On the field's history, corrected 2026-09-14 by adversarial verification:* an earlier revision of
+this entry asserted that patch-1's `AuthoredNode` schema "dropped" the field. The companion
+`soft-criteria-authoring-spec-v4-patch-1.md:181` says the opposite — `dimension_weight` was
+**added** to `machine_criterion` by that patch's D10, and `:182` has `deduction_weight` becoming
+*computed* as `dim_weight × confidence × gap_factor`. That same file contradicts itself later
+(`:438` enumerates `machine_criterion` without the field), and the live tree carries it nowhere.
+So the **observed gap is real and verified**; the **cause is unresolved**, and the "reverses the
+direction patch-1 moved" argument below rested on the wrong half of an internally inconsistent
+document. The decision stands on the co-location argument, not on that one.
+
+Human ruling (2026-09-14): the weight is compiled into `_rubric/gates/{dimension}.yaml` alongside
+`hard_fail_rule` — the location the authoring spec describes where a synthesized gate is *"stored
+alongside the dimension's weight in the rubric table"* (§3.5; earlier revisions of this plan cited
+"§3.4", which does not exist in that document). That is a compiled-output change → recompile and
+republish at a new epoch (Tier C, Awaiting Steering).
 
 **Confidence:** high on the specification and on the implementation gap (both verified in code);
 `Confidence: medium` that the gate file is the better of the two candidate homes — the alternative
@@ -1280,7 +1432,7 @@ filter dropped. R6 pending with a bounded brief. The full defect lists live in
 
 ## 7. Awaiting Steering
 
-**Q24: Recompile for the dimension weights — accept the compiled-output change?** **Resolved
+**Q24: Recompile for the dimension weights — accept the compiled-output change?** (**Citation corrected 2026-09-14:** this entry and the M10 amendment originally cited "§3.4" of the authoring spec; that section does not exist — it is §3.5. The substance is unchanged.) **Resolved
 2026-09-14 (human ruling):** the weight is compiled into `_rubric/gates/{dimension}.yaml` alongside
 `hard_fail_rule`; the compiler line recompiles and republishes at a new epoch. Tier C because a
 compiled output changes on disk. Recorded here rather than in the Decision Log alone because the
@@ -1366,19 +1518,27 @@ Default if not decided: open as its own plan owned by the 9003 compiler line.
 >
 > **Contested, and only the local session can settle it.** Issue #16 reports that the live INTENTS
 > tree holds **25 nodes at ids 1–5 and 8–27** — i.e. 6 and 7 already excluded — which if true means
-> the two counts are the same 25 and this warning is wrong. The supporting citation given for it
-> (`patch-1:194` as "25 (items 6,7 excluded)") does **not** verify in this tree: line 194 is a
-> milestone-table row, and patch-1 contains no mention of items 6 or 7 anywhere. The tree evidence
-> cannot be checked from a clone where `INTENTS` dangles. **Settle it by listing the node ids in
-> the live tree before M15**, and delete or keep this warning on that basis rather than on either
+> the two counts are the same 25 and this warning is wrong. **Settled 2026-09-14 by listing the live
+> node ids: 25 nodes, ids 1–5 and 8–27 — issue #16's report verifies and this warning is wrong on
+> the live tree.**
+>
+> **Correction to the record of how it was closed (2026-09-14).** An earlier revision of this entry
+> stated that the citation offered for issue #16's claim — `patch-1:194` as "25 (items 6,7
+> excluded)" — *"does not verify in this tree: line 194 is a milestone-table row, and patch-1
+> contains no mention of items 6 or 7 anywhere."* **That was my error, and it is exactly the
+> collision this plan's Q13 exists to track: there are two files named patch-1.**
+> `process-derivation-pipeline-spec-v5-patch-1.md:194` is the `N0` milestone-table row — what I
+> read. `soft-criteria-authoring-spec-v4-patch-1.md:194` is `| **rules_criteria node** (per-item
+> compilation) | **25 (items 6,7 excluded)** | **1 item → 1 node** |` — exactly what the citation
+> said, in the other document. The citation was correct and the rebuttal was wrong.
+>
+> The tree evidence could not be checked from a clone where `INTENTS` dangles, and the instruction
 > document.
 >
-> **Settled, 2026-09-14, by listing the live tree (the instruction this entry gives).** The live
-> `_rubric/rules_criteria/` holds exactly **25 item nodes, ids 1–5 and 8–27; items 6 and 7 are
-> already excluded**. Issue #16's report verifies; the warning above is wrong on the live tree and
-> is retained here only as the record of what was contested. The two 25s coincide. (M16 note that
-> travels with it: item 9 and item 27 sit in Procedural Accuracy in the live tree — item 27
-> matching the Q3 compliance-layer routing.)
+> **Settled, 2026-09-14, by listing the live tree (the instruction this entry gives)** — the same
+> result the citation pointed at all along. The two 25s coincide; the warning above is retained only
+> as the record of what was contested. (M16 note that travels with it: item 9 and item 27 sit in
+> Procedural Accuracy in the live tree — item 27 matching the Q3 compliance-layer routing.)
 
 **Q15: Reconcile implementation-notes-during-execution with the checkbox-flip gate.** — Awaiting Steering: resolved 2026-09-12. **Moved out of this plan** to [#18](https://github.com/simbiclaw/harness-cli/issues/18). It is a harness defect in `.claude/tests/**`, not a deliverable of re-layering Argus. The finding that travels with it: the gate derives a notes directory that does not match 9008's, so 9008's seven flipped milestones are never checked and the unflipped-milestone test passes vacuously — and 9008's directory name is the one the convention document actually specifies. It is **not** violation two under the promotion rule; the single historical trip predates the test by a day. Blocked nothing in this plan.
 
