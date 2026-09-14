@@ -16,9 +16,20 @@ Inherits from 9021 M5 (committed on `claude/9021-m5-handoff-local`): the round-4
 **File Scope:**
 - `docs/exec-plans/active/9022-contract-fidelity-checker.md` (this plan)
 - `docs/exec-plans/active/9022-contract-fidelity-checker-notes/**` (new)
-- `scripts/run_sweep.sh` (new — the shared sweep runner: pyc purge + `PYTHONDONTWRITEBYTECODE=1` + collection-error grading, one way to run a sweep)
+- `scripts/run_sweep.sh` (new — the shared sweep runner: pyc purge, `PYTHONDONTWRITEBYTECODE=1`, collection-error grading; one way to run a sweep)
 - `docs/experiments/9022-fidelity-threat-model/**` (new — the written threat model)
-- `scripts/build_schema_snapshot.py`, `tests/test_schemas.py`, `scripts/mutate_m5_contract.py` — **TBD — will be filled when 9021 completes and ceases to own these paths** (declaring them now trips `test_plan_collisions.py` against the active 9021; the deferral is the negotiation, and this plan does not open its first milestone until then). *`src/argus/types/pipeline.py` is deliberately absent: this plan observes the port and never edits it (see Big Picture), and declaring it collided with 9021's `src/argus/types/**`. If F1 ever needs to touch the port, that is a different plan.*
+
+**Deferred, not claimed.** F1's edits land in three paths that belong to the port plan while it is
+open: `scripts/build_schema_snapshot.py`, `tests/test_schemas.py` and
+`scripts/mutate_m5_contract.py`. They are named here and **deliberately not declared as scope** —
+announcing them would collide with `9024-port-and-fences`, which owns them, and the collision
+detector is right to object: two plans editing `tests/test_schemas.py` at once is exactly what it
+exists to prevent. F1 opens when 9024 releases them, and this block is filled in then. (The block
+previously deferred to "when 9021 completes"; 9021 was archived on 2026-09-14, and its paths were
+redistributed across 9023–9029 — 9024 holds these three.)
+
+`src/argus/types/pipeline.py` is deliberately absent: this plan observes the port and never edits
+it, and declaring it would collide with 9024's scope for the same file.
 
 ## 3. Milestones
 

@@ -1582,3 +1582,39 @@ this plan is already at twenty-two milestones, and the Provider is orthogonal to
 ## 8. Outcomes & Retrospective
 
 *Written at completion or cancellation.*
+
+## 9. Archive note (2026-09-14)
+
+**Status: split — superseded by seven focused plans.** The human's ruling: *"9021 计划过于庞大，
+为避免失焦，对这个计划进行分拆，每个子计划都有且只有一个焦点"*. Nothing was cancelled; every
+milestone this plan carried now lives in exactly one successor, with its text moved verbatim and
+its Progress checkbox carried across:
+
+| Successor | Focus | Milestones |
+|---|---|---|
+| `9023-b-repairs` | B runs, and is tested | M1–M4 |
+| `9024-port-and-fences` | the port, the seam, the layer fences | M5 (done)–M9 |
+| `9025-read-and-anchor` | the read surface and the grounding gate | M12, M13 |
+| `9026-rubric-line` | 27 rows → epoch-pinned compiled nodes | M14–M16 |
+| `9027-pure-arithmetic` | score, corroborate, adjust, replay | M10, M11, M17, M18, M21 |
+| `9028-disposition` | routing, the two axes, the agreement instrument | M19, M19.5 |
+| `9029-surface` | proposer demotion, CLI, config, record | M20, M22 |
+
+**What stays here, and why this file is worth reading.** The shared record that no single successor
+should carry seven times over: §2's architecture review and the seam criterion it established
+(*does this stage decide something the tree already records?*); the complete Decision Log, including
+the entries whose subject matter crosses plans; the full Surprises section, whose findings — the
+empty knowledge base, the undocumented `(*)` marker, the missing dimension weights, the corpus that
+predates its own fix — are shared context rather than any one plan's property; and the M5
+verification record. Successors cite this file by number where they rely on a decision it holds.
+
+**M5 is complete.** Six adversarial rounds, flip at `d1a975a`, verified at `3315bd6`; the
+round-by-round record is in `9021-relayer-argus-eval-pipeline-notes/M5.md` beside this file. Its
+fidelity floor lives on as `9022-contract-fidelity-checker`.
+
+**Why split rather than continue.** The plan had grown to 23 milestones spanning four repositories'
+worth of concerns — B's repairs, a schema port, a compiler line, four pure stages, a disposition
+layer and a CLI. A milestone whose neighbours are unrelated is a milestone nobody can hold in mind,
+and the recurring defect this plan produced (M5's six rounds; the import seam drawn along the wrong
+boundary; a §6 milestone missing entirely) shares one shape: **nobody was looking at the whole**.
+Splitting does not fix that by itself, but it makes each part small enough that someone can.
