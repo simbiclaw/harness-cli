@@ -101,9 +101,45 @@ and a genuine drift are the same event to this floor.
 pre_steering_sha: d1a975a (9021's M5 flip — the branch point this plan shares; rollback target if
 any Tier C decision below is rejected)
 
-1. **Does F1's oracle land in `build_schema_snapshot.py` or a successor script?** pre_steering_sha: d1a975a. **Updated 2026-09-14:** 9021 archived that day and the builder is now declared by *this* plan (File Scope), so the question answers by inspection when F1 opens. The earlier condition — "F1 opens after 9021 archives" — was written when the path was still believed to be 9021's; it is superseded by this update rather than left standing beside it. Default if not decided: extend in place. — deadline: F1.
-2. **CI wiring for the shared runner.** Whether `.github/workflows/**` should invoke `run_sweep.sh` on PRs touching contract files is a Tier C question (workflow changes are sensitive-path). Default if not decided: local-only until someone asks for CI. — deadline: F3 completion.
+*Closed by the absorption — neither question outlives this plan. Item 1 (does F1's oracle land in
+`build_schema_snapshot.py` or a successor script?) transferred to `9024-port-and-fences`, which now
+declares the script and answers it by inspection when it edits it. Item 2 (CI wiring for the shared
+runner, a Tier C question about `.github/workflows/**`) does not transfer: the runner was F3, F3 was
+absorbed rather than carried, and no plan now proposes invoking a sweep from CI. If one ever does,
+that is a fresh Tier C question and belongs to whichever plan asks it.*
 
 ## 8. Outcomes & Retrospective
 
-*Written at completion or cancellation.*
+**Cancelled by absorption, 2026-09-14 — one day after it was created.** This plan never executed: F1
+through F4 were all unstarted, and its entire commit history was documentation.
+
+**Why it existed, and why that turned out to be wrong.** M5 spent five adversarial rounds past its
+Contract because the fidelity discipline was being built inside one milestone's test file with no
+written threat model. Splitting it into its own plan was the promotion rule applied correctly — the
+same failure shape five times triggers a promotion, and a plan is a legitimate home.
+
+**Why it was absorbed.** Three reasons, in the order they mattered. First, the one part with a live
+consumer was the intentional-deviation register, and its consumer is `tests/test_schemas.py` — which
+`9024-port-and-fences` already owned. A register in one plan consumed by a comparator in another is
+a negotiation, not a design. Second, the plan that introduces the deliberate deviation is the plan
+that must register it, and that is 9024's M7 (the absent-role state). Third, roughly half of what
+remained — F2's sweep growth, F4's written threat model — hardened a floor that already stands and
+would have been executed only after 9024 released the file, so the plan had no path to execution
+that did not run through another plan's completion.
+
+**What moved, and where it went.** `scripts/build_schema_snapshot.py` and
+`scripts/mutate_m5_contract.py` → 9024's File Scope. The register (F1's second half) → 9024's M7,
+declared as `tests/fixtures/intentional_deviations.yaml`. F3's shared sweep runner and its
+pyc-taint hazard → the hazard is recorded in 9024's Surprises section; the runner itself was
+**dropped**, not carried. F2's 25-row sweep and F4's written threat model were dropped with it.
+
+**What that costs, stated plainly.** The pyc-taint rule survives as a paragraph rather than as a
+runner that enforces it, which is the weaker of the two forms the promotion rule names — the next
+agent must remember, and a rule that depends on remembering is the one that gets violated. The
+six-round M5 record still exists (`9021-relayer-argus-eval-pipeline-notes/M5.md`), but the *next*
+round-B now reads 9024's threat model only if someone writes one there. If the fidelity floor
+survives a seventh round of the same shape, that is the signal to re-open this decision rather than
+to write a third plan.
+
+**What worked.** Writing the register before it was needed meant the deviation had a home the moment
+9024 introduced it, so the absorption was a file move rather than a design question.

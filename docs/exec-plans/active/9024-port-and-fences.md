@@ -33,8 +33,11 @@ scanned an empty directory.
 
 **Inherited:** M5 is complete (CONFIRMED 2026-09-14, six adversarial rounds; the round-by-round
 record is `docs/exec-plans/archived/9021-relayer-argus-eval-pipeline-notes/M5.md`). Its fidelity
-floor lives on as 9022, which owns `tests/test_schemas.py`'s comparison machinery — **do not edit
-that file concurrently with 9022.**
+floor is **this plan's**: `9022-contract-fidelity-checker` was absorbed here on 2026-09-14 (the
+human's ruling — it had never been executed, half of it hardened a floor that already stands, and
+its register was needed by this plan's own port change). Its files, its register and the pyc-taint
+hazard it carried came with it, and there is no longer a second plan to negotiate
+`tests/test_schemas.py` with.
 
 **File Scope:**
 - `docs/exec-plans/active/9024-port-and-fences.md` (this plan)
@@ -56,7 +59,10 @@ that file concurrently with 9022.**
 - `tests/test_io_import.py`
 - `tests/test_fences.py`
 - `tests/test_evidence_anchor.py` (new)
-- `tests/test_schemas.py` (modify — M6's anchor assertions; 9022 owns the fidelity floor in this file and the two must not be edited concurrently)
+- `tests/test_schemas.py` (modify — M6's anchor assertions, and the fidelity floor's comparison machinery, absorbed from 9022 on 2026-09-14)
+- `scripts/build_schema_snapshot.py` (modify — the fidelity oracle; absorbed from 9022)
+- `scripts/mutate_m5_contract.py` (modify — the mutation sweep; absorbed from 9022)
+- `tests/fixtures/intentional_deviations.yaml` (new — **the register of deliberate divergences**, consumed by the comparison instead of failing on them; this plan lands it, and its first entry is M7's absent-role state)
 - `tests/test_i8_provenance_separation.py` (modify — widen the live scan)
 - `pyproject.toml` (modify — dependency changes; the archive declared this path and the split dropped it from every successor until 2026-09-14)
 - `docs/decisions/dep-vet-transformers.md` (new — `nli` is imported unchanged and B's `utils/nli.py` imports `transformers`, which is not yet a declared dependency of this repository; deps-and-secrets requires a dep-vet record before the install is allowed)
@@ -186,15 +192,17 @@ milestone here performed the schema change this plan's File Scope already claime
 - **The consumer-side consequence lives here:** a call whose role is absent routes to a human
   rather than being scored. That is this plan's assertion, tested here, because 9023 cannot test
   this repository's code.
-- **It is a declared deviation from upstream, and it must be registered.** 9022's fidelity floor
+- **It is a declared deviation from upstream, and it must be registered.** The fidelity floor
   compares the port against upstream mechanically and cannot distinguish a deliberate deviation
-  from an accidental drift. 9022 owns the register (see its File Scope) and this is its first
-  entry.
+  from an accidental drift without a register. **This plan owns that register now** (File Scope,
+  `tests/fixtures/intentional_deviations.yaml`), and this milestone's change is its first entry.
+  The register is deliberately awkward to add to: an entry must name the decision that authorised
+  it, so suppressing a divergence is an act someone signs, never a silence.
 
 `Acceptance Test (this plan):` `tests/test_call_record.py::test_absent_role_defers` — a call whose
 role is not established routes to a human rather than being scored.
 `tests/test_schemas.py::test_absent_role_is_representable` — the port expresses "not established",
-and the deviation is listed in 9022's register rather than surfacing as drift.
+and the deviation is listed in this plan's register rather than surfacing as drift.
 
 **Sequencing within the family, stated because this plan's M7 acceptance names sources later plans
 build:** `Session` comes from the call record (9023's M4 defines it), `SessionKBContext` from
@@ -257,12 +265,16 @@ prose list alone is not executable, as adversarial verification established.
 **Confidence:** high on the criterion; the surviving risk is a *producer gap* (something a retained
 module needs that no producer emits) — record it, do not import the derivation.
 
-### Decision: 9022 owns the intentional-deviation register; this plan adds its first entry (2026-09-14)
+### Decision: The intentional-deviation register lives here, with the port it deviates from (2026-09-14)
 
 **Rationale:** `Source:` M2's nullable-role requirement (see 9023) — the consumer must be able to
-say "not established", and upstream's `CleanTurn.role` cannot. `9022-contract-fidelity-checker`
-compares the port against upstream mechanically and cannot distinguish a deliberate deviation from
-an accidental drift without a register. This plan's schema change is entry one.
+say "not established", and upstream's `CleanTurn.role` cannot. The fidelity floor compares the port
+against upstream mechanically and cannot tell a deliberate deviation from an accidental drift
+without a register. **Updated 2026-09-14:** the register was first filed on
+`9022-contract-fidelity-checker`; the human absorbed that plan into this one on the same day,
+because the plan that introduces the deviation is the plan that must register it, and the file
+consuming the register (`tests/test_schemas.py`) was already this plan's. This plan's schema change
+is entry one.
 
 **Confidence:** high — without the register the fidelity floor and the deviation will fight.
 
@@ -275,6 +287,15 @@ carried. That ruling is why this plan exists in its current shape.
 **Confidence:** high; the six-round verification record is the evidence.
 
 ## 6. Surprises & Discoveries
+
+**The pyc-taint hazard arrives with the sweep (2026-09-14, absorbed from 9022).** Any sweep that
+mutates a source file and re-runs must purge `__pycache__` and set `PYTHONDONTWRITEBYTECODE=1`.
+CPython validates a cached `.pyc` on source mtime **and size**, so a mutation that preserves byte
+length within the same second is served from the stale cache and the sweep reports green on a
+mutation it never applied — and constant-value mutations (`= 0` → `= 1` in a validator) are exactly
+that class. The cloud session reproduced it independently on issue #19. `scripts/mutate_m5_contract.py`
+already carries the standing rule; whoever next runs a sweep through it inherits it rather than
+rediscovering it.
 
 **The old list was executable and wrong; the new list was correct and not executable (2026-09-14).**
 Adversarial verification's one-sentence verdict on the first amendment. Every retained module takes

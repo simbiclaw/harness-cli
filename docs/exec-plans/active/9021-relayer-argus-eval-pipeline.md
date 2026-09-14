@@ -129,7 +129,8 @@ with all seven by construction: `.claude/tests/test_plan_collisions.py` intersec
 with no read/write distinction, so this plan's `src/argus/io/**` against 9024's
 `src/argus/io/proposer.py` is 45 overlapping pairs and a red structural test. This plan executes
 nothing — it is the shared record (§2's architecture review, the Decision Log, §9's split note) —
-and its scope is itself. The pattern is 9022's *deferred, not claimed*, read the other way round.
+and its scope is itself. The pattern is the *deferred, not claimed* block — the archived 9022
+introduced it and `9026-rubric-line` still carries it — read the other way round.
 
 The three paragraphs above stand, and their Tier C surfaces belong to the successors that carry the
 milestones: the INTENTS staging-only rule is M16's (`9026`); Q17's CLI surface and Q19's run
@@ -211,10 +212,12 @@ follow that must be handled here rather than discovered later:
    the contract must be able to *say* "not established", which upstream's type cannot. The
    deviation is recorded in the Decision Log with its rationale, not left for the fidelity floor
    to flag as a drift.
-2. **It interacts with 9022's floor.** `9022-contract-fidelity-checker` compares the port against
-   upstream mechanically, and a deliberate divergence is indistinguishable from an accidental one
-   unless a register says so. That plan needs an **intentional-deviation register** as part of its
-   scope; this milestone is its first entry. (Filed on 9022 rather than solved here.)
+2. **It interacts with the fidelity floor.** The floor compares the port against upstream
+   mechanically, and a deliberate divergence is indistinguishable from an accidental one unless a
+   register says so. The **intentional-deviation register** is `9024`'s (it absorbed the plan that
+   first filed this on 2026-09-14), and this milestone is its first entry. (Filed there rather than
+   solved here.) *The successor's copy of this milestone was corrected the same day; this copy
+   differs from it, as §9 records.*
 
 `Acceptance Test:` `tests/test_io_import.py::test_no_role_re_derivation` — no module under
 `src/argus/` computes an agent/customer role from transcript text (structural: no keyword list,
@@ -1037,7 +1040,9 @@ Resolved in three parts:
 2. **Every round-4/5 fidelity fix is retained** in this plan's floor (aliases, constraints,
    model_config, validators, enum bases/order/aliases/methods, freshness and identity probes,
    exact class sets, namespace-smuggling audit, verified provenance, 21-row mutation sweep).
-3. **The unfinished fidelity work moves to a successor plan** — `9022-contract-fidelity-checker`:
+3. **The unfinished fidelity work moves to a successor plan** — `9022-contract-fidelity-checker`
+   *(**superseded the same day:** 9022 was never executed and was absorbed into
+   `9024-port-and-fences`; see §9)*:
    raw callable + MRO-base facts with the defining-module filter dropped, the 25-row sweep, a
    shared sweep runner (the pyc-taint promotion: one way to run a sweep, not a convention
    paragraph), and — the part that makes it a plan rather than a round — a written threat model
@@ -1441,7 +1446,10 @@ clauses bound: clause 2 repaired by tying the port's `Verdict.score`/`confidence
 `core/replay.py`'s `_hashable()` allowlist (the #22 defect — five rounds of fidelity hardening
 while the stated clause tested a different module); rounds 4/5 fidelity fixes retained; the
 unfinished sabotage-resistance work (raw callables + MRO facts, 25-row sweep, shared sweep
-runner) moves to `9022-contract-fidelity-checker` with its threat model written down. Originally
+runner) moves to `9022-contract-fidelity-checker` with its threat model written down.
+*(**Superseded 2026-09-14:** that plan was absorbed into `9024-port-and-fences` before it executed;
+the entry above records the disposition as it was decided at M5's close, and §9 records what became
+of it.)* Originally
 blocked M5's flip. See the Decision Log entry of the same date for the full disposition.
 
 **Q1: Approve the RE-LAYER strategy?** — Awaiting Steering: resolved 2026-09-12. Approved.
@@ -1609,11 +1617,15 @@ should treat any *other* difference as a defect.
 | `9028-disposition` | routing, the two axes, the agreement instrument | M19, M19.5 |
 | `9029-surface` | proposer demotion, CLI, config, record | M20, M22 |
 
-**Not a successor: `9022-contract-fidelity-checker`.** The split produced seven plans; 9022 is an
-eighth file in `active/` that predates it, created separately from this plan's M5 close (commit
-`ca6379a`) and likewise handed `tests/test_schemas.py`. It appears above only through that hand-off,
-which is why the table has seven rows and the family has eight files. Recording it because a reader
-counting the family against this table otherwise finds a plan nothing here explains.
+**`9022-contract-fidelity-checker` was absorbed, not superseded.** The split produced seven plans;
+9022 was an eighth file in `active/` that predated it, created separately from this plan's M5 close
+(commit `ca6379a`) and handed the fidelity floor's own files. It was never executed — all four
+milestones `[ ]`, and no implementation commit in its history — and on 2026-09-14 the human
+absorbed it into `9024-port-and-fences`, which already owned `tests/test_schemas.py` and was about
+to introduce the deliberate deviation the register exists to record. Its files
+(`scripts/build_schema_snapshot.py`, `scripts/mutate_m5_contract.py`), its register
+(`tests/fixtures/intentional_deviations.yaml`) and the pyc-taint hazard it carried all moved to
+9024. It now sits in `archived/` with its Outcomes section recording the absorption.
 
 **What stays here, and why this file is worth reading.** The shared record that no single successor
 should carry seven times over: §2's architecture review and the seam criterion it established
@@ -1625,7 +1637,8 @@ verification record. Successors cite this file by number where they rely on a de
 
 **M5 is complete.** Six adversarial rounds, flip at `d1a975a`, verified at `3315bd6`; the
 round-by-round record is in `9021-relayer-argus-eval-pipeline-notes/M5.md` beside this file. Its
-fidelity floor lives on as `9022-contract-fidelity-checker`.
+fidelity floor was spun out to `9022-contract-fidelity-checker`, and was absorbed into
+`9024-port-and-fences` the same day; see §9.
 
 **Why split rather than continue.** The plan had grown to 23 milestones spanning four repositories'
 worth of concerns — B's repairs, a schema port, a compiler line, four pure stages, a disposition

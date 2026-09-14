@@ -41,12 +41,13 @@ tree, is what closes it.
 - `docs/exec-plans/active/9030-state-reconciliation-notes/**` (new — the per-milestone record, one file per successor plan)
 
 **Deliberately not declared: the seven plan files this record is *about*.** The edits that follow
-from R2 land in `9022`–`9029` and in the archived parent, and they are performed by this plan — but
+from R2 land in `9023`–`9029` and in the parent, and they are performed by this plan — but
 they cannot be *declared* here, because `.claude/tests/test_plan_collisions.py` intersects declared
 paths and 9024 declaring `docs/exec-plans/active/9024-port-and-fences.md` collides with itself the
 moment this plan names it. The negotiation is therefore sequencing, not declaration: **R2 edits a
-sibling only while that sibling is unowned, and 9022's deferred-not-claimed block is the precedent
-for how the arrangement is written down.** The same constraint is why this is stated in prose
+sibling only while that sibling is unowned, and the *deferred, not claimed* block — which the
+archived 9022 introduced and `9026-rubric-line` still carries — is the precedent for how the
+arrangement is written down.** The same constraint is why this is stated in prose
 rather than dodged.
 
 ## 3. Milestones

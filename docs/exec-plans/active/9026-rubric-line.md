@@ -37,7 +37,7 @@ read through). **Depended on by:** 9027's `score()`.
 from the flat table to the compiled nodes, and the module itself is imported by `9024-port-and-fences`.
 It is named here and deliberately **not** declared as scope, because both plans active at once would
 collide — 9024 owns the file until it archives, at which point M15 edits it and this block is filled
-in. The same negotiation `9022` records for its own deferred paths.
+in. The same negotiation `9024` records for the paths it holds.
 
 ## 3. Milestones
 

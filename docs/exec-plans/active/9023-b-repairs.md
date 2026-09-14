@@ -91,16 +91,17 @@ consequences follow:
    the contract must be able to *say* "not established", which upstream's type cannot. The
    deviation is recorded in the Decision Log with its rationale, not left for the fidelity floor
    to flag as a drift.
-2. **It interacts with 9022's floor.** `9022-contract-fidelity-checker` compares the port against
-   upstream mechanically, and a deliberate divergence is indistinguishable from an accidental one
-   unless a register says so. That plan needs an **intentional-deviation register** as part of its
-   scope; this milestone is its first entry. (Filed on 9022 rather than solved here.)
+2. **It interacts with the fidelity floor.** The floor compares the port against upstream
+   mechanically, and a deliberate divergence is indistinguishable from an accidental one unless a
+   register says so. The **intentional-deviation register** is `9024`'s (it absorbed
+   `9022-contract-fidelity-checker` on 2026-09-14), and this milestone is its first entry. (Filed
+   there rather than solved here.)
 
 `Acceptance Test:` the B-side tests run here (`tests/test_asr_preprocessor.py` — the swap path is
 gone, and no keyword list or role-detection prompt survives). The two **consumer-side** assertions —
 `tests/test_call_record.py::test_absent_role_defers` and
 `tests/test_schemas.py::test_absent_role_is_representable` — execute in **9024**, which owns the
-port and can run them (see its M7, which also records the deviation in 9022's register).
+port and can run them (see its M7, which also records the deviation in its own register).
 
 **Contract.**
 - *Deliverable:* Speaker attribution consumed from the call record; no re-derivation in the consumer.
