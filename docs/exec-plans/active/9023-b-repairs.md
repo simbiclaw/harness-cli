@@ -203,11 +203,13 @@ test, which the verification floor does not allow.
 
 **Corrected 2026-09-14 after round 1.** This entry originally justified the in-scope decision by
 asserting the device index "fails exactly that deliverable, on the machine B is developed on."
-It does not: measured, `device=0` constructs successfully on this machine via MPS, and the version
-that raises is 4.40–4.45 on an accelerator-less host. The decision survives — the defect is
-admissible, `pyproject.toml` allows those versions, and the probe was silently wrong for Apple
-Silicon — but it rests on the version range, not on the development machine, and the first
-statement of it was false.
+It does not: measured, `device=0` constructs successfully on this machine via MPS. What raises is
+`transformers` 4.40.0–4.46.3 on an accelerator-less host — a correction applied twice, since the
+first correction named the range one release low. The decision survives, and on a firmer footing
+than either wrong statement gave it: `pyproject.toml` admits every raising release, and the probe
+was silently wrong for Apple Silicon. It rests on the version range, not on the development
+machine. The range itself is stated once, in `utils/nli.py::_resolve_device`; §6 records how it
+was verified.
 
 **Confidence:** high on the repair; `Confidence: low` on whether `_resolve_device()` should consult
 config rather than torch's own answer — that question belongs to whoever first runs B on a GPU box,
@@ -225,11 +227,24 @@ them by execution rather than by argument:
   against CUDA first and MPS second, finds MPS available, and constructs `mps:0` successfully —
   the original line worked. Measured. With *both* accelerators masked, 4.48.0 still constructs on
   CPU rather than raising.
-- **The raising branch belongs to a version range, not to this machine.** `transformers` 4.40
-  through 4.45 end their device resolution with `else: raise ValueError(...)`; 4.46 onward fall
-  back to CPU. `pyproject.toml`'s `transformers>=4.40.0` admits those versions, so a CPU-only
-  install pinned to one of them would die in `QAAgent.__init__` — which is why the repair is
-  worth keeping, and is the *entire* honest case for it.
+- **The raising branch belongs to a version range, not to this machine.** Within
+  `pyproject.toml`'s `transformers>=4.40.0`, releases **4.40.0 through 4.46.3** end device
+  resolution with `else: raise ValueError(f"{device} unrecognized or not available.")`; **4.47.0**
+  replaces that with `self.device = torch.device("cpu")`. A CPU-only install on any of the raising
+  releases dies in `QAAgent.__init__` — which is why the repair is worth keeping, and is the
+  *entire* honest case for it.
+
+  **This range was wrong twice.** The first version of this entry said the failure was on this
+  machine; round 1 disproved that. The second said "4.40 through 4.45 … 4.46 onward", which round
+  2 disproved — the boundary is one release later than that, so the sentence *understated* the
+  raising set by the four published 4.46.x releases and *overstated* the fallback. Now verified at
+  source rather than relayed: the tail of the chain read from the tag files for 4.45.2, 4.46.0,
+  4.46.3 and 4.47.0.
+
+  **The range is stated once, in `utils/nli.py::_resolve_device`'s docstring** — in the code that
+  depends on it. This entry carries the evidence and the pointer, `tests/test_nli.py` carries
+  neither, and no third copy exists. Five restatements of one fact is what produced the second
+  wrong range; the correction is one statement plus pointers, not six corrected copies.
 - **It was not found by execution.** B's own `HANDOFF.md` had it, as critical bug #2 and again in
   its Critical TODO list. Whoever wrote the first version of this entry read that audit and then
   described the discovery as the executor's.
