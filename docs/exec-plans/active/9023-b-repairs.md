@@ -261,6 +261,13 @@ them by execution rather than by argument:
   false byte anywhere reachable" cannot be met without rewriting history, and a criterion that
   cannot be met by any correct artifact has stopped measuring the artifact. The two surviving false
   statements are named here so the record is a correction rather than a silence.
+
+  **A third class, decided the same way and deliberately left alone.** Round 3 also flagged
+  `docs/experiments/9021-ab-investigation/report-B.md:930`, whose dependency audit cites
+  `utils/nli.py:2,17`. Line 17 was the `pipeline(` call site when that audit ran; the module
+  docstring this milestone added moved it. That citation is an *observation* — what the auditor saw
+  at the time — not a live pointer, and correcting it would make the record say the audit saw
+  something it did not. Recorded here so the mismatch is known and explained; not edited.
 - **It was not found by execution.** B's own `HANDOFF.md` had it, as critical bug #2 and again in
   its Critical TODO list. Whoever wrote the first version of this entry read that audit and then
   described the discovery as the executor's.
