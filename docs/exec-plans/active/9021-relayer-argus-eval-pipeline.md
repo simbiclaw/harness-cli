@@ -219,9 +219,13 @@ B's `models/schemas.py` (25 Pydantic models) replaces 9020's stand-ins. The stag
 encodes — atoms to coverage to questions to verdicts, with `turn_id`/`doc_path` provenance — is
 the contract everything else attaches to.
 
-`Acceptance Test:` `tests/test_schemas.py::test_all_schemas_roundtrip` — each schema constructs,
-serializes and deserializes. `::test_replay_payload_excludes_proposed_score` — 9020's I5 allowlist
-survives the port.
+`Acceptance Test:` `tests/test_schemas.py::test_every_contract_roundtrips` — each schema constructs,
+serializes and deserializes. `::test_m5_verdict_fields_never_enter_replay_hash` — I5 binds to the
+port: `Verdict.score`/`confidence` are excluded from `core/replay.py`'s `_hashable()` allowlist,
+the hash is invariant to a model-proposed number, and the liveness stand-in proves the allowlist
+is consumed. (The section's originally sketched names — `test_all_schemas_roundtrip`,
+`test_replay_payload_excludes_proposed_score` — were the pre-repair sketches; the six-round
+verification record in `9021-relayer-argus-eval-pipeline-notes/M5.md` explains the renames.)
 
 
 **Contract.**
@@ -752,6 +756,21 @@ Resolved in three parts:
 
 **Confidence:** high that this closes M5 honestly — the Contract is the binding document, and for
 the first time both its clauses will be tested against the artifact they name.
+
+### M5 adversarial verification (round 6) — Verdict: CONFIRMED
+
+Verified at SHA `3315bd6` (implementation: the round-4/5 acceptance floor plus the I5 binding
+test, `tests/test_schemas.py` 26 passed pyc-disabled; 21-row sweep all red with target-naming
+failures). Subagent B, cold-briefed under the bounded mandate: clause 1's coverage generated over
+all 16 models; clause 2's binding test survived three attacks — nested evidence-level score
+insertion, record-shape drift carrying real `Verdict` objects, traversal-completeness audit — and
+the liveness stand-in was independently confirmed wired. No wrong-reason checks among the named
+acceptance tests; B's three probes produced nothing to forward to 9022. Round verdicts for the
+record: R1 REJECTED, R2 REJECTED, R3 REJECTED (cloud; hand-written tables, then generated oracle,
+then freshness — each "a check that passes for a reason other than the property it names"), R4
+REJECTED (#20 namespace smuggling, #21 enum behavior hooks, pyc-taint hazard), R5 REJECTED
+(model-hook/MRO recording gap, attacker-writable module cut, plain mixins), R6 **CONFIRMED**
+under the Q23 bounded mandate. Full defect lists: `9021-relayer-argus-eval-pipeline-notes/M5.md`.
 
 ## 6. Surprises & Discoveries
 
