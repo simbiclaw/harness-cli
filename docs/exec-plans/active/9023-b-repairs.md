@@ -228,23 +228,39 @@ them by execution rather than by argument:
   the original line worked. Measured. With *both* accelerators masked, 4.48.0 still constructs on
   CPU rather than raising.
 - **The raising branch belongs to a version range, not to this machine.** Within
-  `pyproject.toml`'s `transformers>=4.40.0`, releases **4.40.0 through 4.46.3** end device
-  resolution with `else: raise ValueError(f"{device} unrecognized or not available.")`; **4.47.0**
-  replaces that with `self.device = torch.device("cpu")`. A CPU-only install on any of the raising
-  releases dies in `QAAgent.__init__` — which is why the repair is worth keeping, and is the
-  *entire* honest case for it.
+  `pyproject.toml` and `requirements.txt` — both of which ask for `transformers>=4.40.0` —
+  releases **4.40.0 through 4.46.3** end device resolution with
+  `else: raise ValueError(f"{device} unrecognized or not available.")`; **4.47.0** replaces that
+  with `self.device = torch.device("cpu")`. A CPU-only install on any of the raising releases dies
+  in `QAAgent.__init__` — which is why the repair is worth keeping, and is the *entire* honest case
+  for it.
 
   **This range was wrong twice.** The first version of this entry said the failure was on this
   machine; round 1 disproved that. The second said "4.40 through 4.45 … 4.46 onward", which round
   2 disproved — the boundary is one release later than that, so the sentence *understated* the
-  raising set by the four published 4.46.x releases and *overstated* the fallback. Now verified at
-  source rather than relayed: the tail of the chain read from the tag files for 4.45.2, 4.46.0,
-  4.46.3 and 4.47.0.
+  raising set by the four published 4.46.x releases and *overstated* the fallback. **Round 3 then
+  swept it properly** — `pipelines/base.py` at every release in [4.40.0, 4.49.0] plus 5.0.0 and
+  5.17.0, thirty-three tags: 4.40.0–4.46.3 raise, 4.47.0 onward fall back, and no release does
+  neither. The earlier statement of this paragraph described four tag files, which is what the
+  author had read, not what had been verified; the boundary is now pinned by the sweep and not by
+  the author's sample.
 
   **The range is stated once, in `utils/nli.py::_resolve_device`'s docstring** — in the code that
   depends on it. This entry carries the evidence and the pointer, `tests/test_nli.py` carries
-  neither, and no third copy exists. Five restatements of one fact is what produced the second
+  neither, and no third live copy exists. Five restatements of one fact is what produced the second
   wrong range; the correction is one statement plus pointers, not six corrected copies.
+
+  **What "stated once" scopes to, and what it does not (round 3).** Round 3 rejected the milestone
+  because the range survives in `f7af485`'s commit message, still reading "4.40-4.45" — and found
+  a second false statement in the same message, an enumeration of five device tests where the file
+  has six. Both are true findings and neither is fixable in place: a commit message is immutable,
+  this repository blocks force-push by hook, and this plan's own constraint keeps B's commits
+  local. The criterion is therefore scoped to **live artifacts** — every file in either tree states
+  the range correctly, which round 3 confirmed by grepping both — and history is corrected
+  forward, by naming the wrong statement, as this entry and `29c796c`'s message do. A bar of "no
+  false byte anywhere reachable" cannot be met without rewriting history, and a criterion that
+  cannot be met by any correct artifact has stopped measuring the artifact. The two surviving false
+  statements are named here so the record is a correction rather than a silence.
 - **It was not found by execution.** B's own `HANDOFF.md` had it, as critical bug #2 and again in
   its Critical TODO list. Whoever wrote the first version of this entry read that audit and then
   described the discovery as the executor's.
@@ -253,6 +269,16 @@ them by execution rather than by argument:
 `transformers` at module scope, and no interpreter the repository uses has it installed. The fix
 does not touch that, and the tests only import at all because `tests/conftest.py` installs a
 stand-in.
+
+**The probe asked a weaker question than the pipeline does (round 3, repaired at `067e449`).**
+`transformers` resolves an integer index with `is_torch_mps_available()`, which is
+`is_available() and is_built()` — not `is_available()` alone — so a torch reporting MPS available
+but not built would send the pipeline into the branch that raises while the probe answered `0` into
+it. `is_available()` does imply `is_built()` in every torch today, so the case is unreachable; the
+clause was added anyway, because "unreachable by an argument about PyTorch internals" is a worse
+guarantee than "cannot be expressed". `is_torch_cuda_available()` is literally
+`torch.cuda.is_available()`, so the CUDA half already matched. Two tests were added for it and for
+`torch.backends` being absent entirely.
 
 **The first repair also introduced a regression, which round 1 caught.** It probed
 `torch.cuda.is_available()` alone — false on Apple Silicon — so it answered `-1` and moved a
