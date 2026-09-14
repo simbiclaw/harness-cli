@@ -60,7 +60,7 @@ end to end against a fake LLM and returns a report object.
 - *Deliverable:* B's pipeline runs end to end without raising.
 - *Binding constraint:* None beyond the verification floor. This is defect repair in B's own repository.
 - *Acceptance property:* A transcript entering the orchestrator yields a report object with no unhandled exception on the happy path.
-- *Known evidence (advisory):* Two crashes were identified — an unassigned attribute in Stage 0 and a missing key at Stage 6. Treat the cited paths as leads and confirm against the tree you execute in.
+- *Known evidence (advisory):* Two crashes were identified — an unassigned attribute in Stage 0 and a missing key at Stage 6. Treat the cited paths as leads and confirm against the tree you execute in. **Confirmed 2026-09-14: there were three.** The third is `utils/nli.py`'s hardcoded `device=0`, which fails in `QAAgent.__init__` before any transcript is read; see §6.
 
 
 ### M2 — Delete the role re-derivation; consume the producer's `speaker_role`
@@ -192,7 +192,46 @@ fixed.
 this plan once M2/M3's owners (audio2tree for `speaker_role`, the consumer for the contract) have
 their own plans — `Revisit:` when 9024 opens, since M2/M3's acceptance tests run here.
 
+### Decision: The third crash is repaired inside M1, with its own acceptance test (2026-09-14)
+
+**Rationale:** `Source:` M1's Contract — *"Deliverable: B's pipeline runs end to end without
+raising"* — together with its own Known evidence, *"treat the cited paths as leads and confirm
+against the tree you execute in."* The NLI device index fails exactly that deliverable, on the
+machine B is developed on, so the repair is this milestone's work rather than a new milestone's.
+It carries its own test (`tests/test_nli.py`) rather than riding on M1's acceptance test, because
+that test replaces `NLIModel` wholesale and cannot observe what the constructor passes to
+`transformers` — and a change the milestone's named test cannot see is a change with no acceptance
+test, which the verification floor does not allow.
+
+**Confidence:** high on the repair; `Confidence: low` on whether `_resolve_device()` should consult
+config rather than torch's own answer — that question belongs to whoever first runs B on a GPU box,
+and the explicit `device` argument is what makes the answer cheap to change. `Revisit:` then.
+
 ## 6. Surprises & Discoveries
+
+**A third crash sat on the same path, and the plan named two (2026-09-14).** `utils/nli.py`
+passed `device=0` — a CUDA device index — and `FactChecker.__init__` constructs the NLI model
+eagerly, so the failure lands in `QAAgent.__init__`, before a transcript is read. The milestone's
+Contract asks for "B's pipeline runs end to end without raising" and its Known evidence says to
+treat the cited paths as leads; the lead list was one short, and only executing the milestone
+surfaced it. Repaired at `cdc2a05`.
+
+**Crash #2's cause is a duplicate prompt, not a missing keyword (2026-09-14).** `models/prompts.py`
+defines `REPORT_SUMMARY_PROMPT` twice, at `:332` and `:350`, and the second shadows the first. The
+call site's five keywords match the *first* definition exactly — so the call was written against a
+template that stopped being live when the second was added, and the `KeyError` was the symptom of
+that shadowing rather than of a forgotten argument. The repair supplies the two keys; the dead
+definition is left in place, because pre-existing dead code is not this milestone's to delete.
+Recorded because the next editor who changes the summary prompt has an even chance of changing the
+wrong definition and seeing nothing happen.
+
+**The summary is written before the number it summarises exists (2026-09-14).** Stage 6 formats the
+report prompt with `overall_score="待计算"` and `dimension_scores_json="{}"`, because the LLM call
+happens before `aggregate` runs. The repair kept that shape — the two new keys are marked pending
+the same way rather than asserted as values — so every summary B produces describes a score that
+has not been computed. That is a real defect, but it is a design question (reorder the stage, or
+aggregate in two passes) rather than a crash, and it is left for a deliberate decision rather than
+folded into a defect repair.
 
 **The corpus predates the capability that fixes it (2026-09-14).** `EXPLAIN: speaker_role` — of the
 718 archived call records, **zero** carry a role label; the producer-side pass that establishes one
