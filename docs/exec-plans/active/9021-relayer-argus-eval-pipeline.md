@@ -555,7 +555,7 @@ against a real transcript. `::test_json_mode_is_machine_readable`.
 - [ ] M2: Fix the role-swap false positive  (created 2026-09-12)
 - [ ] M3: Repair the ASR-reliability chain  (created 2026-09-12)
 - [ ] M4: B's first end-to-end test  (created 2026-09-12)
-- [ ] M5: Port B's schemas into types/  (created 2026-09-12)
+- [x] M5: Port B's schemas into types/  (done 2026-09-14 16:40 PT; round-6 CONFIRMED at `3315bd6`)
 - [ ] M6: Extend EvidenceItem to an I2 anchor slot  (created 2026-09-12)
 - [ ] M7: Move B's proposal half into io/  (created 2026-09-12)
 - [ ] M8: Land the four forbidden import-linter contracts  (created 2026-09-12)
