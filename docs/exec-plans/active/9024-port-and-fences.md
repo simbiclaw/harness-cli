@@ -24,6 +24,8 @@ the import list executable — `Session` from the call record, `SessionKBContext
 surface (9025) as declared exposure, `IntentInference` as the consumer's own quarantine-side
 proposal.
 
+**Depends on:** 9023 (B must run and be tested before any of it is imported).
+
 **Layer fences** (M8) are what makes the quarantine real rather than asserted: four `forbidden`
 import-linter contracts, each proved by a planted violation. **M9** repoints the I8 provenance
 checker at the now-populated tree — the repository's strongest existing artifact, which until now
@@ -47,6 +49,8 @@ that file concurrently with 9022.**
 - `src/argus/io/nli.py`
 - `src/argus/io/prompts.py`
 - `src/argus/io/qa_agent.py` (new — the imported proposal half, re-namespaced)
+- `src/argus/io/call_record.py` (new — the consumer's half of the seam: builds `Session` from the producer's `calls/*.json` per M7's data-flow table. The archive covered this path with its `src/argus/io/**` glob; the split enumerated files and the glob's coverage was lost with it.)
+- `tests/test_call_record.py` (new — M7's absent-role assertion, and the call record's consumer-side conformance. Named as an acceptance test by the archive's M2 and by 9023's M2, and declared by no plan's File Scope on either side of the split — same class of gap as the two dependency paths above.)
 - `.importlinter` (modify — the four forbidden contracts)
 - `docs/conventions/layering.md` (modify — Q16: amend so the convention and the lint agree)
 - `tests/test_io_import.py`
@@ -54,6 +58,8 @@ that file concurrently with 9022.**
 - `tests/test_evidence_anchor.py` (new)
 - `tests/test_schemas.py` (modify — M6's anchor assertions; 9022 owns the fidelity floor in this file and the two must not be edited concurrently)
 - `tests/test_i8_provenance_separation.py` (modify — widen the live scan)
+- `pyproject.toml` (modify — dependency changes; the archive declared this path and the split dropped it from every successor until 2026-09-14)
+- `docs/decisions/dep-vet-transformers.md` (new — `nli` is imported unchanged and B's `utils/nli.py` imports `transformers`, which is not yet a declared dependency of this repository; deps-and-secrets requires a dep-vet record before the install is allowed)
 
 ## 3. Milestones
 
@@ -138,9 +144,12 @@ without it.
 | `CleanTranscript` | nothing retained | `asr_preprocessor` (dropped) | Not needed — the call record replaces it. |
 
 **`qa_agent` is rewired.** Its `run()` currently calls all five dropped modules by name
-(`agents/qa_agent.py:53-56, 70-75, 88-92`) and its constructor instantiates them (`:24-28`), so
-"moved verbatim" was wrong. The orchestrator's new wiring is: call record → consumer-built
-`Session`; Provider → `SessionKBContext`; atoms; the proposer's own intent step; questions;
+(`agents/qa_agent.py:53, :70, :91` by correct name, and `:66` under the unassigned
+`self.kb_builder` M1 repairs; `intent_retriever` is commented out and `indexer` is absent), and its
+constructor instantiates them at `:27-38`, so "moved verbatim" was wrong. **Line numbers corrected
+2026-09-14** — the first revision's citations were approximate. The orchestrator's new wiring is:
+call record → consumer-built `Session`; Provider → `SessionKBContext`; atoms; the proposer's own
+intent step; questions;
 verification; score. It keeps its shape as the single entry point and loses its ingest stages.
 
 Squashed import commit citing `simbiclaw/sim@0c2cccd` as the **base**, with the local repair
@@ -163,6 +172,36 @@ legitimately imports.)
 - *Acceptance property:* The pipeline produces the same output after the move as before it; no module outside `io/` reaches a model; and no module inside `io/` re-decides something the tree already records.
 - *Known evidence (advisory):* B's original eleven-module list spanned fourteen call sites across nine modules; the amended list names seven modules and the call-site count no longer describes it. Treat the file list above as binding and the count as historical.
 
+**M7 also carries the role-type deviation — the consumer must be able to say "not established."**
+This arrived split across plans and had no executable home (found 2026-09-14 by adversarial
+verification): `9023`'s M2 requires an absent-role state and names the acceptance test, but 9023's
+own out-of-scope excludes this repository and its File Scope lists only its plan file, while no
+milestone here performed the schema change this plan's File Scope already claimed. It belongs
+**here**, because the port is this plan's file and the change is a port property:
+
+- `src/argus/types/pipeline.py` is a faithful port of upstream's `CleanTurn.role`
+  (`Literal["customer", "agent"]`, `:61`/`:142`) — a type that cannot express "nobody established
+  this". The port gains an absent state (nullable, or a third member; the shape is M2's to choose,
+  recorded in 9023).
+- **The consumer-side consequence lives here:** a call whose role is absent routes to a human
+  rather than being scored. That is this plan's assertion, tested here, because 9023 cannot test
+  this repository's code.
+- **It is a declared deviation from upstream, and it must be registered.** 9022's fidelity floor
+  compares the port against upstream mechanically and cannot distinguish a deliberate deviation
+  from an accidental drift. 9022 owns the register (see its File Scope) and this is its first
+  entry.
+
+`Acceptance Test (this plan):` `tests/test_call_record.py::test_absent_role_defers` — a call whose
+role is not established routes to a human rather than being scored.
+`tests/test_schemas.py::test_absent_role_is_representable` — the port expresses "not established",
+and the deviation is listed in 9022's register rather than surfacing as drift.
+
+**Sequencing within the family, stated because this plan's M7 acceptance names sources later plans
+build:** `Session` comes from the call record (9023's M4 defines it), `SessionKBContext` from
+9025's Provider, and the compiled rubric from 9026. M7 asserts the import and the fences with those
+sources stubbed; each source's own plan closes the loop with its own acceptance test. The
+dependency is declared rather than circular: this plan depends on 9023, and 9025 depends on this
+one.
 
 ### M8 — Land the four `forbidden` import-linter contracts
 

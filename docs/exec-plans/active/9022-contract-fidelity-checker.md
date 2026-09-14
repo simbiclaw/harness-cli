@@ -18,6 +18,7 @@ Inherits from 9021 M5 (committed on `claude/9021-m5-handoff-local`): the round-4
 - `docs/exec-plans/active/9022-contract-fidelity-checker-notes/**` (new)
 - `scripts/run_sweep.sh` (new — the shared sweep runner: pyc purge, `PYTHONDONTWRITEBYTECODE=1`, collection-error grading; one way to run a sweep)
 - `docs/experiments/9022-fidelity-threat-model/**` (new — the written threat model)
+- `tests/fixtures/intentional_deviations.yaml` (new — **the register of deliberate divergences**, consumed by the comparison; F1 lands it, and its first entry is 9024's absent-role state)
 
 **Deferred, not claimed.** F1's edits land in three paths that belong to the port plan while it is
 open: `scripts/build_schema_snapshot.py`, `tests/test_schemas.py` and
@@ -36,6 +37,15 @@ it, and declaring it would collide with 9024's scope for the same file.
 ### F1 — Raw callable + MRO-base facts, filter dropped (the round-5 repair, carried)
 
 Record every callable on every contract class (name + defining module, descriptor-unwrapped) and every MRO base name, for models and enums alike; diff mechanically with no defining-module filter — same interpreter both sides, so pydantic/enum machinery cancels. Closes the round-5 survivor classes: `model_post_init`, laundered `_missing_`, plain-mixin `__setattr__`. Fixture regenerated; mirrors extended; named regression pins the new forms.
+
+**F1 also lands the intentional-deviation register** (`tests/fixtures/intentional_deviations.yaml`),
+because a mechanical comparison cannot tell a deliberate divergence from an accidental one. The
+register is a list of `{path, field, expected, reason, decided}` entries the comparator consults
+*instead of* failing — and it is deliberately awkward to add to: an entry must name the decision
+that authorised it, so suppressing a divergence is an act someone signs, never a silence. **Its
+first entry is 9024's absent-role state** (`CleanTurn.role` becomes nullable so the consumer can say
+"not established"; upstream's `Literal["customer","agent"]` cannot). Without this, 9024's deviation
+and a genuine drift are the same event to this floor.
 
 `Acceptance Test:` `tests/test_schemas.py::test_the_checks_can_fail` extended plants — `model_post_init` zeroing scores, post-class `_missing_` with forged `__module__`, plain mixin `__setattr__` — each red via the new facts. (Test file path defers to the 9021-completion split; see File Scope TBD.)
 
@@ -70,11 +80,11 @@ Record every callable on every contract class (name + defining module, descripto
 
 **Rationale:** `Source:` 9021 Awaiting Steering Q23 and its Decision Log entry "M5 close criteria" (2026-09-14, human ruling on the cloud session's handoff) — M5's flip gates on its Contract's stated property; the fidelity discipline this plan carries had five survivals of the same shape across distinct rounds, which is the promotion rule's trigger, and a plan with a written threat model is where the rule moves it. The seed work is 9021's commits on the floor files plus `9021-relayer-argus-eval-pipeline-notes/M5.md` (the five-round record) and `M5-round4-brief.md` (the encoder-duplication rule, restated here as binding for F1).
 
-### Decision: Fidelity tests stay in `tests/test_schemas.py` until 9021 completes
+### Decision: Fidelity tests stay in `tests/test_schemas.py` until its owner releases them
 
-**Rationale:** splitting them now would trip `test_plan_collisions.py` against active 9021 and force an amendment to a plan mid-flight — the pattern `9004-execution-mistakes` identifies. The TBD in File Scope is the negotiation; F1 opens only after 9021 archives.
+**Rationale:** splitting them now would trip `test_plan_collisions.py` against the plan that owns them and force an amendment to a plan mid-flight — the pattern `9004-execution-mistakes` identifies. The deferred-not-claimed block in File Scope is the negotiation. **Updated 2026-09-14:** 9021 was archived that day and its paths redistributed across `9023`–`9029`; the three this plan needs moved to `9024-port-and-fences`, so F1 opens when 9024 releases them rather than when 9021 archives.
 
-**Confidence:** high on the mechanics; `Confidence: low` on the timeline — 9021 has twenty-one open milestones. `Revisit:` when 9021's Progress shows M7-M22 closed.
+**Confidence:** high on the mechanics; `Confidence: low` on the timeline — 9024 carries five milestones of its own. `Revisit:` when 9024's Progress shows M5–M9 closed.
 
 ## 6. Surprises & Discoveries
 

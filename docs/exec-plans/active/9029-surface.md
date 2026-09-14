@@ -88,9 +88,11 @@ against a real transcript. `::test_json_mode_is_machine_readable`.
 ### Decision: The divergence probe is observable, never routed (2026-09-14, inherited)
 
 **Rationale:** `Source:` I7 and D7 — a proposed score is never a verdict; D12 — resample variance
-never touches routing. The probe fails loudly on incomparable inputs rather than reporting
-stability, and divergence is logged rather than routed. The archived plan's entry records how the
-D20 × I8 tension was resolved toward the stricter reading.
+never touches routing; patch-1 `:61-73` (D20) and `:80-82` (I8) for the boundary itself. The probe
+fails loudly on incomparable inputs rather than reporting stability, and divergence is logged rather
+than routed. **Corrected 2026-09-14:** an earlier revision cited "the archived plan's entry", which
+does not exist — the provenance was invented during the split; the resolution rests on the patch
+text, and 9028's entry of the same date records the same.
 
 **Confidence:** medium in the archive's words; the direction (alert, never demote) is the strict one.
 

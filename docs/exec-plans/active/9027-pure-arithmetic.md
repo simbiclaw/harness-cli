@@ -72,7 +72,10 @@ the only weighting that exists.
 This milestone therefore carries: `Rubric` gains a dimension-weight map, and `tally()` groups by
 dimension before summing. The weights are read from the compiled rubric, never hardcoded (M22's
 binding constraint). Their home is `_rubric/gates/{dimension}.yaml`, which gains `dimension_weight`
-alongside `hard_fail_rule` — the co-location the authoring spec describes (§3.5; earlier revisions cited "§3.4", which does not exist in that document). **That is a
+alongside `hard_fail_rule` — the co-location the authoring spec states at
+`soft-criteria-authoring-spec-v4.html:603` (*"a synthesized many-to-one gate, stored alongside the
+dimension's weight in the rubric table"*; **citation corrected 2026-09-14** — earlier revisions cited
+"§3.4", which does not exist, and then "§3.5", which is ResidueManifest). **That is a
 compiled-output change: it requires a recompile and republish at a new epoch, and is a Tier C
 decision recorded in Awaiting Steering.**
 
@@ -228,9 +231,13 @@ block auto-final (I2, D10). Adopting the deferral rule changes every score B has
 
 ## 6. Surprises & Discoveries
 
-**Dimension weights: specified, dropped in a schema migration, missed by both implementations
-(2026-09-14).** The formula is verbatim in the evaluator skill; v1 nodes carried `dimension_weight`;
-the current compiled tree carries it nowhere; and both aggregators sum flat. A three-week-old field
+**Dimension weights: specified, unimplemented by both codebases, home unresolved in the record
+(2026-09-14).** The formula is verbatim in the evaluator skill; the legacy v1 node carries
+`dimension_weight`; the current compiled tree carries it nowhere; and both aggregators sum flat.
+**Corrected 2026-09-14:** this entry asserted the field was "dropped in a schema migration" — the
+companion `soft-criteria-authoring-spec-v4-patch-1.md:181` says it was **added** by that patch, the
+same file contradicts itself later, and the pipeline patch-1 never mentions it. The *gap* is
+verified; the *cause* is unresolved (9026's entry records the same). A three-week-old field
 drop survived two reviews and a shipped milestone because no test asserts what a score *should* be,
 only that it re-derives. The companion spec is internally inconsistent about the field's history —
 recorded as unresolved rather than resolved by preference.

@@ -55,7 +55,7 @@ ends 9020's split between sampler and estimator. B's five-condition escalation r
 - *Deliverable:* S5 routing, and the escape estimator reconciled with the sampler.
 - *Binding constraint:* D10 — auto-final requires both axes clear. **patch-1 D22** — the escape sampler splits into a random floor and a prioritized tranche, and the estimator consumes the **random tranche only** (the prioritized tranche is excluded from the escape-rate computation); that tranche respects its declared floor. **patch-1 I8** bounds what may reach routing at all.
 - *Acceptance property:* A call carrying ungrounded findings never auto-finalises; a biased sample cannot reach the estimator; the floor holds whatever the prioritisation asks for.
-- *Known evidence (advisory):* 9020 shipped the sampler with a floor test that must survive this reconciliation. **The floor has no declared value anywhere — declare one during execution and record its basis.**
+- *Known evidence (advisory):* 9020 shipped the sampler with a floor test that must survive this reconciliation. **Corrected 2026-09-14:** the archived text said the floor had no declared value anywhere; it has one — `ESCAPE_RATE_FLOOR = 60` at `src/argus/core/escape_rate.py:45`, landed 2026-09-13 with its derivation recorded in the Decision Log below. This reconciliation must keep it, not declare it.
 
 
 ### M19.5 — The §6 agreement instrument and `CriterionHealth` (added 2026-09-14)
@@ -129,10 +129,14 @@ absence of one now have different shapes.
 
 ### Decision: Drift demotes through κ alone; the divergence probe is alert-only (2026-09-14, inherited)
 
-**Rationale:** `Source:` patch-1's D20 and I8 — divergence may raise a calibration-injection flag and
-may not alter criterion health, routing, auto-final, coverage or any `score()`/`adjust()` input. The
-archived plan's entry of the same name records the tension and its resolution toward the stricter
-reading.
+**Rationale:** `Source:` `docs/retrospectives/process-derivation-pipeline-spec-v5-patch-1.md:61-73`
+(D20: the divergence diagnostic *"schedules human-side work (manifest minting), it does not change any
+machine decision"*) and `:80-82` (I8: no logit-derived quantity reaches `severity_map`, deduction,
+coverage, criterion health or routing). The two are in tension with any reading where divergence
+moves the drift detector's health verdict, and this plan resolves toward the stricter one — the
+flag-only entry point. **Corrected 2026-09-14:** an earlier revision of this entry cited "the
+archived plan's entry of the same name", which does not exist; the provenance was invented during
+the split and the substance has been re-grounded on the patch text it actually rests on.
 
 **Confidence:** medium in the archive's own words; `Revisit:` if the drift module's aggregation turns
 out to admit an indirect route.

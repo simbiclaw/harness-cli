@@ -33,6 +33,12 @@ read through). **Depended on by:** 9027's `score()`.
 - `tests/test_rubric_input.py`
 - `tests/test_rubric_compile.py` (new)
 
+**Deferred, not claimed — `src/argus/io/question_generator.py`.** M15 switches this module's input
+from the flat table to the compiled nodes, and the module itself is imported by `9024-port-and-fences`.
+It is named here and deliberately **not** declared as scope, because both plans active at once would
+collide — 9024 owns the file until it archives, at which point M15 edits it and this block is filled
+in. The same negotiation `9022` records for its own deferred paths.
+
 ## 3. Milestones
 
 ### M14 — Fix the polarity-blind FAIL signal before compiling anything

@@ -24,7 +24,7 @@ machinery are retained and, for the first time, pointed at real code.
 
 | Aspect | 9002 (overturned) | 9021 (this plan) |
 |:---|:---|:---|
-| Proposer (S2) | Written from scratch, `anthropic`-only | Imported from `simbiclaw/sim`: 14 call sites, 9 modules, moved verbatim into `io/` |
+| Proposer (S2) | Written from scratch, `anthropic`-only | Imported from `simbiclaw/sim` — **seven** modules, not the original eleven, and `qa_agent` rewired rather than moved verbatim; see `9024-port-and-fences` M7 for the import list and the type-level data flow |
 | Scorer (S4a) | Written from scratch | Extracted from B's `core/aggregator.py` — a redesign of the boundary, not a file move |
 | Rubric | Assumed to exist in `INTENTS/` | B's 27-item table becomes `SpecificRubric` input, compiled by 9003 into epoch-pinned nodes |
 | Layer fences | Asserted in prose; three of four vacuous | Four `forbidden` import-linter contracts, each proved by a planted violation |
@@ -176,7 +176,9 @@ test's name and design are yours. Where Known evidence conflicts with what you f
 wins, and the conflict belongs in Surprises.
 
 Two numbers this plan deliberately does **not** supply, because neither is knowable before the code
-runs: the random tranche's absolute floor (M19) and the role-swap confidence floor (M2). Measure,
+runs: the random tranche's absolute floor (M19) and the role-swap confidence floor (**M2's original
+formulation** — superseded 2026-09-14: M2 is now a deletion, not a threshold; see
+`9023-b-repairs`). Measure,
 then declare, then record the basis.
 
 ### M1 — Fix B's two blocking crashes
@@ -459,7 +461,9 @@ the only weighting that exists.
 This milestone therefore carries: `Rubric` gains a dimension-weight map, and `tally()` groups by
 dimension before summing. The weights are read from the compiled rubric, never hardcoded (M22's
 binding constraint). Their home is `_rubric/gates/{dimension}.yaml`, which gains `dimension_weight`
-alongside `hard_fail_rule` — the co-location the authoring spec describes (§3.5; earlier revisions cited "§3.4", which does not exist in that document). **That is a
+alongside `hard_fail_rule` — the co-location the authoring spec states at
+`soft-criteria-authoring-spec-v4.html:603` (**citation corrected 2026-09-14**: earlier revisions cited
+"§3.4", which does not exist, and then "§3.5", which is ResidueManifest). **That is a
 compiled-output change: it requires a recompile and republish at a new epoch, and is a Tier C
 decision recorded in Awaiting Steering.**
 
@@ -1432,7 +1436,7 @@ filter dropped. R6 pending with a bounded brief. The full defect lists live in
 
 ## 7. Awaiting Steering
 
-**Q24: Recompile for the dimension weights — accept the compiled-output change?** (**Citation corrected 2026-09-14:** this entry and the M10 amendment originally cited "§3.4" of the authoring spec; that section does not exist — it is §3.5. The substance is unchanged.) **Resolved
+**Q24: Recompile for the dimension weights — accept the compiled-output change?** (**Citation corrected twice, 2026-09-14:** this entry and the M10 amendment first cited "§3.4" of the authoring spec, which does not exist; the first correction replaced it with "§3.5", which is ResidueManifest. The co-location sentence is at `soft-criteria-authoring-spec-v4.html:603`. The substance is unchanged.) **Resolved
 2026-09-14 (human ruling):** the weight is compiled into `_rubric/gates/{dimension}.yaml` alongside
 `hard_fail_rule`; the compiler line recompiles and republishes at a new epoch. Tier C because a
 compiled output changes on disk. Recorded here rather than in the Decision Log alone because the
@@ -1484,6 +1488,10 @@ repository; B enters as a squashed import commit citing `simbiclaw/sim@0c2cccd`.
 
 **Q9: Accept that fixing the role swap changes evaluation outputs?** — Awaiting Steering: resolved
 2026-09-12. Yes — fix the heuristic and add a confidence floor. M2 owns it.
+**Superseded 2026-09-14:** the ruling above answered "should we fix the heuristic?"; the review of
+that date established the heuristic should not exist at all. M2 is a deletion
+(`9023-b-repairs`), and this entry is retained as the record of what was decided before the
+tier argument was made.
 
 **Q10: Accept the four FindingGraph on-disk schema deltas?** — Awaiting Steering: resolved 2026-09-12. Adopt all four as non-replay-bearing diagnostics. M5 lands them in the ported schemas and records the adoption in the Decision Log. This also repairs 9020's Q2, whose stated default could not fire because the milestone it gated had already shipped. Originally blocked M5. Inherited from 9020's Q2, whose stated default could not execute because the milestone
 it gated had already shipped. The fields are `proposer_id`, `alignment_epoch`, `sampling_params`

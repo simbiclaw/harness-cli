@@ -21,7 +21,14 @@ locally, never pushed. The fixes are real but unpushed, so any import commit tha
 `simbiclaw/sim@0c2cccd` must record that its base is that commit *plus local repairs* and must not
 imply the repairs are reachable upstream.
 
-Out of scope: everything in this repository. The consumer is not touched by this plan.
+Out of scope: everything in this repository, **with one exception**: M2's requirement that the
+consumer express an absent role, and the two acceptance tests that assert it
+(`tests/test_call_record.py::test_absent_role_defers`,
+`tests/test_schemas.py::test_absent_role_is_representable`), execute **in `9024-port-and-fences`** —
+this plan's code lives in B's repository and cannot test `src/argus/`. M2 owns the *decision*
+(nullable, or a third member) and records it here; 9024 owns the edit and its tests. Splitting it
+any other way leaves the change claimed by a plan with no milestone for it, which is the state
+adversarial verification found on 2026-09-14.
 
 **File Scope:**
 - `docs/exec-plans/active/9023-b-repairs.md` (this plan)
@@ -66,9 +73,9 @@ Do not repair, port, or import `_verify_roles`, `AGENT_INDICATORS`, `AGENT_OPENI
 an absent input" is not representable in the schema M5 landed: `src/argus/types/pipeline.py:142`
 is `role: Literal["customer", "agent"]` — non-nullable, a faithful port of upstream's
 `CleanTurn.role` (`:61`). Nothing in the plan mentioned `Turn`, and M5 is already flipped and
-CONFIRMED, so the change had no owner. **This milestone owns it.** The port gains an explicit
-absent state (nullable, or a third member — the shape is M2's to choose), and two consequences
-follow that must be handled here rather than discovered later:
+CONFIRMED, so the change had no owner. **9024 owns the edit; this milestone owns the decision.** The port gains an explicit absent
+state (nullable, or a third member — the shape is recorded here and applied there), and two
+consequences follow:
 
 1. **It is a declared deviation from a CONFIRMED port.** The plan's own boundary rule is that a
    field the consumer re-derives is a field the contract failed to carry; this is the converse —
@@ -80,12 +87,11 @@ follow that must be handled here rather than discovered later:
    unless a register says so. That plan needs an **intentional-deviation register** as part of its
    scope; this milestone is its first entry. (Filed on 9022 rather than solved here.)
 
-`Acceptance Test:` `tests/test_io_import.py::test_no_role_re_derivation` — no module under
-`src/argus/` computes an agent/customer role from transcript text (structural: no keyword list,
-no role-detection prompt, no swap path). `tests/test_call_record.py::test_absent_role_defers` —
-a call whose role is not established routes to a human rather than being scored.
-`tests/test_schemas.py::test_absent_role_is_representable` — the port can express "not
-established", and the deviation is registered as intentional rather than surfacing as drift.
+`Acceptance Test:` the B-side tests run here (`tests/test_asr_preprocessor.py` — the swap path is
+gone, and no keyword list or role-detection prompt survives). The two **consumer-side** assertions —
+`tests/test_call_record.py::test_absent_role_defers` and
+`tests/test_schemas.py::test_absent_role_is_representable` — execute in **9024**, which owns the
+port and can run them (see its M7, which also records the deviation in 9022's register).
 
 **Contract.**
 - *Deliverable:* Speaker attribution consumed from the call record; no re-derivation in the consumer.
@@ -142,8 +148,8 @@ asserted present and typed.
 `speakers[].speaker_role` + `speaker_role_source` (M2), `start_sec`/`end_sec` on turns and
 segments (M3), per-segment acoustic blocks aligned to spans, and per-call `stats`; each asserted
 present, with the absent case exercised as a routing input rather than a crash. **Declared-empty
-is a third state, not a failure:** 47 of the 718 archived records carry `turns: 0` and
-`segments: 0`, so "present" means the field exists and holds a value *or* the record says it holds
+is a third state, not a failure:** 47 of the 718 archived records carry empty `turns` and
+`segments` **lists** (values `[]`, not `0`), so "present" means the field exists and holds a value *or* the record says it holds
 nothing — a test that only accepts non-empty would fail on 6.5% of the corpus for the wrong reason.
 
 **Contract.**
