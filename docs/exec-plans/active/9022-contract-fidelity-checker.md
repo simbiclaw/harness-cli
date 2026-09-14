@@ -16,18 +16,24 @@ Inherits from 9021 M5 (committed on `claude/9021-m5-handoff-local`): the round-4
 **File Scope:**
 - `docs/exec-plans/active/9022-contract-fidelity-checker.md` (this plan)
 - `docs/exec-plans/active/9022-contract-fidelity-checker-notes/**` (new)
+- `scripts/build_schema_snapshot.py` (modify — F1 extends the oracle; **declared here because this plan is what edits it.** Correction 2026-09-14: the plan previously said `9024-port-and-fences` owned it. 9024's File Scope never named it, and neither did the archived parent, so deferring to 9024 left the file with no owner while F1 edited it)
+- `scripts/mutate_m5_contract.py` (modify — F2 grows the sweep to 25+ rows and fixes the grading hole; same correction as the line above)
 - `scripts/run_sweep.sh` (new — the shared sweep runner: pyc purge, `PYTHONDONTWRITEBYTECODE=1`, collection-error grading; one way to run a sweep)
 - `docs/experiments/9022-fidelity-threat-model/**` (new — the written threat model)
 - `tests/fixtures/intentional_deviations.yaml` (new — **the register of deliberate divergences**, consumed by the comparison; F1 lands it, and its first entry is 9024's absent-role state)
 
-**Deferred, not claimed.** F1's edits land in three paths that belong to the port plan while it is
-open: `scripts/build_schema_snapshot.py`, `tests/test_schemas.py` and
-`scripts/mutate_m5_contract.py`. They are named here and **deliberately not declared as scope** —
-announcing them would collide with `9024-port-and-fences`, which owns them, and the collision
-detector is right to object: two plans editing `tests/test_schemas.py` at once is exactly what it
-exists to prevent. F1 opens when 9024 releases them, and this block is filled in then. (The block
-previously deferred to "when 9021 completes"; 9021 was archived on 2026-09-14, and its paths were
-redistributed across 9023–9029 — 9024 holds these three.)
+**Deferred, not claimed — `tests/test_schemas.py`.** F1's edits land in a file the port plan
+declares while it is open. It is named here and **deliberately not declared as scope** —
+announcing it would collide with `9024-port-and-fences`, which owns it, and the collision detector
+is right to object: two plans editing `tests/test_schemas.py` at once is exactly what it exists to
+prevent. F1 opens when 9024 releases the file, and this block is filled in then.
+
+**Corrected 2026-09-14 (adversarial verification).** This block previously named *three* deferred
+paths and asserted all three belonged to `9024-port-and-fences`. Only one does: 9024's File Scope
+names `tests/test_schemas.py` and neither script, and the archived parent named neither script
+either — so the deferral left `scripts/build_schema_snapshot.py` and
+`scripts/mutate_m5_contract.py` with no owner at all while F1 and F2 edited them. Both are now
+declared above, by this plan.
 
 `src/argus/types/pipeline.py` is deliberately absent: this plan observes the port and never edits
 it, and declaring it would collide with 9024's scope for the same file.
@@ -47,7 +53,7 @@ first entry is 9024's absent-role state** (`CleanTurn.role` becomes nullable so 
 "not established"; upstream's `Literal["customer","agent"]` cannot). Without this, 9024's deviation
 and a genuine drift are the same event to this floor.
 
-`Acceptance Test:` `tests/test_schemas.py::test_the_checks_can_fail` extended plants — `model_post_init` zeroing scores, post-class `_missing_` with forged `__module__`, plain mixin `__setattr__` — each red via the new facts. (Test file path defers to the 9021-completion split; see File Scope TBD.)
+`Acceptance Test:` `tests/test_schemas.py::test_the_checks_can_fail` extended plants — `model_post_init` zeroing scores, post-class `_missing_` with forged `__module__`, plain mixin `__setattr__` — each red via the new facts. (**Corrected 2026-09-14:** the path is `tests/test_schemas.py`, deferred-not-claimed above until 9024 releases it. The earlier pointer to a "File Scope TBD" dangled — there is no TBD in this plan's File Scope, and the 9021-completion split is a completed event, not a pending one.)
 
 ### F2 — Sweep to 25+ rows with honest grading
 
@@ -95,7 +101,7 @@ and a genuine drift are the same event to this floor.
 pre_steering_sha: d1a975a (9021's M5 flip — the branch point this plan shares; rollback target if
 any Tier C decision below is rejected)
 
-1. **Does F1's oracle land in `build_schema_snapshot.py` or a successor script?** pre_steering_sha: d1a975a. The current builder is 9021-owned; F1 opens after 9021 archives, at which point the question answers by inspection. Default if not decided: extend in place. — deadline: 9021 completion.
+1. **Does F1's oracle land in `build_schema_snapshot.py` or a successor script?** pre_steering_sha: d1a975a. **Updated 2026-09-14:** 9021 archived that day and the builder is now declared by *this* plan (File Scope), so the question answers by inspection when F1 opens. The earlier condition — "F1 opens after 9021 archives" — was written when the path was still believed to be 9021's; it is superseded by this update rather than left standing beside it. Default if not decided: extend in place. — deadline: F1.
 2. **CI wiring for the shared runner.** Whether `.github/workflows/**` should invoke `run_sweep.sh` on PRs touching contract files is a Tier C question (workflow changes are sensitive-path). Default if not decided: local-only until someone asks for CI. — deadline: F3 completion.
 
 ## 8. Outcomes & Retrospective

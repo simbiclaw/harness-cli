@@ -1132,7 +1132,8 @@ this entry asserted that patch-1's `AuthoredNode` schema "dropped" the field. Th
 `soft-criteria-authoring-spec-v4-patch-1.md:181` says the opposite — `dimension_weight` was
 **added** to `machine_criterion` by that patch's D10, and `:182` has `deduction_weight` becoming
 *computed* as `dim_weight × confidence × gap_factor`. That same file contradicts itself later
-(`:438` enumerates `machine_criterion` without the field), and the live tree carries it nowhere.
+(`:436` enumerates `machine_criterion` without the field — the earlier citation of `:438` was off by
+two lines, corrected 2026-09-14), and the live tree carries it nowhere.
 So the **observed gap is real and verified**; the **cause is unresolved**, and the "reverses the
 direction patch-1 moved" argument below rested on the wrong half of an internally inconsistent
 document. The decision stands on the co-location argument, not on that one.
@@ -1595,8 +1596,16 @@ this plan is already at twenty-two milestones, and the Provider is orthogonal to
 
 **Status: split — superseded by seven focused plans.** The human's ruling: *"9021 计划过于庞大，
 为避免失焦，对这个计划进行分拆，每个子计划都有且只有一个焦点"*. Nothing was cancelled; every
-milestone this plan carried now lives in exactly one successor, with its text moved verbatim and
-its Progress checkbox carried across:
+milestone this plan carried now lives in exactly one successor, and every Progress checkbox was
+carried across unchanged:
+
+**"Moved verbatim" is 18 of 23, not 23 of 23 (corrected 2026-09-14).** An earlier revision of this
+note claimed the text moved verbatim without qualification. Adversarial verification measured it:
+18 milestone bodies are byte-identical to the copies in the successors; M2, M4, M7, M10 and M19
+differ, and each carries an inline *corrected 2026-09-14* marker at the edited site except M4,
+whose `turns: 0` → `turns: []` correction is recorded in the repair commit and in
+`9023-b-repairs` M4's own text. A reader comparing the two should expect those five to differ, and
+should treat any *other* difference as a defect.
 
 | Successor | Focus | Milestones |
 |---|---|---|
@@ -1607,6 +1616,12 @@ its Progress checkbox carried across:
 | `9027-pure-arithmetic` | score, corroborate, adjust, replay | M10, M11, M17, M18, M21 |
 | `9028-disposition` | routing, the two axes, the agreement instrument | M19, M19.5 |
 | `9029-surface` | proposer demotion, CLI, config, record | M20, M22 |
+
+**Not a successor: `9022-contract-fidelity-checker`.** The split produced seven plans; 9022 is an
+eighth file in `active/` that predates it, created separately from this plan's M5 close (commit
+`ca6379a`) and likewise handed `tests/test_schemas.py`. It appears above only through that hand-off,
+which is why the table has seven rows and the family has eight files. Recording it because a reader
+counting the family against this table otherwise finds a plan nothing here explains.
 
 **What stays here, and why this file is worth reading.** The shared record that no single successor
 should carry seven times over: §2's architecture review and the seam criterion it established

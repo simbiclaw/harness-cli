@@ -50,7 +50,7 @@ that file concurrently with 9022.**
 - `src/argus/io/prompts.py`
 - `src/argus/io/qa_agent.py` (new — the imported proposal half, re-namespaced)
 - `src/argus/io/call_record.py` (new — the consumer's half of the seam: builds `Session` from the producer's `calls/*.json` per M7's data-flow table. The archive covered this path with its `src/argus/io/**` glob; the split enumerated files and the glob's coverage was lost with it.)
-- `tests/test_call_record.py` (new — M7's absent-role assertion, and the call record's consumer-side conformance. Named as an acceptance test by the archive's M2 and by 9023's M2, and declared by no plan's File Scope on either side of the split — same class of gap as the two dependency paths above.)
+- `tests/test_call_record.py` (new — M7's absent-role assertion, and the call record's consumer-side conformance. Named as an acceptance test by the archive's M2 and by 9023's M2, and declared by no plan's File Scope on either side of the split — same class of gap as the two dependency paths that close this list.)
 - `.importlinter` (modify — the four forbidden contracts)
 - `docs/conventions/layering.md` (modify — Q16: amend so the convention and the lint agree)
 - `tests/test_io_import.py`
@@ -284,9 +284,16 @@ because the same mistake is available to anyone who edits an import list by read
 
 ## 7. Awaiting Steering
 
-**Q16: Does `core/` stop importing `io/`?** Resolved 2026-09-12: forbid `core → io`; M8 lands the
-four forbidden contracts with `include_external_packages = True` and amends
-`docs/conventions/layering.md` in the same milestone, so convention and lint agree.
+**Q16: Does `core/` stop importing `io/`?** — **Awaiting Steering: resolved 2026-09-12.** Forbid
+`core → io`; M8 lands the four forbidden contracts with `include_external_packages = True` and
+amends `docs/conventions/layering.md` in the same milestone, so convention and lint agree.
+
+*Restored 2026-09-14.* The phrase "Awaiting Steering: resolved" is load-bearing, not decoration:
+`.claude/hooks/pre_tool_use.py` grants access to a path in `.claude/sensitive-paths.txt` only when
+an **active** plan contains that literal string *and* names the path. The parent carried it and the
+split paraphrased the decision without it; the parent then archived out of the hook's scan set, so
+M8's edit to `.importlinter` was silently converted from an authorised change into a blocked one.
+The text above is the parent's own wording, restored.
 
 ## 8. Outcomes & Retrospective
 

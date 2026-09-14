@@ -106,6 +106,16 @@ the surface under the binding constraint that no verdict-altering value is a har
 
 ## 6. Surprises & Discoveries
 
+**`_W_C = 0.4` lives in two places, and that is deliberate (2026-09-14).** 9027 hands this plan a
+debt: the correlated-signal weight exists as a compiler private in 9003's
+`core/compiler/agreement.py` and as a runtime constant in `core/corroboration.py`, because a
+compiler private is not a runtime contract. Nothing reconciles the two, and this plan is where the
+surface presents a verdict computed with it. **Recorded here so the handoff has a receiving end:**
+if M22's surface exposes the weight as anything other than an internal constant — a display value,
+a config key, a dimension of the record — the two copies must be reconciled in the same milestone,
+and the provisional note the constant carries (`1 − corr(matcher_error, proposer_error)`, measured
+on a human-labelled sample) is what closes it.
+
 **On the MLX path the cache rewind is silently wrong if implemented naively (2026-09-12, inherited).**
 If the proposer runs on MLX rather than llama.cpp, the rewind is **not** `model.n_tokens = prefix_len`
 and not `trim_prompt_cache`: it is a per-cache-type deep-copy snapshot covering both `state` and

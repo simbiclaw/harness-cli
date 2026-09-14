@@ -21,14 +21,23 @@ locally, never pushed. The fixes are real but unpushed, so any import commit tha
 `simbiclaw/sim@0c2cccd` must record that its base is that commit *plus local repairs* and must not
 imply the repairs are reachable upstream.
 
-Out of scope: everything in this repository, **with one exception**: M2's requirement that the
-consumer express an absent role, and the two acceptance tests that assert it
-(`tests/test_call_record.py::test_absent_role_defers`,
-`tests/test_schemas.py::test_absent_role_is_representable`), execute **in `9024-port-and-fences`** —
-this plan's code lives in B's repository and cannot test `src/argus/`. M2 owns the *decision*
-(nullable, or a third member) and records it here; 9024 owns the edit and its tests. Splitting it
-any other way leaves the change claimed by a plan with no milestone for it, which is the state
-adversarial verification found on 2026-09-14.
+Out of scope: everything in this repository, **with two exceptions**, both of which exist because
+this plan's code lives in B's repository and cannot test `src/argus/`:
+
+- **M2's absent-role state.** M2 owns the *decision* (nullable, or a third member) and records it
+  here; the two acceptance tests that assert it —
+  `tests/test_call_record.py::test_absent_role_defers` and
+  `tests/test_schemas.py::test_absent_role_is_representable` — execute **in
+  `9024-port-and-fences`**, which owns the port and can run them.
+- **M3's garbled-transcript consequence.**
+  `tests/test_grounding.py::test_garbled_transcript_routes_ungrounded` executes **in
+  `9025-read-and-anchor`**, which owns the grounding gate the assertion exercises. **Added
+  2026-09-14:** adversarial verification found this test named here and homed nowhere — this plan
+  disclaims the repository it lives in, and 9025 did not name it — which is the same defect, in
+  the same section, as the M2 exception above.
+
+Splitting either any other way leaves the change claimed by a plan with no milestone for it, which
+is the state adversarial verification found on 2026-09-14.
 
 **File Scope:**
 - `docs/exec-plans/active/9023-b-repairs.md` (this plan)
@@ -120,7 +129,8 @@ on contact with the code and with the producer:
 
 `Acceptance Test:` `tests/test_grounding.py::test_garbled_transcript_routes_ungrounded` — a
 transcript whose quotes cannot be matched produces no auto-final verdict and no fabricated quality
-number anywhere in the record.
+number anywhere in the record. **This test executes in `9025-read-and-anchor`** (the grounding gate
+is that plan's `core/grounding.py`), not here — see §2's second exception.
 
 **Contract.**
 - *Deliverable:* No input-quality grade anywhere in the consumer; a bad transcript fails through the anchor gate.

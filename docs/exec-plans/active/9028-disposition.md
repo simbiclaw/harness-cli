@@ -36,7 +36,7 @@ ceiling), not chosen.
 - `src/argus/core/agreement.py` (new)
 - `src/argus/io/criterion_health.py` (new — persistence only; all computation stays in `core/`)
 - `tests/test_route.py`
-- `tests/test_escape_rate.py`
+- `tests/test_escape_sampler.py` (modify — the sampler's own tests, present on the tree and declared by no plan until 2026-09-14. This line previously read `tests/test_escape_rate.py`, which does not exist and which no milestone creates; the escape-rate estimator's tests already live in `tests/test_route.py` above)
 - `tests/test_agreement_instrument.py` (new)
 
 ## 3. Milestones

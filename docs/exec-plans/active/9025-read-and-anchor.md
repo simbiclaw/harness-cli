@@ -34,6 +34,7 @@ base". B's own KB integration was two empty stubs, which is why nothing of it is
 - `src/argus/core/grounding.py` (new)
 - `tests/test_intents_provider.py`
 - `tests/test_grounding.py` (new)
+- `tests/test_no_write_path.py` (modify — the D15 no-write-path AST fixture, landed under 9021 M13 (commit `1536b7d`) and declared by no plan on either side of the split until 2026-09-14. It is a standing structural check, not a new artifact; the same class of gap as the dependency paths the split dropped from 9024)
 
 ## 3. Milestones
 
@@ -45,7 +46,11 @@ text is model-authored prose, not a quote from the cited document.
 
 `Acceptance Test:` `tests/test_grounding.py::test_i2_anchor_or_quarantine_red` — a finding citing
 a non-existent node moves to `ungrounded`. `::test_quote_fidelity_red`. `::test_path_b_always_ungrounded`.
-`::test_grounding_no_model_import`.
+`::test_grounding_no_model_import`. **`::test_garbled_transcript_routes_ungrounded`** — a transcript
+whose quotes cannot be matched produces no auto-final verdict and no fabricated quality number
+anywhere in the record. **Added 2026-09-14:** this test is 9023's M3 acceptance test, named there
+and homed nowhere; the gate it exercises is this milestone's, so it is asserted here. 9023's §2
+records the same hand-off from its side.
 
 
 **Contract.**
@@ -95,8 +100,12 @@ chain.
 
 `Acceptance Test:` `tests/test_intents_provider.py::test_reads_at_pinned_epoch`.
 `::test_no_write_path` — the provider exposes no mutating method.
-`::test_s1_no_write_path_into_intents` — an AST scan confirms no `src/argus/` path opens an INTENTS
-file for writing. This is 9002's M7 fixture, which was specified and never written.
+**The D15 fixture is already built — do not write a second one (corrected 2026-09-14).** This line
+previously read *"This is 9002's M7 fixture, which was specified and never written."* It was
+written: `tests/test_no_write_path.py` landed under 9021 M13 (commit `1536b7d`, its module
+docstring recording exactly that provenance), and it is now declared by this plan. The name given
+above — `test_s1_no_write_path_into_intents` — exists in no file in the repository; M13's
+no-write-path assertion is the module that already stands.
 `::test_sole_read_surface` — no module outside the Provider reads `INTENTS/` (structural).
 `::test_capsule_parse_by_id` — a routine's step sequence resolves from `index.md` by id, with
 `step_order` ascending, and no traversal by content.

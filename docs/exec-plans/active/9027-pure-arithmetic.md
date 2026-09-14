@@ -62,8 +62,13 @@ byte-identical `raw`. `::test_score_receives_no_history`. `::test_weight_comes_f
 The formula is `(Empathy×3 + Resolution×3 + Procedure×2 + Proactive×1) ÷ 9`, stated verbatim in
 `docs/PRD/eval/skills/evaluator/SKILL.md:221` and `:310`, and it was carried into this line's
 design: the legacy v1 node format held the field (`_rubric/rules_criteria/c21-active-flexible-marketing.yaml:50`
-still carries `dimension_weight: 1.0`), and patch-1's `AuthoredNode` schema **dropped it** with no
-re-adding. **Neither codebase implements it** — simbi's `core/aggregator.py:66-69` and this
+still carries `dimension_weight: 1.0`), and patch-1's `AuthoredNode` schema carries it too —
+**added**, not dropped (**corrected 2026-09-14**; see §6, which retracts the "dropped in a schema
+migration" reading, and `soft-criteria-authoring-spec-v4-patch-1.md:181`,
+`| machine_criterion | absent | **added** (D10) — scoring_scale, gap_type, deduction_weight,
+dimension_weight |`). The file contradicts itself later at `:436`, which enumerates
+`machine_criterion` without the field. **The gap is verified; its cause is not** — do not restate
+one. **Neither codebase implements it** — simbi's `core/aggregator.py:66-69` and this
 repository's shipped `core/score.py:241-242` both sum flat across dimensions, so every score
 either has produced weights all dimensions equally. Per-item `deduction` is uniformly 1.0 (the
 source rubric is 1/0/NA scored, with no per-item weight column), so the dimension multiplier is
@@ -246,12 +251,29 @@ recorded as unresolved rather than resolved by preference.
 9003's `core/compiler/classify.py` classifies an exemplar/case match as correlated and
 `core/compiler/agreement.py` already holds `_W_C = 0.4` with the same provisional note. M17 invented
 the runtime aggregator, not the class; the constant now lives deliberately in two places (a compiler
-private is not a runtime contract), which is new debt for the surface plan.
+private is not a runtime contract), which is new debt for the surface plan — **recorded there on
+2026-09-14**; see `9029-surface`'s Surprises section, so the handoff has a receiving end rather
+than only a sending one.
 
 ## 7. Awaiting Steering
 
-*None open. Q24 is resolved and its consequence — M10's weighted assertion waits for 9026's
-recompile — is recorded in the Decision Log rather than re-litigated here.*
+**Q26: Where does M21's stored evaluation record live, given that `INTENTS/` is closed to Argus?**
+Raised 2026-09-14 by adversarial verification. M21's Notes say the manifest path needs a new
+exact-filename glob in `INTENTS/_meta/ownership.yaml` assigned to exactly one producer before the
+file may exist — but Argus is not one of the four producers `INTENTS/AGENTS.md` names
+(audio2tree, doc2graph, criteria-compiler, navigator), D15 forbids a write path into the tree, and
+the landed S1 fixture (`tests/test_no_write_path.py`) enforces exactly that. M22 lands the sidecar
+run manifest and declares no path either. So the milestone's deliverable — *a stored record that
+re-derives the verdict* — has no declared home, and the one location the plan names is the one the
+invariants forbid. Options: (a) the run record lives outside `INTENTS/` (a repo- or run-relative
+path, named by this plan or 9029); (b) the record is emitted to a staging path and committed by an
+upstream write-time act, as M16 already does for `_rubric/`; (c) the record is not persisted and
+M21 asserts re-derivation in memory only. **Default if not decided: (a)**, since it is the only one
+that neither writes to the tree nor drops the deliverable. — deadline: M21's Plan phase, or M22's
+if the surface plan claims the path first.
+
+*Q24 is resolved and its consequence — M10's weighted assertion waits for 9026's recompile — is
+recorded in the Decision Log rather than re-litigated here.*
 
 ## 8. Outcomes & Retrospective
 
