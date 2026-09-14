@@ -555,6 +555,44 @@ invocation's total. The substantive claims hold — `ruff check` and `ruff forma
 on all three files and the repo-wide count moved down by three. A `git notes` correction is attached
 to the commit.
 
+**The token cost was measurable and I first reported it as unmeasurable (2026-09-15).** The
+completion report's cost card shipped reading `—`, justified as "this plan never wired
+`.pev-signals/state.json`". The file exists; it belongs to `9006-pev-tmux-convergence`, and the
+justification confused *that plan's* record with this one's. Asked for the method, `9008-audio2tree-rebuild`
+gave it, and the numbers were there.
+
+**Method, and the two traps.** Sum the per-agent transcripts under
+`~/.claude/projects/<cwd>/<session>/subagents/agent-*.jsonl`, **deduplicating by `message.id` and
+taking the LAST usage entry per id.** One API call streams as several entries — this session:
+2929 entries for 1049 calls, 2.79 per call — and the early ones carry partial usage, almost always
+`output_tokens: 0`. Summing entries double-counts; summing the first per id under-counts badly.
+
+**What it measures, which is not everything.** Subagent dispatch tokens, input + output, excluding
+cache reads. **The orchestrating session's own consumption is not attributable per milestone and is
+not in the number** — `pev-loop.md` says so, and the card states the scope rather than presenting the
+figure as the whole cost.
+
+| | calls | in + out |
+|---|---|---|
+| M1 Plan survey (`map-callsites`) | 41 | 106,004 |
+| M1 verify, five rounds | 243 | 576,665 |
+| M2 execute + verify | 59 | 130,461 |
+| M3 execute + verify | 118 | 208,965 |
+| M4 verify, three rounds | 170 | 328,461 |
+| **this plan** | **632** | **1,350,556** |
+| *(not this plan)* the 9021 split's verification | 169 | 1,096,320 |
+| *(not this plan)* the M5 rounds | 203 | 1,197,865 |
+
+**M1's five verification rounds cost 576,665 — more than M2, M3 and M4 together.** That is the cap
+rule's clearest evidence, and it is worth noting where the spend went: four of those five rounds
+rejected the written record, not the artifact.
+
+**Why it is not in `.pev-signals/state.json`.** That file is per repository and single-plan, and this
+repository's is occupied by `9006`, whose own `test_pev_tmux_e2e.py` asserts the file describes
+9006's M0–M7 and its p/e/v agent ids — writing 9023 into it fails two tests. Reverted. Until the
+convention gains a per-plan store (or `9006`'s assertions are moved with it), this section is 9023's
+record and the report is its presentation.
+
 ### Entries predating the cap record
 
 **The third defect is real, and the first account of it was wrong (2026-09-14, corrected after
@@ -800,7 +838,7 @@ Log and Surprises above; where a number appears, the measurement that produced i
 
 **Report:** [`reports/9023-b-repairs-report.html`](../reports/9023-b-repairs-report.html) — the
 dashboard, generated 2026-09-15 from `.claude/templates/plan-execution-report.html`. Its figures come
-from this file and from `git`; the token cards read `—` because this plan never wired
-`.pev-signals/state.json`, and an estimate there would be read as a measurement.
+from this file and from `git`; its token cards carry the measured dispatch cost, whose method and
+scope are recorded in §6.
 
 

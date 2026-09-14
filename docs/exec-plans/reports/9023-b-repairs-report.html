@@ -193,8 +193,8 @@
         </div>
         <div class="metric-card info">
             <div class="metric-label">Token Cost</div>
-            <div class="metric-value">—</div>
-            <div class="metric-sub">本计划未接 token 跟踪</div>
+            <div class="metric-value">1,350,556</div>
+            <div class="metric-sub">M1 682k · M2 130k · M3 209k · M4 328k</div>
         </div>
     </div>
 
@@ -295,11 +295,25 @@
                 <table class="cost-table">
                     <tr><th>来源</th><th>Token 数</th><th>说明</th></tr>
                     
-                    <tr style="font-weight: 700; border-top: 2px solid var(--color-text);"><td>—</td><td>—</td><td>未接 token 跟踪（.pev-signals/state.json 不存在）</td></tr>
+                    <tr><td>M1 调查（map-callsites）</td><td>106,004</td><td>Plan 阶段：14 个 LLM 调用站点的地图</td></tr>
+                    
+                    <tr style="font-weight: 700; border-top: 2px solid var(--color-text);"><td>M1 验证（5 轮）</td><td>576,665</td><td>cap 用尽；四轮驳的是记录而非产物</td></tr>
+                    
+                    <tr><td>M2 execute + verify</td><td>130,461</td><td>1 轮 CONFIRMED</td></tr>
+                    
+                    <tr><td>M3 execute + verify</td><td>208,965</td><td>1 轮 CONFIRMED</td></tr>
+                    
+                    <tr><td>M4 验证（3 轮）</td><td>328,461</td><td>第 2 轮发现空输入也能通过</td></tr>
+                    
+                    <tr style="font-weight: 700; border-top: 2px solid var(--color-text);"><td>本计划合计</td><td>1,350,556</td><td>632 次 API 调用</td></tr>
+                    
+                    <tr><td>（非本计划）计划拆分验证</td><td>1,096,320</td><td>同一会话，9021 拆分的三轮验证</td></tr>
+                    
+                    <tr><td>（非本计划）M5 各轮</td><td>1,197,865</td><td>同一会话，更早的工作</td></tr>
                     
                 </table>
                 <div class="note">
-                    未测量。本计划的验证走的是逐轮 subagent 派发，而 PEV 的 token 跟踪写在 <code>.pev-signals/state.json</code> 里，9023 从未建过该文件。此处不填估算值：估算会被读成测量。
+                    <strong>subagent 派发 token（input + output，不含 cache 读）</strong>，2026-09-15 测量。口径要点：<em>编排会话自身的消耗不可按里程碑归因，因此不在其中</em>；M1 与 M4 的 <code>execute</code> 为空，因为那两个里程碑由编排者内联实现，未派发 subagent。<br><br>方法（由 9008-audio2tree-rebuild 提供，两个坑都踩过）：把 <code>~/.claude/projects/&lt;cwd&gt;/&lt;session&gt;/subagents/agent-*.jsonl</code> 里带 <code>usage</code> 的条目<b>按 <code>message.id</code> 去重，且每条 id 取最后一条</b>。一次 API 调用会流式写成约 2.8 条 entry，前面的那条 <code>output_tokens</code> 通常是 0 —— 直接求和会重复计数，取第一条会严重低估（本会话 2929 条 entry → 1049 次调用）。<br><br>一个重要更正：本计划早先写的是「未测量」，理由是它从未接过跟踪。那不准 —— 数字是可测的，<code>—</code> 会被读成「测不了」。
                 </div>
             </div>
         </div>
@@ -433,10 +447,10 @@
 
     <div class="footer">
         生成于 2026-09-15 &bull;
-        耗时 约 40（跨 3 天，含 16 轮对抗验证） 小时 &bull;
+        耗时 约 40（跨 3 天，含 16 轮对抗验证与 1,350,556 dispatch token） 小时 &bull;
         41（B 仓 16 · 本仓 25） 次提交 &bull;
         20（B 仓） 个文件 (936+, 320−) &bull;
-        Token: — 实测 / — 估算 &bull;
+        Token: 1,350,556（dispatch） 实测 / — 估算 &bull;
         <a href="../completed/9023-b-repairs.md">查看计划文件</a> &bull;
         <a href="../../conventions/pev-loop.md">查看验证记录</a>
     </div>
