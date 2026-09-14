@@ -226,6 +226,48 @@ A milestone may take multiple PEV iterations to converge. Each iteration produce
 
 That record is the deliverable of a capped milestone. A milestone that ends at the cap with its findings written down is a **closed** iteration — the loop did its job and reached the edge of what it can decide. An abandoned one is a milestone that stopped without saying why. `Source:` human ruling, 2026-09-14. Enforced by the orchestrator, not yet by a structural test — this is the rule's first violation, and the promotion rule moves a rule left on its **second**.
 
+### What a milestone's Verify may be asked (2026-09-14, human ruling)
+
+The two rules above bound a loop that has already gone wrong. This one treats the cause they are
+bounding: **the brief.**
+
+Verifying an ExecPlan document and verifying a milestone are different objects, and they license
+different questions.
+
+- **Verifying a plan** — when the plan *is* the deliverable, as in the steering split of `9021` into
+  seven focused plans — the questions are about the document: is every milestone carried across,
+  does every declared path have exactly one owner, does every citation resolve, does any section
+  contradict another. Rigour there is spend on the artifact.
+- **Verifying a milestone** — the Verify phase of the PEV loop — the questions are about what the
+  milestone *built*: the code, the tests, the behaviour. The plan is a report *about* the artifact,
+  not the artifact.
+
+**The failure this prevents is importing the first frame into the second.** It looks like a brief
+that asks "is the written record accurate?" beside "does this work?", and it is not a borderline
+call: a plan-verification brief that found the document flawless and the code false would be a good
+brief, and the same brief aimed at a milestone is a category error. The verifier is not wrong to
+answer it. It answers what it is asked.
+
+`9023`'s M1 is the cost. Round 1 found a real regression in the code. Round 2 found a false claim in
+`utils/nli.py`'s docstring — a shipped artifact, and a legitimate finding. **Rounds 3, 4 and 5 found
+nothing in the artifact at all**, and were entirely about commit messages and plan prose, because
+the brief kept asking. The milestone sat open two rounds longer than its code warranted, and the
+loop that could not converge was the one the brief had created.
+
+**The rule.** A milestone's Verify brief asks only about the artifact. Findings about the written
+record are collected, labelled `RECORD-ONLY` in their own section, and are **not** grounds for
+REJECTED; they are repaired afterwards — with `git notes` where the record is a commit message,
+because a correction belongs at the error rather than in a document that may never be opened. *Plan*
+verification, where the plan is the deliverable, is unchanged and keeps asking the document's
+questions.
+
+**How to tell which one you are doing.** Read the milestone's Contract and ask what its Deliverable
+names. If that is code or a test, the plan is a report; if the deliverable *is* the plan, the plan is
+the artifact. `9023` M2 was the first round briefed this way and it confirmed in one round, against
+five for M1.
+
+`Source:` human ruling, 2026-09-14 — *"你是不是把milestone 的verify 与 之前验证9021各个子计划当成一样来处理了？"*
+
 ### When the loop changes object: flip once the rounds stop being about the artifact (2026-09-14, human ruling)
 
 The cap above bounds *how many* rounds a milestone may take. This bounds something the cap does not
@@ -248,6 +290,10 @@ regression in the code, round 2 found only a wrong sentence, round 3 found only 
 Under this rule the milestone flips at the end of round 3. It actually ran two more rounds — round 4
 falsified the paragraph written to answer round 3, and round 5 falsified the sentence written to
 answer round 4 — for a milestone whose code four rounds had verified clean.
+
+*(This rule treats the symptom. The section above, "What a milestone's Verify may be asked", treats
+the cause — read them together: the brief is what decides whether a round can produce a non-code
+finding at all.)*
 
 **What the flip records.** The plan's verification entry states, in its body, that the flip rests on
 the human's ruling rather than on a CONFIRMED verdict, and names which rounds found non-code
@@ -310,6 +356,11 @@ These are the Permissioned State Transition rules in negative form — each proh
 - **No checkbox flip without CONFIRMED verdict.** The Verifier skill enforces this automatically.
 - **No implementation without a failing test first.** Red commits precede green commits (Contract Formation, §3.4.2).
 - **No A-B communication.** The human or orchestrating agent reads B's output and decides.
+- **No verification brief that asks about the written record.** A milestone's Verify asks only about
+  the artifact. Findings about the plan or the commit messages are `RECORD-ONLY` notes — reported,
+  labelled, repaired afterwards — and are never grounds for REJECTED. Verifying a plan *as* the
+  deliverable is a different activity with different questions; do not import its brief into a
+  milestone's.
 - **No silent state transitions.** Every PEV iteration leaves a commit trail with Plan and Decision trailers.
 - **No Tier C work without Awaiting Steering resolution.** The ask-threshold gate is a Plan-phase invariant.
 
