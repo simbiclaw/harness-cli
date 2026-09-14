@@ -19,7 +19,7 @@ regenerates the same facts from the port and diffs, so completeness is a
 property of the snapshot rather than of someone's diligence, and *every* fact
 recorded here is compared without anyone writing an assertion per fact.
 
-Two things this file learned the fourth time round:
+Six things this file learned in rounds four and five:
 
 - **What the check cannot see belongs in the key.** Requiredness, default and
   annotation were the only three facts recorded, so fourteen mutations that
@@ -37,6 +37,33 @@ Two things this file learned the fourth time round:
   imported is byte-identical to that path at that commit, and records what it
   verified. The document carries a digest so a later hand-edit of the fixture
   is a test failure rather than a silent re-baseline.
+- **Value-equality cannot see shared mutability.** An empty result used to
+  encode as `[]` whether the factory handed every caller the same object or a
+  new one, so `default_factory=lambda: _SHARED_LIST` and `default_factory=list`
+  were the same string — and two `Session()` instances then shared one
+  `metadata` dict. Empty mutable results are now classified by identity: the
+  factory is called twice more, and any two results being the same object is
+  recorded as `shared-empty`. Literal mutables (`= []`, upstream's spelling)
+  are `fresh-empty` by construction — pydantic deep-copies them per instance —
+  which is what keeps the two spellings equal.
+- **"Changes every call" is not entropy.** Three draws classified
+  `uuid4()[:1]` — sixteen distinct values over two thousand calls — as
+  `fresh`. The sampler now draws twenty-four times and names three tiers:
+  `constant`, `weak`, `fresh`. It is a statistical proxy with a documented
+  floor (see `default_key`), not a guarantee.
+- **Aliases are members too.** Iterating an enum class skips aliased names;
+  `__members__` keeps them, in declaration order, aliases adjacent to their
+  canonical member.
+- **A filter is an attack surface.** `model_post_init` registers in no
+  decorator bucket; a plain mixin overriding `__setattr__` appears in no
+  recorded fact; and a behaviour hook assigned after the class with a forged
+  `__module__` passes a defining-module filter by claiming to be machinery.
+  So the class-level facts went raw: every callable on every contract class,
+  by name and defining module, and every MRO base. A name cannot be forged
+  away — it is recorded under whatever module it claims, and the claiming is
+  itself the diff. Upstream and the port run the same interpreter, so the
+  machinery entries are identical on both sides and cancel in the diff;
+  filtering them out bought nothing and cost the truth.
 
 Regenerate when the upstream contract legitimately changes. A diff in the
 snapshot is then a reviewable record of an on-disk format change, which is
@@ -129,24 +156,59 @@ def default_key(info: object) -> str:
             code = getattr(factory, "__code__", None)
             body = repr((code.co_consts, code.co_names)) if code else repr(factory)
             return f"<factory:validated-data:{body}>"
+        if type(produced) in (list, dict, set):
+            # An empty mutable container is where value-equality goes blind:
+            # `[] == []` whether the factory hands every caller the same
+            # object or a new one, and two `Session()` instances sharing one
+            # `metadata` dict is the defect. Identity sees what equality
+            # cannot, so the factory is called twice more and any two results
+            # being the same object is recorded. Mutable only — tuple,
+            # frozenset and str are excluded on purpose: CPython legally
+            # interns immutable empties (`lambda: ()` returns one shared
+            # tuple), and sharing an immutable is harmless, so those keep the
+            # value path below.
+            second, third = factory(), factory()
+            shared = produced is second or second is third or produced is third
+            kind = "shared-empty" if shared else "fresh-empty"
+            return f"<factory:{type(produced).__name__}:{kind}>"
         if not produced:
-            # An empty list or dict is its own value, so `= []` and
-            # `default_factory=list` compare equal, as they should.
+            # An empty immutable container is its own value, so `= ()` and
+            # `default_factory=tuple` compare equal, as they should.
             return repr(produced)
         # A factory producing a value cannot be snapshotted by value — a uuid
         # would never match twice. Recording it by type alone was a blind spot:
         # `lambda: "FIXED"` and `lambda: uuid4().hex[:8]` were the same string,
         # so a port that gave every Session one shared id passed green, and
         # `session_id` is what QAReport and the replay record key on. Freshness
-        # is the property the type cannot carry, so it goes in the key. Sampled
-        # rather than assumed: three draws, fresh if any two differ.
-        draws = {repr(produced)} | {repr(factory()) for _ in range(2)}
-        kind = "fresh" if len(draws) > 1 else "constant"
+        # is the property the type cannot carry, so it goes in the key. Say
+        # plainly what this check is: a statistical proxy with a documented
+        # floor, not an entropy guarantee. Twenty-four draws, all distinct,
+        # collide with p ~= 7e-8 over a 16**8 space and with certainty over a
+        # sixteen-value alphabet — which is the discrimination the contract
+        # needs: upstream's session_id is uuid4 hex, and the mutation worth
+        # catching is a low-entropy substitute (`uuid4()[:1]` spans sixteen
+        # distinct values and keyed `fresh` under the old three-draw sampler).
+        # What this cannot see: a factory that is fresh for its first N calls
+        # and constant afterwards still keys `fresh`; no draw count fixes that.
+        draws = {repr(produced)} | {repr(factory()) for _ in range(23)}
+        if len(draws) == 1:
+            kind = "constant"
+        elif len(draws) == 24:
+            kind = "fresh"
+        else:
+            kind = "weak"
         return f"<factory:{type(produced).__name__}:{kind}>"
     if default is PydanticUndefined:
         return "<required>"
     if isinstance(default, enum.Enum):
         return f"{type(default).__name__}.{default.name}"
+    if type(default) in (list, dict, set) and not default:
+        # Upstream writes literal mutable defaults (`turns: List[Turn] = []`)
+        # and the port rewrites them as `default_factory=list`; pydantic
+        # deep-copies literal mutables per instance (verified: two instances
+        # of `x: list = []` hold distinct objects), so both spellings are the
+        # same fact — fresh per instance by construction — and share one key.
+        return f"<factory:{type(default).__name__}:fresh-empty>"
     return repr(default)
 
 
@@ -164,7 +226,13 @@ def field_facts(info: object) -> dict:
     - `constraints` is `FieldInfo.metadata` — `ge=0.0`, `max_length=3`. Upstream
       has none; one added here rejects payloads upstream accepts, which is the
       break the first attempt at this port was rejected for.
-    - `frozen` / `exclude` change assignability and what `model_dump` emits.
+    - `frozen` / `exclude` / `repr` change assignability and what `model_dump`
+      and the repr surface emit.
+    - `validate_default` runs validators even on the default — a default that
+      never went through them is a different fact. `kw_only` / `discriminator`
+      / `title` are the same class of constructor-surface flag: outside this
+      record they are unwatched, and the fifth round of this oracle was spent
+      learning not to leave FieldInfo attributes outside it.
     """
     return {
         "required": info.is_required(),
@@ -176,11 +244,52 @@ def field_facts(info: object) -> dict:
         "constraints": [repr(c) for c in info.metadata],
         "frozen": info.frozen,
         "exclude": info.exclude,
+        "repr": info.repr,
+        "validate_default": info.validate_default,
+        "kw_only": info.kw_only,
+        "discriminator": None if info.discriminator is None else str(info.discriminator),
+        "title": info.title,
+    }
+
+
+def _defined_module(value: object) -> str | None:
+    """The module a callable was defined in, unwrapped from its descriptor."""
+    if isinstance(value, property):
+        value = value.fget
+    elif isinstance(value, (classmethod, staticmethod)):
+        value = value.__func__
+    return getattr(value, "__module__", None)
+
+
+def callables_of(cls: type) -> dict[str, str | None]:
+    """Every callable on the class, by name and defining module — raw.
+
+    The class's own dict, unfiltered: contract-defined hooks, enum- and
+    pydantic-injected machinery, builtin slots, all of it. Recorded raw
+    because a defining-module filter is itself an attack surface: a hook
+    assigned after the class whose `__module__` is forged to `enum` passes a
+    filtered record as machinery, but a name cannot be forged away — it is
+    recorded with whatever module it claims, and the claiming is visible.
+    Upstream and the port run the same interpreter, so the machinery entries
+    are identical on both sides and cancel in the diff; only contract-level
+    differences survive.
+
+    The predicate is `callable(...) or isinstance(..., (classmethod,
+    staticmethod, property))` because the descriptor forms are not callable
+    objects: a classmethod never is, a property never is, and a staticmethod
+    only became one in 3.10 — a bare `callable()` check silently drops an
+    in-body `@classmethod def _missing_`, which is precisely the hook this
+    fact exists to see.
+    """
+    return {
+        name: _defined_module(value)
+        for name, value in vars(cls).items()
+        if callable(value) or isinstance(value, (classmethod, staticmethod, property))
     }
 
 
 def model_facts(model: type[BaseModel]) -> dict:
-    """One model's fields plus the two whole-model surfaces that were unwatched.
+    """One model's fields plus the whole-model surfaces that were unwatched.
 
     `config` is the full `model_config`. Upstream sets none, so it is `{}`
     everywhere; `extra="forbid"` rejects the forward-compatible keys M6 adds,
@@ -194,12 +303,24 @@ def model_facts(model: type[BaseModel]) -> dict:
     score and a `@model_validator` clearing `evidence` strips every anchor —
     neither touches a field's declared shape, so nothing else here sees them.
     Names and targets only: comparing function bodies would fail on a rename.
+
+    `bases` is every MRO base name: the decorator buckets see only what
+    pydantic registers, so a plain mixin overriding `__setattr__` — same
+    observable effect as `frozen`, no registration anywhere — was invisible
+    until its name showed up here.
+
+    `callables` is every callable on the class, raw (`callables_of`): the
+    decorator buckets also miss the protocol hooks pydantic calls by name —
+    a `model_post_init` that zeroes `score` registers nowhere and touches no
+    declared field.
     """
     decorators: dict[str, object] = {}
     for bucket in DECORATOR_BUCKETS:
         found = getattr(model.__pydantic_decorators__, bucket)
         decorators[bucket] = sorted(found)
     return {
+        "bases": [c.__name__ for c in model.__mro__[1:]],
+        "callables": callables_of(model),
         "order": list(model.model_fields),
         "config": {k: repr(v) for k, v in sorted(model.model_config.items())},
         "decorators": decorators,
@@ -208,7 +329,7 @@ def model_facts(model: type[BaseModel]) -> dict:
 
 
 def enum_facts(member_type: type[enum.Enum]) -> dict:
-    """An enum's members *in order*, and what it inherits from.
+    """An enum's members *in order*, what it inherits from, and what it defines.
 
     `bases` catches `class TurnFlag(Enum)` written where upstream has
     `class TurnFlag(str, Enum)`: same names, same values, but
@@ -217,11 +338,23 @@ def enum_facts(member_type: type[enum.Enum]) -> dict:
 
     `members` is a list, not a mapping, because declaration order is observable:
     `list(VerdictResult)[0]` is what a caller reaching for a fallback gets, and
-    a mapping compared as a mapping cannot see PASS and FAIL swap places.
+    a mapping compared as a mapping cannot see PASS and FAIL swap places. Read
+    through `__members__`, not iteration — iteration skips aliased members, so
+    a member added under a second name was invisible; `__members__` keeps it,
+    adjacent to its canonical member, in declaration order.
+
+    `callables` is every callable on the class, raw (`callables_of`). Bases
+    and members do not see behaviour: a `_missing_` added to TurnFlag makes
+    `TurnFlag("garbage")` coerce to INCOMPLETE where upstream raises
+    ValueError, and no wire value changes. This record used to filter the
+    class dict to callables the contract module defined — which is exactly
+    the hole a forged `__module__` walks through, so the filter is gone and
+    the machinery rides along, cancelling in the diff.
     """
     return {
         "bases": [c.__name__ for c in member_type.__mro__[1:]],
-        "members": [[m.name, m.value] for m in member_type],
+        "members": [[name, m.value] for name, m in member_type.__members__.items()],
+        "callables": callables_of(member_type),
     }
 
 
@@ -264,6 +397,13 @@ def digest_of(doc: dict) -> str:
     digest, because the person doing it is editing JSON, not running the builder.
     And the builder cannot be run to launder it: `verified_source` below refuses
     any directory that is not the pinned upstream commit.
+
+    Plainly, its limit: sha256 over data anyone can recompute anchors this
+    against *laziness* — the hand-edit, the stale re-baseline — not against
+    *forgery*. An adversary who edits the facts and re-derives the digest
+    defeats it; that is why the write path is gated by `verified_source`, and
+    why the constants the test checks the document against are held in
+    tests/test_schemas.py, not imported from here.
     """
     body = {k: v for k, v in doc.items() if k != "digest"}
     return "sha256:" + hashlib.sha256(canonical(body).encode("utf-8")).hexdigest()

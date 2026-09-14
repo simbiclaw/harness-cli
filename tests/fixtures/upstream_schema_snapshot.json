@@ -27,7 +27,7 @@
     "DimensionScore",
     "QAReport"
   ],
-  "digest": "sha256:1e58d9eb480ed3761748564c78e82365a2c87d287994fa92227ba6f39241368f",
+  "digest": "sha256:ee33e231262b80ca72270ec0f37ce2b27eca17faa01b874d9ee9ab150876f001",
   "enums": {
     "ASRQuality": {
       "bases": [
@@ -35,6 +35,16 @@
         "Enum",
         "object"
       ],
+      "callables": {
+        "__format__": "enum",
+        "__new__": "enum",
+        "__repr__": "enum",
+        "__str__": "enum",
+        "_generate_next_value_": "enum",
+        "_member_type_": "builtins",
+        "_new_member_": null,
+        "_value_repr_": null
+      },
       "members": [
         [
           "GOOD",
@@ -56,6 +66,16 @@
         "Enum",
         "object"
       ],
+      "callables": {
+        "__format__": "enum",
+        "__new__": "enum",
+        "__repr__": "enum",
+        "__str__": "enum",
+        "_generate_next_value_": "enum",
+        "_member_type_": "builtins",
+        "_new_member_": null,
+        "_value_repr_": null
+      },
       "members": [
         [
           "BUSINESS_JUDGMENT",
@@ -101,6 +121,16 @@
         "Enum",
         "object"
       ],
+      "callables": {
+        "__format__": "enum",
+        "__new__": "enum",
+        "__repr__": "enum",
+        "__str__": "enum",
+        "_generate_next_value_": "enum",
+        "_member_type_": "builtins",
+        "_new_member_": null,
+        "_value_repr_": null
+      },
       "members": [
         [
           "DIALOGUE_CONSISTENCY",
@@ -126,6 +156,16 @@
         "Enum",
         "object"
       ],
+      "callables": {
+        "__format__": "enum",
+        "__new__": "enum",
+        "__repr__": "enum",
+        "__str__": "enum",
+        "_generate_next_value_": "enum",
+        "_member_type_": "builtins",
+        "_new_member_": null,
+        "_value_repr_": null
+      },
       "members": [
         [
           "FACT_CLAIM",
@@ -159,6 +199,16 @@
         "Enum",
         "object"
       ],
+      "callables": {
+        "__format__": "enum",
+        "__new__": "enum",
+        "__repr__": "enum",
+        "__str__": "enum",
+        "_generate_next_value_": "enum",
+        "_member_type_": "builtins",
+        "_new_member_": null,
+        "_value_repr_": null
+      },
       "members": [
         [
           "RESPONDED",
@@ -180,6 +230,16 @@
         "Enum",
         "object"
       ],
+      "callables": {
+        "__format__": "enum",
+        "__new__": "enum",
+        "__repr__": "enum",
+        "__str__": "enum",
+        "_generate_next_value_": "enum",
+        "_member_type_": "builtins",
+        "_new_member_": null,
+        "_value_repr_": null
+      },
       "members": [
         [
           "DOMAIN_KNOWLEDGE",
@@ -205,6 +265,16 @@
         "Enum",
         "object"
       ],
+      "callables": {
+        "__format__": "enum",
+        "__new__": "enum",
+        "__repr__": "enum",
+        "__str__": "enum",
+        "_generate_next_value_": "enum",
+        "_member_type_": "builtins",
+        "_new_member_": null,
+        "_value_repr_": null
+      },
       "members": [
         [
           "RUBRIC_DRIVEN",
@@ -226,6 +296,16 @@
         "Enum",
         "object"
       ],
+      "callables": {
+        "__format__": "enum",
+        "__new__": "enum",
+        "__repr__": "enum",
+        "__str__": "enum",
+        "_generate_next_value_": "enum",
+        "_member_type_": "builtins",
+        "_new_member_": null,
+        "_value_repr_": null
+      },
       "members": [
         [
           "PROCESS",
@@ -255,6 +335,16 @@
         "Enum",
         "object"
       ],
+      "callables": {
+        "__format__": "enum",
+        "__new__": "enum",
+        "__repr__": "enum",
+        "__str__": "enum",
+        "_generate_next_value_": "enum",
+        "_member_type_": "builtins",
+        "_new_member_": null,
+        "_value_repr_": null
+      },
       "members": [
         [
           "INCOMPLETE",
@@ -280,6 +370,16 @@
         "Enum",
         "object"
       ],
+      "callables": {
+        "__format__": "enum",
+        "__new__": "enum",
+        "__repr__": "enum",
+        "__str__": "enum",
+        "_generate_next_value_": "enum",
+        "_member_type_": "builtins",
+        "_new_member_": null,
+        "_value_repr_": null
+      },
       "members": [
         [
           "PASS",
@@ -311,6 +411,11 @@
   "generated_by": "scripts/build_schema_snapshot.py",
   "models": {
     "Atom": {
+      "bases": [
+        "BaseModel",
+        "object"
+      ],
+      "callables": {},
       "config": {},
       "decorators": {
         "computed_fields": [],
@@ -327,10 +432,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "content": {
@@ -338,10 +448,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "decontextualized": {
@@ -349,10 +464,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "id": {
@@ -360,10 +480,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "intent_group": {
@@ -371,10 +496,15 @@
           "annotation": "str | None",
           "constraints": [],
           "default": "None",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "reliability": {
@@ -382,10 +512,15 @@
           "annotation": "typing.Literal['high', 'low']",
           "constraints": [],
           "default": "'high'",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "role": {
@@ -393,10 +528,15 @@
           "annotation": "typing.Literal['client', 'agent']",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "source_turn_ids": {
@@ -404,10 +544,15 @@
           "annotation": "list[str]",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         }
       },
@@ -423,6 +568,11 @@
       ]
     },
     "CleanTranscript": {
+      "bases": [
+        "BaseModel",
+        "object"
+      ],
+      "callables": {},
       "config": {},
       "decorators": {
         "computed_fields": [],
@@ -439,21 +589,31 @@
           "annotation": "<enum 'ASRQuality",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "low_reliability_turn_ids": {
           "alias": null,
           "annotation": "list[str]",
           "constraints": [],
-          "default": "[]",
+          "default": "<factory:list:fresh-empty>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "role_swap_detected": {
@@ -461,10 +621,15 @@
           "annotation": "bool",
           "constraints": [],
           "default": "False",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "session_id": {
@@ -472,10 +637,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "turns": {
@@ -483,10 +653,15 @@
           "annotation": "list[CleanTurn]",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         }
       },
@@ -499,6 +674,11 @@
       ]
     },
     "CleanTurn": {
+      "bases": [
+        "BaseModel",
+        "object"
+      ],
+      "callables": {},
       "config": {},
       "decorators": {
         "computed_fields": [],
@@ -514,11 +694,16 @@
           "alias": null,
           "annotation": "list[TurnFlag]",
           "constraints": [],
-          "default": "[]",
+          "default": "<factory:list:fresh-empty>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "id": {
@@ -526,10 +711,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "reliability": {
@@ -537,10 +727,15 @@
           "annotation": "typing.Literal['high', 'low']",
           "constraints": [],
           "default": "'high'",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "role": {
@@ -548,10 +743,15 @@
           "annotation": "typing.Literal['customer', 'agent']",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "text": {
@@ -559,10 +759,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "timestamp_end": {
@@ -570,10 +775,15 @@
           "annotation": "int | None",
           "constraints": [],
           "default": "None",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "timestamp_start": {
@@ -581,10 +791,15 @@
           "annotation": "int | None",
           "constraints": [],
           "default": "None",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         }
       },
@@ -599,6 +814,11 @@
       ]
     },
     "CoverageRelation": {
+      "bases": [
+        "BaseModel",
+        "object"
+      ],
+      "callables": {},
       "config": {},
       "decorators": {
         "computed_fields": [],
@@ -615,10 +835,15 @@
           "annotation": "str | None",
           "constraints": [],
           "default": "None",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "client_atom_id": {
@@ -626,10 +851,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "note": {
@@ -637,10 +867,15 @@
           "annotation": "str | None",
           "constraints": [],
           "default": "None",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "status": {
@@ -648,10 +883,15 @@
           "annotation": "<enum 'CoverageStatus",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         }
       },
@@ -663,6 +903,11 @@
       ]
     },
     "DimensionScore": {
+      "bases": [
+        "BaseModel",
+        "object"
+      ],
+      "callables": {},
       "config": {},
       "decorators": {
         "computed_fields": [],
@@ -679,10 +924,15 @@
           "annotation": "int",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "name": {
@@ -690,10 +940,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "passed_count": {
@@ -701,10 +956,15 @@
           "annotation": "int",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "total_weight": {
@@ -712,10 +972,15 @@
           "annotation": "float",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "weighted_score": {
@@ -723,10 +988,15 @@
           "annotation": "float",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         }
       },
@@ -739,6 +1009,11 @@
       ]
     },
     "EvidenceItem": {
+      "bases": [
+        "BaseModel",
+        "object"
+      ],
+      "callables": {},
       "config": {},
       "decorators": {
         "computed_fields": [],
@@ -755,10 +1030,15 @@
           "annotation": "str | None",
           "constraints": [],
           "default": "None",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "score": {
@@ -766,10 +1046,15 @@
           "annotation": "float",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "supports": {
@@ -777,10 +1062,15 @@
           "annotation": "bool",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "text": {
@@ -788,10 +1078,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "turn_id": {
@@ -799,10 +1094,15 @@
           "annotation": "str | None",
           "constraints": [],
           "default": "None",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         }
       },
@@ -815,6 +1115,11 @@
       ]
     },
     "IntentInference": {
+      "bases": [
+        "BaseModel",
+        "object"
+      ],
+      "callables": {},
       "config": {},
       "decorators": {
         "computed_fields": [],
@@ -831,10 +1136,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "customer_deep_intent": {
@@ -842,10 +1152,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "customer_surface_intent": {
@@ -853,21 +1168,31 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "intent_switches": {
           "alias": null,
           "annotation": "list[IntentSwitch]",
           "constraints": [],
-          "default": "[]",
+          "default": "<factory:list:fresh-empty>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "key_tension": {
@@ -875,21 +1200,31 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "unresolved_intents": {
           "alias": null,
           "annotation": "list[str]",
           "constraints": [],
-          "default": "[]",
+          "default": "<factory:list:fresh-empty>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         }
       },
@@ -903,6 +1238,11 @@
       ]
     },
     "IntentSwitch": {
+      "bases": [
+        "BaseModel",
+        "object"
+      ],
+      "callables": {},
       "config": {},
       "decorators": {
         "computed_fields": [],
@@ -919,10 +1259,15 @@
           "annotation": "bool",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "from_intent": {
@@ -930,10 +1275,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "to_intent": {
@@ -941,10 +1291,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "turn_id": {
@@ -952,10 +1307,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         }
       },
@@ -967,6 +1327,11 @@
       ]
     },
     "KBContent": {
+      "bases": [
+        "BaseModel",
+        "object"
+      ],
+      "callables": {},
       "config": {},
       "decorators": {
         "computed_fields": [],
@@ -983,10 +1348,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "level": {
@@ -994,10 +1364,15 @@
           "annotation": "int",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "node_type": {
@@ -1005,10 +1380,15 @@
           "annotation": "typing.Literal['primary', 'parent', 'sibling']",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "path": {
@@ -1016,10 +1396,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         }
       },
@@ -1031,6 +1416,11 @@
       ]
     },
     "QAReport": {
+      "bases": [
+        "BaseModel",
+        "object"
+      ],
+      "callables": {},
       "config": {},
       "decorators": {
         "computed_fields": [],
@@ -1047,10 +1437,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "asr_quality_warning": {
@@ -1058,10 +1453,15 @@
           "annotation": "bool",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "dimension_scores": {
@@ -1069,10 +1469,15 @@
           "annotation": "list[DimensionScore]",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "grade": {
@@ -1080,10 +1485,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "human_review_items": {
@@ -1091,10 +1501,15 @@
           "annotation": "list[str]",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "improvement_suggestions": {
@@ -1102,10 +1517,15 @@
           "annotation": "list[str]",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "low_kb_coverage_warning": {
@@ -1113,10 +1533,15 @@
           "annotation": "bool",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "multi_intent_detected": {
@@ -1124,10 +1549,15 @@
           "annotation": "bool",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "overall_score": {
@@ -1135,10 +1565,15 @@
           "annotation": "float",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "questions": {
@@ -1146,10 +1581,15 @@
           "annotation": "list[Subquestion]",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "requires_human_review": {
@@ -1157,10 +1597,15 @@
           "annotation": "bool",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "role_swap_detected": {
@@ -1168,10 +1613,15 @@
           "annotation": "bool",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "session_id": {
@@ -1179,10 +1629,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "summary": {
@@ -1190,10 +1645,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "unresolved_intents": {
@@ -1201,10 +1661,15 @@
           "annotation": "list[str]",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "verdicts": {
@@ -1212,10 +1677,15 @@
           "annotation": "list[Verdict]",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "veto_items": {
@@ -1223,10 +1693,15 @@
           "annotation": "list[str]",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "veto_triggered": {
@@ -1234,10 +1709,15 @@
           "annotation": "bool",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         }
       },
@@ -1263,6 +1743,11 @@
       ]
     },
     "RubricItem": {
+      "bases": [
+        "BaseModel",
+        "object"
+      ],
+      "callables": {},
       "config": {},
       "decorators": {
         "computed_fields": [],
@@ -1279,10 +1764,15 @@
           "annotation": "bool",
           "constraints": [],
           "default": "True",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "category": {
@@ -1290,10 +1780,15 @@
           "annotation": "<enum 'RubricCategory",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "fail_criteria": {
@@ -1301,10 +1796,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "id": {
@@ -1312,10 +1812,15 @@
           "annotation": "int",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "is_veto": {
@@ -1323,10 +1828,15 @@
           "annotation": "bool",
           "constraints": [],
           "default": "False",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "is_weighted": {
@@ -1334,10 +1844,15 @@
           "annotation": "bool",
           "constraints": [],
           "default": "False",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "na_criteria": {
@@ -1345,10 +1860,15 @@
           "annotation": "str | None",
           "constraints": [],
           "default": "None",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "name": {
@@ -1356,10 +1876,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "pass_criteria": {
@@ -1367,10 +1892,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "requires_domain_kb": {
@@ -1378,21 +1908,31 @@
           "annotation": "bool",
           "constraints": [],
           "default": "False",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "trigger_keywords": {
           "alias": null,
           "annotation": "list[str]",
           "constraints": [],
-          "default": "[]",
+          "default": "<factory:list:fresh-empty>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "weight": {
@@ -1400,10 +1940,15 @@
           "annotation": "float",
           "constraints": [],
           "default": "1.0",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         }
       },
@@ -1423,6 +1968,11 @@
       ]
     },
     "Session": {
+      "bases": [
+        "BaseModel",
+        "object"
+      ],
+      "callables": {},
       "config": {},
       "decorators": {
         "computed_fields": [],
@@ -1439,10 +1989,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "'UNKNOWN'",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "duration_sec": {
@@ -1450,21 +2005,31 @@
           "annotation": "int | None",
           "constraints": [],
           "default": "None",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "metadata": {
           "alias": null,
           "annotation": "dict[str, typing.Any]",
           "constraints": [],
-          "default": "{}",
+          "default": "<factory:dict:fresh-empty>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "session_id": {
@@ -1472,21 +2037,31 @@
           "annotation": "str",
           "constraints": [],
           "default": "<factory:str:fresh>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "turns": {
           "alias": null,
           "annotation": "list[Turn]",
           "constraints": [],
-          "default": "[]",
+          "default": "<factory:list:fresh-empty>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         }
       },
@@ -1499,6 +2074,11 @@
       ]
     },
     "SessionKBContext": {
+      "bases": [
+        "BaseModel",
+        "object"
+      ],
+      "callables": {},
       "config": {},
       "decorators": {
         "computed_fields": [],
@@ -1514,22 +2094,32 @@
           "alias": null,
           "annotation": "list[RubricItem]",
           "constraints": [],
-          "default": "[]",
+          "default": "<factory:list:fresh-empty>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "applicable_rubrics": {
           "alias": null,
           "annotation": "list[RubricItem]",
           "constraints": [],
-          "default": "[]",
+          "default": "<factory:list:fresh-empty>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "coverage_score": {
@@ -1537,10 +2127,15 @@
           "annotation": "float",
           "constraints": [],
           "default": "0.0",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "domain_knowledge_summary": {
@@ -1548,21 +2143,31 @@
           "annotation": "str",
           "constraints": [],
           "default": "''",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "kb_contents": {
           "alias": null,
           "annotation": "list[KBContent]",
           "constraints": [],
-          "default": "[]",
+          "default": "<factory:list:fresh-empty>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "low_coverage_warning": {
@@ -1570,10 +2175,15 @@
           "annotation": "bool",
           "constraints": [],
           "default": "False",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "primary_intent_path": {
@@ -1581,32 +2191,47 @@
           "annotation": "str | None",
           "constraints": [],
           "default": "None",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "secondary_intent_paths": {
           "alias": null,
           "annotation": "list[str]",
           "constraints": [],
-          "default": "[]",
+          "default": "<factory:list:fresh-empty>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "unmatched_entities": {
           "alias": null,
           "annotation": "list[str]",
           "constraints": [],
-          "default": "[]",
+          "default": "<factory:list:fresh-empty>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         }
       },
@@ -1623,6 +2248,11 @@
       ]
     },
     "Subquestion": {
+      "bases": [
+        "BaseModel",
+        "object"
+      ],
+      "callables": {},
       "config": {},
       "decorators": {
         "computed_fields": [],
@@ -1639,10 +2269,15 @@
           "annotation": "typing.Literal['applicable', 'NA']",
           "constraints": [],
           "default": "'applicable'",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "claim_type": {
@@ -1650,10 +2285,15 @@
           "annotation": "<enum 'ClaimType",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "dimension": {
@@ -1661,10 +2301,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "hypothesis_neg": {
@@ -1672,10 +2317,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "hypothesis_pos": {
@@ -1683,10 +2333,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "id": {
@@ -1694,10 +2349,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "implied_q_type": {
@@ -1705,10 +2365,15 @@
           "annotation": "ImpliedQType | None",
           "constraints": [],
           "default": "None",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "is_veto": {
@@ -1716,10 +2381,15 @@
           "annotation": "bool",
           "constraints": [],
           "default": "False",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "na_reason": {
@@ -1727,10 +2397,15 @@
           "annotation": "str | None",
           "constraints": [],
           "default": "None",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "q_type": {
@@ -1738,10 +2413,15 @@
           "annotation": "typing.Literal['literal', 'implied']",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "question": {
@@ -1749,10 +2429,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "rubric_id": {
@@ -1760,10 +2445,15 @@
           "annotation": "int | None",
           "constraints": [],
           "default": "None",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "source": {
@@ -1771,21 +2461,31 @@
           "annotation": "<enum 'QuestionSource",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "source_atom_ids": {
           "alias": null,
           "annotation": "list[str]",
           "constraints": [],
-          "default": "[]",
+          "default": "<factory:list:fresh-empty>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         }
       },
@@ -1807,6 +2507,11 @@
       ]
     },
     "Turn": {
+      "bases": [
+        "BaseModel",
+        "object"
+      ],
+      "callables": {},
       "config": {},
       "decorators": {
         "computed_fields": [],
@@ -1822,11 +2527,16 @@
           "alias": null,
           "annotation": "list[TurnFlag]",
           "constraints": [],
-          "default": "[]",
+          "default": "<factory:list:fresh-empty>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "id": {
@@ -1834,10 +2544,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "reliability": {
@@ -1845,10 +2560,15 @@
           "annotation": "typing.Literal['high', 'low']",
           "constraints": [],
           "default": "'high'",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "role": {
@@ -1856,10 +2576,15 @@
           "annotation": "typing.Literal['customer', 'agent']",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "text": {
@@ -1867,10 +2592,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         }
       },
@@ -1883,6 +2613,11 @@
       ]
     },
     "Verdict": {
+      "bases": [
+        "BaseModel",
+        "object"
+      ],
+      "callables": {},
       "config": {},
       "decorators": {
         "computed_fields": [],
@@ -1899,10 +2634,15 @@
           "annotation": "typing.Literal['A', 'B', 'C']",
           "constraints": [],
           "default": "'A'",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "confidence": {
@@ -1910,21 +2650,31 @@
           "annotation": "float",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "evidence": {
           "alias": null,
           "annotation": "list[EvidenceItem]",
           "constraints": [],
-          "default": "[]",
+          "default": "<factory:list:fresh-empty>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "question_id": {
@@ -1932,10 +2682,15 @@
           "annotation": "str",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "requires_human_review": {
@@ -1943,10 +2698,15 @@
           "annotation": "bool",
           "constraints": [],
           "default": "False",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "result": {
@@ -1954,10 +2714,15 @@
           "annotation": "<enum 'VerdictResult",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "review_reason": {
@@ -1965,10 +2730,15 @@
           "annotation": "str | None",
           "constraints": [],
           "default": "None",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "rubric_id": {
@@ -1976,10 +2746,15 @@
           "annotation": "int | None",
           "constraints": [],
           "default": "None",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "score": {
@@ -1987,10 +2762,15 @@
           "annotation": "float",
           "constraints": [],
           "default": "<required>",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": true,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         },
         "weight": {
@@ -1998,10 +2778,15 @@
           "annotation": "float",
           "constraints": [],
           "default": "1.0",
+          "discriminator": null,
           "exclude": null,
           "frozen": null,
+          "kw_only": null,
+          "repr": true,
           "required": false,
           "serialization_alias": null,
+          "title": null,
+          "validate_default": null,
           "validation_alias": null
         }
       },
