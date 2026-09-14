@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExecPlan Execution Report - 9023-b-repairs</title>
+    <style>
+        :root {
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+            --color-info: #3b82f6;
+            --color-bg: #f8fafc;
+            --color-card: #ffffff;
+            --color-text: #1e293b;
+            --color-text-secondary: #64748b;
+            --color-border: #e2e8f0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: white;
+            padding: 24px 32px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+        .header-meta { display: flex; gap: 24px; font-size: 14px; opacity: 0.9; }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            padding: 24px 32px;
+        }
+        .metric-card {
+            background: var(--color-card);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--color-info);
+        }
+        .metric-card.success { border-left-color: var(--color-success); }
+        .metric-card.warning { border-left-color: var(--color-warning); }
+        .metric-card.danger { border-left-color: var(--color-danger); }
+        .metric-label { font-size: 12px; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .metric-value { font-size: 32px; font-weight: 700; margin-top: 8px; }
+        .metric-sub { font-size: 13px; color: var(--color-text-secondary); margin-top: 4px; }
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            padding: 0 32px 32px;
+        }
+        .section {
+            background: var(--color-card);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .section-header {
+            background: #f1f5f9;
+            padding: 16px 20px;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--color-text-secondary);
+            border-bottom: 1px solid var(--color-border);
+        }
+        .section-body { padding: 20px; }
+        .timeline { list-style: none; }
+        .timeline-item {
+            display: flex;
+            gap: 16px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .timeline-item:last-child { border-bottom: none; }
+        .timeline-marker {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--color-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        .timeline-item.completed .timeline-marker { background: var(--color-success); color: white; }
+        .timeline-item.blocked .timeline-marker { background: var(--color-danger); color: white; }
+        .timeline-content { flex: 1; }
+        .timeline-title { font-weight: 600; margin-bottom: 4px; }
+        .timeline-meta { font-size: 13px; color: var(--color-text-secondary); }
+        .decision-item {
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 3px solid var(--color-info);
+        }
+        .decision-item.tier-c { border-left-color: var(--color-warning); background: #fffbeb; }
+        .decision-title { font-weight: 600; margin-bottom: 8px; }
+        .decision-rationale { font-size: 13px; color: var(--color-text-secondary); }
+        .decision-source { font-size: 12px; color: var(--color-text-secondary); margin-top: 8px; font-style: italic; }
+        .alert {
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        .alert-warning { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
+        .alert-danger { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+        .alert-info { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+        .full-width { grid-column: 1 / -1; }
+        .debt-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .debt-severity {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .debt-severity.high { background: #fecaca; color: #991b1b; }
+        .debt-severity.medium { background: #fed7aa; color: #9a3412; }
+        .debt-severity.low { background: #dbeafe; color: #1e40af; }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status-completed { background: #d1fae5; color: #065f46; }
+        .status-deferred { background: #fee2e2; color: #991b1b; }
+        .status-pending { background: #e0e7ff; color: #3730a3; }
+        .cost-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .cost-table th, .cost-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--color-border); }
+        .cost-table td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+        .note { font-size: 12px; color: var(--color-text-secondary); font-style: italic; margin-top: 8px; }
+        .footer {
+            text-align: center;
+            padding: 24px;
+            color: var(--color-text-secondary);
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <h1>📋 9023 — B's Repairs</h1>
+        <div class="header-meta">
+            <span>ID: 9023-b-repairs</span>
+            <span>Status: <span class="status-badge status-completed">已完成</span></span>
+            <span>Duration: 3 days</span>
+            <span>Completed: 2026-09-15</span>
+        </div>
+    </header>
+
+    <!-- Dashboard Metrics -->
+    <div class="dashboard">
+        <div class="metric-card success">
+            <div class="metric-label">Plan Health</div>
+            <div class="metric-value">100%</div>
+            <div class="metric-sub">四个里程碑全部翻转</div>
+        </div>
+        <div class="metric-card success">
+            <div class="metric-label">Milestones</div>
+            <div class="metric-value">4/4</div>
+            <div class="metric-sub">全部完成</div>
+        </div>
+        <div class="metric-card warning">
+            <div class="metric-label">Tier C Decisions</div>
+            <div class="metric-value">3</div>
+            <div class="metric-sub">1 已裁决 · 2 待裁决 (Q25, Q28)</div>
+        </div>
+        <div class="metric-card warning">
+            <div class="metric-label">Verification</div>
+            <div class="metric-value">3/4</div>
+            <div class="metric-sub">Adversarial verified</div>
+        </div>
+        <div class="metric-card info">
+            <div class="metric-label">Token Cost</div>
+            <div class="metric-value">—</div>
+            <div class="metric-sub">本计划未接 token 跟踪</div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Left Column: Timeline -->
+        <div class="section">
+            <div class="section-header">📅 Milestone Timeline</div>
+            <div class="section-body">
+                <ul class="timeline">
+                    
+                    <li class="timeline-item warning">
+                        <div class="timeline-marker">!</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M1 — Fix B's two blocking crashes</div>
+                            <div class="timeline-meta">
+                                2026-09-14 • 5 轮验证（cap） • 人的裁决翻牌 — 无 CONFIRMED；代码由第 1、2、4、5 轮独立验净
+                            </div>
+                        </div>
+                    </li>
+                    
+                    <li class="timeline-item success">
+                        <div class="timeline-marker">✓</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M2 — Delete the role re-derivation</div>
+                            <div class="timeline-meta">
+                                2026-09-14 • 1 轮 • CONFIRMED @ 9f0e8b3 — 套件首次全绿
+                            </div>
+                        </div>
+                    </li>
+                    
+                    <li class="timeline-item success">
+                        <div class="timeline-marker">✓</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M3 — Retire the reliability chain</div>
+                            <div class="timeline-meta">
+                                2026-09-14 • 1 轮 • CONFIRMED @ 03be621 — SyntaxWarning 一并消失
+                            </div>
+                        </div>
+                    </li>
+                    
+                    <li class="timeline-item success">
+                        <div class="timeline-marker">✓</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">M4 — B's first end-to-end test</div>
+                            <div class="timeline-meta">
+                                2026-09-15 • 3 轮 • CONFIRMED @ 929d5a7 — 空输入不再能通过
+                            </div>
+                        </div>
+                    </li>
+                    
+                </ul>
+            </div>
+        </div>
+
+        <!-- Right Column: Decisions -->
+        <div class="section">
+            <div class="section-header">🎯 Key Decisions</div>
+            <div class="section-body">
+                
+                <div class="alert alert-warning">
+                    <strong>⚠️ Awaiting Steering:</strong> 2 unresolved decisions
+                </div>
+                
+
+                
+                <div class="decision-item tier-c">
+                    <div class="decision-title">Q27 — 代码验净而说明反复不通过，什么能关闭它？</div>
+                    <div class="decision-rationale">人裁决：这种不是代码出问题的，第三轮结束就应该翻牌。M1 据此翻转。规则写入 docs/conventions/pev-loop.md「What a milestone's Verify may be asked」。</div>
+                    <div class="decision-source">Source: docs/conventions/pev-loop.md · 9023 §7 Q27</div>
+                </div>
+                
+                <div class="decision-item ">
+                    <div class="decision-title">Verify brief 只问产物</div>
+                    <div class="decision-rationale">验证计划文档（文档即交付物）与验证里程碑（计划只是关于产物的报告）是两回事。把前者的 brief 搬进后者，就是 M1 五轮的成因 —— 每一轮都答得对，问题问错了。</div>
+                    <div class="decision-source">Source: docs/conventions/pev-loop.md</div>
+                </div>
+                
+                <div class="decision-item ">
+                    <div class="decision-title">M4 的通话记录一致性测试改归 9024</div>
+                    <div class="decision-rationale">B 无法消费通话记录：其解析器取带标签的转写文本，而记录里 turns[].speaker 是 S0/S1、speakers[].label 为 null、718 条无一有 speaker_role。原计划「B 是双方都看得见的地方」的前提假设了 B 不具备的能力。</div>
+                    <div class="decision-source">Source: docs/exec-plans/active/9024-port-and-fences.md M7</div>
+                </div>
+                
+                <div class="decision-item tier-c">
+                    <div class="decision-title">Tier-1 地板红着，记在册不豁免</div>
+                    <div class="decision-rationale">按仓库自己的不变量，M1–M4 是在红地板上翻的，在地板变绿前翻转不成立。修法涉及已发布历史，属人的决定，押后。</div>
+                    <div class="decision-source">Source: docs/conventions/pev-loop.md</div>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- Full Width: Cost & Timing -->
+        <div class="section full-width">
+            <div class="section-header">💰 Token 消耗与成本</div>
+            <div class="section-body">
+                <table class="cost-table">
+                    <tr><th>来源</th><th>Token 数</th><th>说明</th></tr>
+                    
+                    <tr style="font-weight: 700; border-top: 2px solid var(--color-text);"><td>—</td><td>—</td><td>未接 token 跟踪（.pev-signals/state.json 不存在）</td></tr>
+                    
+                </table>
+                <div class="note">
+                    未测量。本计划的验证走的是逐轮 subagent 派发，而 PEV 的 token 跟踪写在 <code>.pev-signals/state.json</code> 里，9023 从未建过该文件。此处不填估算值：估算会被读成测量。
+                </div>
+            </div>
+        </div>
+
+        <!-- Full Width: Surprises -->
+        <div class="section full-width">
+            <div class="section-header">⚡ Surprises & Discoveries</div>
+            <div class="section-body">
+                
+                <div class="alert alert-warning">
+                    <strong>第三处崩溃的出处是我编的:</strong> 我写「本机必崩、执行时发现」。实测：本机 transformers 4.48 走 MPS 分支正常构造；会 raise 的是 4.40–4.46.3 装在无加速器机器上；而 B 自己的 HANDOFF.md 早就列为 critical bug #2。
+                    <br><em>Impact: 四轮验证全在还这笔债，每还一次又欠新的</em>
+                </div>
+                
+                <div class="alert alert-danger">
+                    <strong>版本边界错了两次:</strong> 先说「本机必崩」，再说「4.40–4.45 抛、4.46 起回退」。真相是边界在 4.46.3 → 4.47.0，两头都写错。逐版读了 4.40.0 到 5.17.0 的全部 tag 才钉死。
+                    <br><em>Impact: 同一事实被抄进五处，五处都是错的</em>
+                </div>
+                
+                <div class="alert alert-info">
+                    <strong>MPS 分歧：逻辑存在，PyTorch 里不可达:</strong> is_torch_mps_available() 要求 is_available() and is_built()，探针只问了前者。追到 REGISTER_MPS_HOOKS 与 USE_MPS 编译开关，确认 is_available ⟹ is_built。仍然补上那一句。
+                    <br><em>Impact: 探针从此不可能与流水线判据不一致，不靠推理</em>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <strong>删除把数字改变了，而我先写反了:</strong> 删掉准确类过滤后，同一个通话 100.0/优秀 → 50.0/不合格。我在提交信息里写「从未影响过任何分数」，同一段的后半句正好推翻它。
+                    <br><em>Impact: git notes 更正；M4 的 e2e 测试补上了这处覆盖缺口</em>
+                </div>
+                
+                <div class="alert alert-danger">
+                    <strong>e2e 测试在空字符串上全部通过:</strong> 第 2 轮实测：空输入同样给出 25 个问题、25 个裁决、0.0/不合格，且六个必需路由全部触发。没有任何一条断言能区分「处理了真实转写」与「什么都没处理」。
+                    <br><em>Impact: 补上「空输入必须得到不同分数」；第 3 轮再验</em>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <strong>地板有四项检查是空转的:</strong> test_prd_spine_drift.py 报 5 个通过，其中 4 个 emit SKIP 警告后照样通过 —— docs/PRD 软链指向的 /Users/prometheus/papers/PLAN 连主检出里都不存在。
+                    <br><em>Impact: 每次 Tier-1 报的 192 passed 都要扣掉这 4 个</em>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- Full Width: Technical Debt -->
+        <div class="section full-width">
+            <div class="section-header">🔧 Technical Debt</div>
+            <div class="section-body">
+                
+                <div class="debt-item">
+                    <div>
+                        <strong>Tier-1 地板仍是红的</strong>
+                        <div style="font-size: 13px; color: var(--color-text-secondary);">六个已发布提交的裸 Plan: 9021 trailer、三个本地 flip 提交的 scope 含空格、两个逾期 regrade 日期。修法涉及已发布历史，需人裁决。</div>
+                    </div>
+                    <span class="debt-severity high">high</span>
+                </div>
+                
+                <div class="debt-item">
+                    <div>
+                        <strong>B 的套件漏掉 8 个变异中的 5 个</strong>
+                        <div style="font-size: 13px; color: var(--color-text-secondary);">M4 的验证跑了 10 个生产变异，6 个被抓、4 个漏掉，且没有一个漏网的能被 test_e2e 抓到。它是编排器的冒烟测试，不是语义回归网。</div>
+                    </div>
+                    <span class="debt-severity high">high</span>
+                </div>
+                
+                <div class="debt-item">
+                    <div>
+                        <strong>_parse_raw 现在是唯一的角色权威，只认三种格式</strong>
+                        <div style="font-size: 13px; color: var(--color-text-secondary);">五种常见时间戳写法产出 0 轮，而标签就明摆在眼前，且失败是静默的。</div>
+                    </div>
+                    <span class="debt-severity medium">medium</span>
+                </div>
+                
+                <div class="debt-item">
+                    <div>
+                        <strong>_assess_coverage 拿实体名去比目录名字符串</strong>
+                        <div style="font-size: 13px; color: var(--color-text-secondary);">「CA证书」in「法人数字证书业务」为假，所以覆盖率结构性接近 0，low_coverage_warning 永远为真。ENTITY_TO_L1 也是手工维护的子串表。</div>
+                    </div>
+                    <span class="debt-severity medium">medium</span>
+                </div>
+                
+                <div class="debt-item">
+                    <div>
+                        <strong>B 的 design/ 与 HANDOFF.md 仍描述已删除的行为</strong>
+                        <div style="font-size: 13px; color: var(--color-text-secondary);">十一个 design/ 文件里有 role_swap_detected 的验收项、完整期望输出 JSON、路径 C 的规格。按归档规则原样保留，只作记录。</div>
+                    </div>
+                    <span class="debt-severity low">low</span>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- Full Width: Lessons Learned -->
+        <div class="section full-width">
+            <div class="section-header">📚 Lessons Learned</div>
+            <div class="section-body">
+                
+                <div style="padding: 12px 0; border-bottom: 1px solid var(--color-border);">
+                    <strong>验证派发里能问什么，决定了循环会不会收敛</strong>
+                    <p style="font-size: 13px; color: var(--color-text-secondary); margin-top: 4px;">M1 五轮里四轮在驳「描述工作的文字」，而 B 每次都没判错 —— 是我问错了问题。把计划文档验证的判据搬进里程碑验证，会让每次修补本身成为下一轮的 finding。</p>
+                    
+                    <span class="status-badge" style="background: #e0e7ff; color: #3730a3; margin-top: 8px; display: inline-block;">
+                        ⬆️ Promotion Candidate: 已是结构性规则：docs/conventions/pev-loop.md + Hard prohibitions
+                    </span>
+                    
+                </div>
+                
+                <div style="padding: 12px 0; border-bottom: 1px solid var(--color-border);">
+                    <strong>记录不能在验证飞行中改写</strong>
+                    <p style="font-size: 13px; color: var(--color-text-secondary); margin-top: 4px;">第 3 轮的裁定段被第 4 轮证伪，第 4 轮的证据句被第 5 轮证伪。修文字本身是未验证的断言。记录应在产物验完之后，从已验事实一次写成。</p>
+                    
+                </div>
+                
+                <div style="padding: 12px 0; border-bottom: 1px solid var(--color-border);">
+                    <strong>验收测试必须能在里程碑所在的仓库里跑</strong>
+                    <p style="font-size: 13px; color: var(--color-text-secondary); margin-top: 4px;">四个里程碑里三个的验收测试跑在别处 —— M2、M3 的在 9024/9025，M4 的在 9024。每次都以「两边都写明」收场，这也是拆分最常见的缺陷类型。</p>
+                    
+                    <span class="status-badge" style="background: #e0e7ff; color: #3730a3; margin-top: 8px; display: inline-block;">
+                        ⬆️ Promotion Candidate: docs/conventions/verification-floor.md
+                    </span>
+                    
+                </div>
+                
+                <div style="padding: 12px 0; border-bottom: 1px solid var(--color-border);">
+                    <strong>删掉概念，不要留下永远为假的字段</strong>
+                    <p style="font-size: 13px; color: var(--color-text-secondary); margin-top: 4px;">role_swap_detected、asr_quality、VerdictResult.HUMAN_REVIEW 都是「生产者没了但字段还在」，而一个无所指的字段是个等着被『修好』的值。</p>
+                    
+                </div>
+                
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        生成于 2026-09-15 &bull;
+        耗时 约 40（跨 3 天，含 16 轮对抗验证） 小时 &bull;
+        41（B 仓 16 · 本仓 25） 次提交 &bull;
+        20（B 仓） 个文件 (936+, 320−) &bull;
+        Token: — 实测 / — 估算 &bull;
+        <a href="../completed/9023-b-repairs.md">查看计划文件</a> &bull;
+        <a href="../../conventions/pev-loop.md">查看验证记录</a>
+    </div>
+</body>
+</html>

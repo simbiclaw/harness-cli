@@ -753,4 +753,54 @@ the consumer defers every call — which is honest and recorded, not a regressio
 
 ## 8. Outcomes & Retrospective
 
-*Written at completion or cancellation.*
+**What shipped.** All four milestones, in B's repository, over ten commits. Three crashes on the
+single happy path are fixed — the unassigned `kb_builder`, the Stage-6 prompt formatted with five of
+its live template's seven keys, and the CUDA device index that died in `QAAgent.__init__`. The role
+re-derivation is deleted, along with the flag and the two schema fields it reported into. The
+reliability chain is retired, with path C and a `SyntaxWarning` that had fired on every import since
+the pattern was written. And B has its first end-to-end test, over its own `data/transcripts/sample.txt`.
+The suite went from **uncollectable** to **38 passed, 0 failed, 0 skipped** — and a failure that had
+been red since the role heuristic was written is gone.
+
+**What took longer than planned, and why.** The code was the cheap part. M1 consumed all five of its
+verification rounds, and four were about the *written record* rather than the artifact: a provenance
+claim I had not checked, a version boundary stated as a number, a surviving copy of that number in a
+commit message, and finally a paragraph written to answer the round before. The rule that came out of
+it — `docs/conventions/pev-loop.md`, "What a milestone's Verify may be asked" — is this plan's most
+durable product after the code, and it cost five rounds to learn. M2, M3 and M4 then confirmed in
+one, one and three rounds respectively.
+
+**Where the plan was wrong.** Three of the four milestones named an acceptance test that could not run
+where the milestone ran. M2's and M3's consumer-side assertions belong to `9024` and `9025`; M4's
+call-record conformance test belongs to `9024` because B cannot consume a call record at all — its
+parser takes labelled transcript text, and the records carry `turns[].speaker` as `S0`/`S1` with
+`speakers[].label` null and no `speaker_role` on any of the 718. Each was reassigned with the
+reasoning written in both directions. The plan's premise for M4 — that B is "the one place both sides
+can see it" — assumed a capability B does not have.
+
+**What I would do differently, both now rules.** *Do not edit a milestone's written record while its
+verification is in flight.* The edits are themselves unverified assertions, and M1 demonstrated that
+each one becomes the next round's finding. *Run the tier-1 floor in every dispatch.* Four milestones
+were verified and flipped without it, over a floor that was red throughout; the exception is recorded
+rather than waived, and M1–M4's flips are unsound until it is green.
+
+**Technical debt this plan creates or leaves.** The tier-1 floor is still red — six published commits
+with a bare `Plan: 9021` trailer, three local flip commits whose scope a regex rejects, and two
+overdue regrade dates — and its owner is a decision about published history, not an agent. Four of the
+floor's `test_prd_spine_drift.py` passes are vacuous repo-wide. In B: `_parse_raw` is now the sole role
+authority and recognises three formats, so five plausible timestamp shapes yield zero turns with the
+label in plain sight; `_assess_coverage` compares entities to directory names, so coverage is
+structurally near zero; and the suite misses five of the eight production mutations M4's verification
+ran — it is a smoke test, not a regression net. `CleanTurn.role` stays non-nullable in B by design;
+the absent-role state is `9024`'s. B's own `HANDOFF.md` and `design/` corpus still describe the
+deleted behaviours, left as written under the archival rule.
+
+**Method note.** Every claim in this section is drawn from the verification reports in the Decision
+Log and Surprises above; where a number appears, the measurement that produced it is named there.
+
+**Report:** [`reports/9023-b-repairs-report.html`](../reports/9023-b-repairs-report.html) — the
+dashboard, generated 2026-09-15 from `.claude/templates/plan-execution-report.html`. Its figures come
+from this file and from `git`; the token cards read `—` because this plan never wired
+`.pev-signals/state.json`, and an estimate there would be read as a measurement.
+
+
