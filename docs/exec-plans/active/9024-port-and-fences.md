@@ -84,6 +84,9 @@ is consumed. (The section's originally sketched names — `test_all_schemas_roun
 verification record in `9021-relayer-argus-eval-pipeline-notes/M5.md` explains the renames.)
 
 
+
+`Behavioral Test:` `tests/test_schemas.py::test_every_contract_roundtrips` — every contract constructs, serializes and deserializes (parametrised over all sixteen models), plus `::test_upstream_output_loads`, `::test_unknown_keys_are_dropped_not_preserved`, `::test_two_rubric_item_classes_remain_distinct` and the two replay-hash tests. `Structural Test:` the same file's fidelity floor — `::test_port_matches_the_upstream_contract_exactly`, `::test_the_port_declares_exactly_the_upstream_set`, `::test_the_checks_can_fail` (its mutation table), `::test_the_register_signs_for_real_divergences_only`, `::test_the_snapshot_is_the_pinned_commit_and_has_not_been_hand_edited`. That half enforces *how the port is built* (a faithful copy of upstream, nothing more) rather than what it does, which is why it is named structural despite living in `tests/` — the convention's own "purpose, not directory" rule.
+
 **Contract.**
 - *Deliverable:* The pipeline's data contracts live in `types/`.
 - *Binding constraint:* I5 — the replay-bearing record stays separable from diagnostics.
@@ -130,6 +133,9 @@ The original text, kept as the record of what was written before the floor was r
 `::test_a_repeated_quote_is_still_unambiguous` — a twice-occurring turn text anchors precisely.
 Eleven tests in the file; all pass.
 
+
+
+`Behavioral Test:` `tests/test_evidence_anchor.py` — `::test_a_resolving_quote_verifies`, `::test_a_quote_that_does_not_match_its_span_fails`, `::test_a_span_outside_the_transcript_fails`, `::test_a_repeated_quote_is_still_unambiguous`, `::test_an_inverted_or_empty_span_is_rejected_at_construction`, `::test_the_anchor_survives_a_round_trip`, `::test_an_intents_sha_must_look_like_an_epoch`, `::test_a_quote_whose_length_disagrees_with_its_span_is_rejected` — each exercises `resolve_quote`/`Span`'s behaviour on a real input. `Structural Test:` `::test_the_port_is_untouched` (the anchor lives beside the port, and a change that moves it into `types/pipeline.py` fails the M5 floor) and `::test_the_anchor_fields_are_required_not_defaulted` (a defaulted anchor is an unanchored finding wearing an anchor's name).
 
 **Contract.**
 - *Deliverable:* Evidence traceable to an exact location in the source transcript.
@@ -200,6 +206,9 @@ ASR text parsing. (The fifth prohibition — no rubric→question derivation fro
 **M15's**, because switching `question_generator`'s input from `config/rubric_items.py` to the
 compiled nodes is that milestone's work; asserting it here would fail against code this milestone
 legitimately imports.)
+
+
+`Behavioral Test:` `tests/test_io_import.py::test_pipeline_runs_from_io_matches_the_m4_baseline` (the port over a real record, field-for-field against the baseline captured from B) and the seven disposition tests in `tests/test_call_record.py` — the conformance read, the three decline paths (`unattributed`, `partial`, `speakers: []`), the degenerate pair, declared-empty, and `::test_the_three_dispositions_are_distinguishable`. `Structural Test:` `tests/test_io_import.py::test_no_producer_logic_in_io` — an AST scan over all of `io/` for the act of re-deciding a producer's decision (tree traversal, transcript re-derivation), plus `::test_the_seven_ported_modules_live_in_io` and the scan's own red/green fixtures. It enforces *how the port is built* — the boundary the import list draws — not what the port computes. `tests/test_call_record.py::test_the_synthetic_record_matches_the_corpus_shape` is fixture integrity, not a claim about the port.
 
 **Contract.**
 - *Deliverable:* Every model-touching module that belongs to the consumer lives under `io/`.
@@ -296,6 +305,9 @@ contract permits `core → io`, which must be reconciled with these — see Q16.
 `::test_clean_tree_passes`. A contract that has never failed is not enforcement.
 
 
+
+`Behavioral Test: none —` the deliverable is an enforcement artifact for a convention about how the code is built (the four layer fences), which `pev-loop.md` names as the structural category by its own examples ("commit format, layering rules"). The acceptance tests — a planted `from anthropic import Anthropic` in a `core/` module making `lint-imports` exit non-zero, and a clean tree passing — exercise the *enforcement* working, not application behaviour; they are the structural coverage, and forcing a behavioural test here would mean inventing a claim about `src/argus/` that has nothing to do with fences. `Structural Test:` `tests/test_fences.py` — `::test_the_checker_catches_every_fence_crossing`, `::test_core_imports_no_model_client`, `::test_grounding_imports_neither_proposer_nor_matching_model`, `::test_aggregate_imports_no_model_client`, `::test_fence_coverage_is_visible`.
+
 **Contract.**
 - *Deliverable:* The four layer fences enforced by an artifact that can fail.
 - *Binding constraint:* The four fences in CLAUDE.md. Q16 forbids `core -> io`.
@@ -311,6 +323,9 @@ assumes two modules exist. Widen the scan, keep the red/green pair.
 `Acceptance Test:` `tests/test_i8_provenance_separation.py::test_live_core_tree_clean` — passes
 against the populated tree with the allowlist reasoned, not widened to admit violations.
 
+
+
+`Behavioral Test: none —` I8 is a prohibition on *how the code is wired* (no logit-derived quantity reaches a disposer input), and the deliverable is the checker that enforces it. The red/green pair exercises the checker; there is no application behaviour for this milestone to produce, and the convention's escape clause is what applies: "pure structural/convention change with no functional behavior". `Structural Test:` `tests/test_i8_provenance_separation.py` — `::test_i8_red`/`::test_i8_green` (the standing pair), `::test_i8_covers_all_disposer_inputs`, `::test_a_module_that_only_names_the_symbol_in_prose_is_not_a_reader`, `::test_string_keyed_access_is_still_a_read`, `::test_i8_call_form_is_caught`, `::test_divergence_is_the_only_permitted_reader`.
 
 **Contract.**
 - *Deliverable:* The provenance checker scans the populated `core/` tree.
