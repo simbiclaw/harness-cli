@@ -764,7 +764,16 @@ the re-run.
 
 ## 7. Awaiting Steering
 
-**Q28: Is a 0.0/不合格 report an acceptable form of "routed to a human"?** Raised 2026-09-14 by
+**Q28: Is a 0.0/不合格 report an acceptable form of "routed to a human"?**
+— **Awaiting Steering: resolved 2026-09-15.** The human's ruling went past all three options:
+**角色必须确立，否则 Argus 不处理** — a call whose speaker roles were never established is not
+processed at all. There is no routed verdict to shape: role establishment is an *input precondition*
+(a malformed record is rejected before evaluation, per 9021's M1 intake contract), not a routing
+outcome. The consequence for the acceptance test this plan named: `test_absent_role_defers`'s
+*defers* is historical — the assertion is "not processed", and 9024 names the test when it writes
+it. *Original question kept below.*
+
+Raised 2026-09-14 by
 M2's verification. When a call cannot be attributed, B currently produces a *confident* negative —
 zero, 不合格, vetoed — rather than an absence, and `requires_human_review` happens to be set for
 unrelated reasons. Argus is supposed to do the opposite: no auto-final verdict, route to a human.
@@ -804,7 +813,13 @@ have fired here at all, matters more than M1: it will recur on M2, M3 and M4.
 unflipped and no further verification round is dispatched.** — deadline: when the human next reads
 this plan, or before M2's Plan phase, whichever is first.
 
-**Q25: Who executes the corpus re-run, and when is the archive backup made?** Not resolved. M2 and
+**Q25: Who executes the corpus re-run, and when is the archive backup made?**
+— **Awaiting Steering: resolved 2026-09-15.** The human assigned both to the **audio2tree line**
+(9008): the archive backup, then the speaker_role re-run over the 718 records. Assignment
+delivered to the 9008 session on 2026-09-15. Until it lands, 0/718 records carry a role and — per
+Q28's ruling the same day — Argus does not process them. *Original question kept below.*
+
+Not resolved. M2 and
 M3 are correct as written but produce no usable input until the producer's pass has been run over
 the 718 records. The backup is a prerequisite no agent has been authorised to make. Options: the
 audio2tree line owns it; the human does it manually; it waits. Default if not decided: it waits, and

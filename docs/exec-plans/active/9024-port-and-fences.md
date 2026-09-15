@@ -325,6 +325,30 @@ because the same mistake is available to anyone who edits an import list by read
 
 ## 7. Awaiting Steering
 
+**Q29: What does Argus do with a call whose speaker roles were never established?**
+— **Awaiting Steering: resolved 2026-09-15, human ruling.** **角色必须确立，否则 Argus 不处理.**
+Role establishment is an **input precondition, not a routing outcome**: a call record whose
+`speakers[].speaker_role` is unestablished is declined at intake — rejected before evaluation, the
+same disposition as a malformed record (9021 M1's intake contract). Argus produces no evaluation,
+no score, no grade, and no "routed to human" verdict for it. Two consequences M7 carries:
+
+1. **The absent-role state exists to be *recognised and declined*, not scored-around.** The port
+   gains the absent state so the consumer can detect "nobody established this" — and the handler
+   for that state is decline-at-intake.
+2. **`test_absent_role_defers`'s name is historical** (inherited from 9023's M2, where the
+   disposition was still phrased as a deferral). When M7 writes the test, the assertion is "not
+   processed", and the name should say so. Q28 in 9023 records the same ruling from the
+   completed plan's side.
+
+**Q30: When does real corpus data reach M7's consumer-side tests?**
+— **Awaiting Steering: resolved 2026-09-15, human assignment.** The speaker_role re-run over the
+718 records (9008 M9's pass) and its archive-backup prerequisite are assigned to the **audio2tree
+line**; the assignment was delivered to the 9008 session on 2026-09-15. Until it lands, 0/718
+records carry a role — so M7's consumer-side assertions run on synthetic records carrying the
+field, plus the decline path exercised on records that lack it. Real-data conformance waits for
+the re-run and is 9024 M7's or M4-inheritance's to pick up when it lands.
+
+
 **Q16: Does `core/` stop importing `io/`?** — **Awaiting Steering: resolved 2026-09-12.** Forbid
 `core → io`; M8 lands the four forbidden contracts with `include_external_packages = True` and
 amends `docs/conventions/layering.md` in the same milestone, so convention and lint agree.
