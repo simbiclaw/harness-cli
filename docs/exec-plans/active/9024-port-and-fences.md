@@ -364,6 +364,17 @@ prose list alone is not executable, as adversarial verification established.
 **Confidence:** high on the criterion; the surviving risk is a *producer gap* (something a retained
 module needs that no producer emits) — record it, do not import the derivation.
 
+### Decision: The fidelity target moves with B — and the register's first entry is what stays behind (2026-09-15)
+
+**Rationale:** `Source:` M7's execution, where the port could not satisfy M5's snapshot and M7's golden at once. M5's floor was built against `0c2cccd`; M7's golden was captured from B at HEAD `929d5a7`, where 9023 M3 deleted `asr_quality_warning`, `role_swap_detected`, `ASRQuality`, `TurnFlag`, `reliability` and `flags`. A port that recreates the deleted fields to satisfy the old floor would be faithful to a revision B has moved past — and the field it recreates is exactly the one 9023 retired *for being fabricated*. So **the pin moves to `929d5a7`**: the snapshot is regenerated against today's B, and `pipeline.py` aligns to it. Fidelity means faithful to the current upstream, not to the one the floor happened to be built on.
+
+**One member stays, and it is the register's entry one (the mechanism's first real use).**
+`VerdictResult.HUMAN_REVIEW` is absent from today's B — 9023 deleted its only producer with the reliability chain — but it is **not** the class of thing 9023 retired. What 9023 retired were fabricated *measurements* (a quality grade guessed from text). `HUMAN_REVIEW` is a *disposition outcome*, spec §3.4 carries the same concept as `meta_verdict: "escalate"`, and Argus's own `core/score.py` already uses it as a key in `_CREDIT` and `_DEFERRALS`. Deleting it would break `score.py` at import and two tests belonging to 9027, a plan that has not begun — recreating in 9027 exactly the divergence 9030 exists to reconcile. So it is retained, and the retention is **signed**: `tests/fixtures/intentional_deviations.yaml` gains its first entry naming the authorising ruling, and the comparator consults the register before failing. One direction only — a registered member may be *extra*; a member the snapshot has and the port lacks is always a failure.
+
+**Why this is the register's first use and not a loophole.** The register was designed (9022, absorbed here) to be deliberately awkward: an entry must name the decision that authorised it, so suppressing a divergence is an act someone signs, never a silence. This entry is the first thing that genuinely needed one — an intentional difference with an authorising ruling — and the mechanism behaves as designed. `HUMAN_REVIEW`'s long-term fate (retain, rename to spec-native `escalate`, or fold into a wider deferral-model revision) stays open and is 9027's to decide with the spec in hand; the register entry names that revisit so it cannot be forgotten.
+
+**Confidence:** high on the pin move — the alternative recreates a field 9023 retired for cause. `Confidence: medium` on retaining `HUMAN_REVIEW` rather than renaming it now: the rename is cleaner long-term but would touch 9027's files, and doing another plan's work to make one's own test green is the trade this plan has refused everywhere else. `Revisit:` when 9027's Plan phase opens.
+
 ### Decision: The intentional-deviation register lives here, with the port it deviates from (2026-09-14)
 
 **Rationale:** `Source:` M2's nullable-role requirement (see 9023) — the consumer must be able to
