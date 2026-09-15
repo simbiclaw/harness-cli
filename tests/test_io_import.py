@@ -5,8 +5,8 @@ The contract is M7's data-flow table, not a module list: seven modules move
 re-namespaced (`llm_client`, `nli`, `prompts`, `fact_checker` path A only,
 `atomizer`, `question_generator`, `qa_agent` rewired), the arguments they used
 to take from dropped modules are supplied — `Session` from the call record
-(`argus.io.call_record`), `SessionKBContext` from a stub until 9025's Provider
-lands — and the orchestrator's ingest stages are gone. What must be true:
+(`argus.io.call_record`), `SessionKBContext` from a test-owned stub (the
+baseline's rubric items as data) until 9025's Provider lands — and the orchestrator's ingest stages are gone. What must be true:
 the port produces the **same output as 9023 M4's baseline on the same
 transcript** (captured from simbi into `tests/fixtures/io_import_baseline.json`
 with the same fakes), and nothing in `io/` re-decides a producer's.
@@ -17,8 +17,8 @@ the comparison are fed identical answers.
 The interface the tests pin, per the data-flow table and the 2026-09-15 Q29
 ruling (roles must be established or the call is not processed):
 
-    session    = call_record.build_session(record)      # declines if roles absent
-    kb_context = call_record.stub_kb_context(record)    # until 9025's Provider
+    session    = call_record.build_session(record)   # declines if roles absent
+    kb_context = <test-owned stub: the baseline's rubric items as data>
     report     = qa_agent.run_session(session, kb_context=..., llm_client=..., nli_model=..., nli=...)
 """
 
@@ -92,12 +92,23 @@ def test_pipeline_runs_from_io_matches_the_m4_baseline():
     from tests.fakes import FakeLLM, FakeNLI
 
     from argus.io import call_record, qa_agent
+    from argus.types.pipeline import RubricItem, SessionKBContext
 
     record = json.loads(RECORD.read_text(encoding="utf-8"))
     golden = json.loads(GOLDEN.read_text(encoding="utf-8"))["report"]
+    items_data = json.loads(
+        (REPO / "tests" / "fixtures" / "rubric_items_baseline.json").read_text(encoding="utf-8")
+    )["items"]
+
+    # The kb stub the sequencing note allows: the 25-item rubric the baseline
+    # was captured with, as data, until 9026's compiled nodes and 9025's
+    # Provider replace this fixture with the real referent.
+    items = [RubricItem.model_validate(i) for i in items_data]
+    kb_context = SessionKBContext(
+        all_rubric_items=items, applicable_rubrics=items
+    )
 
     session = call_record.build_session(record)
-    kb_context = call_record.stub_kb_context(record)
     report = qa_agent.run_session(
         session,
         kb_context=kb_context,
