@@ -91,15 +91,44 @@ verification record in `9021-relayer-argus-eval-pipeline-notes/M5.md` explains t
 - *Known evidence (advisory):* B carries the stage decomposition in its schemas; A's are self-declared placeholders. Q10 adopted four diagnostic fields — where they live is yours to design.
 
 
-### M6 — Extend `EvidenceItem` to an I2 anchor slot
+### M6 — Extend evidence to an I2 anchor slot
 
-Add `span`, `quote` and `intents_sha`. Re-plumb timestamps through stage 1 so spans are
-recoverable. Verified feasible: B's parser mutates turn text only with `.strip()`, and a
-round-trip on the sample transcript recovered 17/17 turns as exact substrings.
+**Reconciled 2026-09-15 against the landed implementation** (`src/argus/types/anchored.py`,
+`tests/test_evidence_anchor.py` — 11 passing). The original text below was written before anyone
+read M5's landed floor, and following it as written would break a CONFIRMED milestone. Three
+corrections, each recorded where it happened rather than smoothed over:
 
-`Acceptance Test:` `tests/test_evidence_anchor.py::test_span_roundtrip` — every evidence item
-recovers an exact character span from the raw transcript. `::test_ambiguous_span_rejected` — a
-turn text occurring twice fails rather than guessing.
+1. **The anchor lives beside the port, not inside it.** The original said "add `span`, `quote`
+   and `intents_sha`" to `EvidenceItem`. M5's snapshot test rejects any field upstream does not
+   have — adding them there fails the floor, correctly. The landed design is a separate type,
+   `types/anchored.py::AnchoredEvidence`, mirroring the ported `EvidenceItem`'s fields and adding
+   the three I2 requires; `types/pipeline.py` is untouched, and a test asserts the boundary.
+2. **The timestamp re-plumb is retracted.** The original said to re-plumb timestamps through
+   stage 1. Stage-1 `Turn` carries no timestamps — and the deeper point is that a timestamp
+   cannot satisfy exact-quote verification: seconds locate audio, I2 needs character offsets
+   into the text that was read. The landed `Span` is a half-open character range; timestamps
+   remain a different provenance axis and a different milestone's problem.
+3. **The named acceptance tests exist under different names.** `test_span_roundtrip` is
+   `test_the_anchor_survives_a_round_trip`; `test_ambiguous_span_rejected` became
+   `test_a_repeated_quote_is_still_unambiguous` — the ambiguity is solved by *storing* the span
+   rather than rejecting the record, because short turns repeat (`嗯` occurs twice in the
+   fixture) and a stored span is exact where a search would guess. Both plus nine others pass.
+
+The original text, kept as the record of what was written before the floor was read:
+
+> Add `span`, `quote` and `intents_sha`. Re-plumb timestamps through stage 1 so spans are
+> recoverable. Verified feasible: B's parser mutates turn text only with `.strip()`, and a
+> round-trip on the sample transcript recovered 17/17 turns as exact substrings.
+>
+> `Acceptance Test:` `tests/test_evidence_anchor.py::test_span_roundtrip` — every evidence item
+> recovers an exact character span from the raw transcript. `::test_ambiguous_span_rejected` — a
+> turn text occurring twice fails rather than guessing.
+
+`Acceptance Test (current names):` `tests/test_evidence_anchor.py::test_the_anchor_survives_a_round_trip`
+— the anchor fields survive a JSON round-trip. `::test_a_resolving_quote_verifies` and
+`::test_a_quote_that_does_not_match_its_span_fails` — exact-quote verification, green and red.
+`::test_a_repeated_quote_is_still_unambiguous` — a twice-occurring turn text anchors precisely.
+Eleven tests in the file; all pass.
 
 
 **Contract.**
@@ -268,7 +297,7 @@ against the populated tree with the allowlist reasoned, not widened to admit vio
 ## 4. Progress
 
 - [x] M5: Port B's schemas into types/  (done 2026-09-14 16:40 PT; round-6 CONFIRMED at `3315bd6`)
-- [ ] M6: Extend EvidenceItem to an I2 anchor slot  (created 2026-09-12)
+- [ ] M6: Extend evidence to an I2 anchor slot  (reconciled 2026-09-15 — implementation landed in types/anchored.py; see the milestone's corrections)
 - [ ] M7: Move B's proposal half into io/ — import list redrawn along the architecture's seam  (amended 2026-09-14)
 - [ ] M8: Land the four forbidden import-linter contracts  (created 2026-09-12)
 - [ ] M9: Repoint the I8 checker at the populated tree  (created 2026-09-12)
