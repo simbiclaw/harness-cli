@@ -82,3 +82,28 @@ Two consequences the business can rely on:
 - **On-premise, local model.** The proposing model runs inside the deployment; call audio and transcripts never leave it.
 - **Full-coverage throughput.** Sized for the full call stream (target ≈3,000 calls/day on a single accelerator node), not a sampling fraction.
 - **Every evaluation is a record.** Findings, evidence, applied precedents, routing reason and the derivation trail are stored with each result — the audit trail is the product, not a log.
+
+## Sources
+
+This document is the product-level statement of a specified system; every claim in it traces to one of the following. Where this document and a spec disagree, the spec governs.
+
+**Runtime pipeline (what runs per call, and why it is trustworthy)**
+
+- `docs/retrospectives/process-derivation-pipeline-spec-v5.html` — the deterministic QA pipeline: propose → gate → re-derive; the two-layer criteria split; grounding; routing; what stays human (§9).
+- `docs/retrospectives/process-derivation-pipeline-spec-v5-patch-1.md` — the model's own score as a never-shipping diagnostic (D19/D20/I8); local on-premise proposer and the ≈3,000 calls/day capacity target (D21); the unbiased random audit floor (D22).
+
+**Rubric authoring (where the quality model comes from)**
+
+- `docs/retrospectives/soft-criteria-authoring-spec-v4.html` — the four-input contract that compiles the human rubric into machine-gradable form; what compiles, what is declared residue; the calibration channel.
+- `docs/retrospectives/soft-criteria-authoring-spec-v4-patch-1.md` — acoustic and phrase as evidence instruments serving the 25 items (per-item audit, §2); the 12 indicators and lexicon groups; dimension hard-fail gates as synthesized escalation rules (§5).
+- `docs/retrospectives/soft-criteria-authoring-spec-v4-patch-2.md` — compiler self-audit and adversarial testing of Chinese keyword gates (internal to the compiler; cited for completeness).
+- `docs/retrospectives/soft-criteria-authoring-spec-v4-patch-3.md` — calibration as a living channel: danger-zone 2:1 curation, drift-triggered injection, blind-first review, no fine-tuning (§1–3); the 25-item count correction (§6).
+
+**The rubric itself**
+
+- `docs/PRD/eval/align.md` — the 25 items and their dimension binding; items 6–7 excluded pending ticketing/escalation system access; dimension weights and the Problem-Resolution hard threshold.
+- `docs/PRD/eval/skills/evaluator/SKILL.md` — the four-dimension quality model and the weighted-total pass line (≥ 7.5).
+
+**Plan of record**
+
+- `docs/exec-plans/active/9021-relayer-argus-eval-pipeline.md` — the parent plan and its architecture review: the producer/consumer seam (audio2tree, doc2graph, the criteria compiler, curation produce the knowledge base; Argus consumes it and never re-derives what a producer establishes), and the shared record this product spec's guarantees rest on.
