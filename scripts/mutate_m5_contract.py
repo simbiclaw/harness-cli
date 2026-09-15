@@ -13,6 +13,16 @@ then the suite runs and the tree is restored. Restore happens in a `finally`:
 the port file is untouchable territory, and a crashed sweep must not leave a
 mutated tree.
 
+Four rows were written against `TurnFlag`, which 9023 M3 deleted at the pin the
+port now holds, and the two `Verdict.checking_path` rows pinned a third path
+`"C"` that was retired with it. Those six were re-pointed — not re-shaped — to
+live targets: `ClaimType`, a `(str, Enum)` of the same kind, and the narrowed
+`Literal["A", "B"]`. This is the same move `tests/test_schemas.py`'s plant
+table already made, and for the same reason: the defect class is unchanged,
+only the target had to be one that exists. Six rows re-pointed, 21 rows still
+present. A row whose defect class had no live target would be reported, not
+deleted — the row count is part of what this sweep is worth.
+
 Methodology, hardening the pyc taint that corrupted round-4's first verdict:
 two same-size mutations landing inside one clock second share the (mtime,
 size) pair CPython's bytecode validator checks, so a suite run can silently
@@ -124,8 +134,8 @@ MUTATIONS: list[Mutation] = [
                 "from pydantic import BaseModel, Field, field_validator\n",
             ),
             (
-                '    checking_path: Literal["A", "B", "C"] = "A"\n',
-                '    checking_path: Literal["A", "B", "C"] = "A"\n'
+                '    checking_path: Literal["A", "B"] = "A"\n',
+                '    checking_path: Literal["A", "B"] = "A"\n'
                 "\n"
                 '    @field_validator("score")\n'
                 "    @classmethod\n"
@@ -143,8 +153,8 @@ MUTATIONS: list[Mutation] = [
                 "from pydantic import BaseModel, Field, model_validator\n",
             ),
             (
-                '    checking_path: Literal["A", "B", "C"] = "A"\n',
-                '    checking_path: Literal["A", "B", "C"] = "A"\n'
+                '    checking_path: Literal["A", "B"] = "A"\n',
+                '    checking_path: Literal["A", "B"] = "A"\n'
                 "\n"
                 '    @model_validator(mode="after")\n'
                 "    def _clear_evidence(self):\n"
@@ -155,16 +165,16 @@ MUTATIONS: list[Mutation] = [
     ),
     Mutation(
         "A#5",
-        "enum base (str, Enum) -> (Enum) (TurnFlag)",
-        edits=[("class TurnFlag(str, Enum):", "class TurnFlag(Enum):")],
+        "enum base (str, Enum) -> (Enum) (ClaimType)",
+        edits=[("class ClaimType(str, Enum):", "class ClaimType(Enum):")],
     ),
     Mutation(
         "A#6",
-        "enum members reordered (NORMAL first in TurnFlag)",
+        "enum reorder, INTERNAL_POLICY first (ClaimType)",
         edits=[
             (
-                'class TurnFlag(str, Enum):\n    INCOMPLETE = "INCOMPLETE"\n    ASR_ERROR = "ASR_ERROR"\n    ROLE_SWAPPED = "ROLE_SWAPPED"\n    NORMAL = "NORMAL"\n',
-                'class TurnFlag(str, Enum):\n    NORMAL = "NORMAL"\n    INCOMPLETE = "INCOMPLETE"\n    ASR_ERROR = "ASR_ERROR"\n    ROLE_SWAPPED = "ROLE_SWAPPED"\n',
+                'class ClaimType(str, Enum):\n    DIALOGUE_CONSISTENCY = "dialogue_consistency"\n    EXTERNAL_FACT = "external_fact"\n    INTERNAL_POLICY = "internal_policy"\n',
+                'class ClaimType(str, Enum):\n    INTERNAL_POLICY = "internal_policy"\n    DIALOGUE_CONSISTENCY = "dialogue_consistency"\n    EXTERNAL_FACT = "external_fact"\n',
             )
         ],
     ),
@@ -208,11 +218,13 @@ MUTATIONS: list[Mutation] = [
     ),
     Mutation(
         "B#11",
-        "enum alias added (TurnFlag.ASR_GARBLED)",
+        "enum alias added (ClaimType.DIALOGUE_CONSISTENT)",
         edits=[
             (
-                '    ASR_ERROR = "ASR_ERROR"\n    ROLE_SWAPPED',
-                '    ASR_ERROR = "ASR_ERROR"\n    ASR_GARBLED = "ASR_ERROR"\n    ROLE_SWAPPED',
+                '    DIALOGUE_CONSISTENCY = "dialogue_consistency"\n    EXTERNAL_FACT = "external_fact"\n',
+                '    DIALOGUE_CONSISTENCY = "dialogue_consistency"\n'
+                '    DIALOGUE_CONSISTENT = "dialogue_consistency"\n'
+                '    EXTERNAL_FACT = "external_fact"\n',
             )
         ],
     ),
@@ -270,15 +282,15 @@ MUTATIONS: list[Mutation] = [
     ),
     Mutation(
         "#21",
-        "enum behaviour hook (_missing_ coerces garbage to INCOMPLETE)",
+        "enum behaviour hook (_missing_ coerces garbage)",
         edits=[
             (
-                'class TurnFlag(str, Enum):\n    INCOMPLETE = "INCOMPLETE"\n    ASR_ERROR = "ASR_ERROR"\n    ROLE_SWAPPED = "ROLE_SWAPPED"\n    NORMAL = "NORMAL"\n',
-                'class TurnFlag(str, Enum):\n    INCOMPLETE = "INCOMPLETE"\n    ASR_ERROR = "ASR_ERROR"\n    ROLE_SWAPPED = "ROLE_SWAPPED"\n    NORMAL = "NORMAL"\n'
+                'class ClaimType(str, Enum):\n    DIALOGUE_CONSISTENCY = "dialogue_consistency"\n    EXTERNAL_FACT = "external_fact"\n    INTERNAL_POLICY = "internal_policy"\n',
+                'class ClaimType(str, Enum):\n    DIALOGUE_CONSISTENCY = "dialogue_consistency"\n    EXTERNAL_FACT = "external_fact"\n    INTERNAL_POLICY = "internal_policy"\n'
                 "\n"
                 "    @classmethod\n"
                 "    def _missing_(cls, value):\n"
-                "        return cls.INCOMPLETE\n",
+                "        return cls.DIALOGUE_CONSISTENCY\n",
             )
         ],
     ),
