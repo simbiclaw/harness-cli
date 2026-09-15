@@ -814,10 +814,15 @@ unflipped and no further verification round is dispatched.** — deadline: when 
 this plan, or before M2's Plan phase, whichever is first.
 
 **Q25: Who executes the corpus re-run, and when is the archive backup made?**
-— **Awaiting Steering: resolved 2026-09-15.** The human assigned both to the **audio2tree line**
-(9008): the archive backup, then the speaker_role re-run over the 718 records. Assignment
-delivered to the 9008 session on 2026-09-15. Until it lands, 0/718 records carry a role and — per
-Q28's ruling the same day — Argus does not process them. *Original question kept below.*
+— **Awaiting Steering: resolved 2026-09-15, then revised the same day: WITHDRAWN.** The first
+ruling assigned the archive backup and the speaker_role re-run to the **audio2tree line** (9008).
+The human then revised both halves, relayed by that session and recorded in `9024` §7 Q30:
+**(1) no backup** — it protected the corpus against a re-run that is no longer scheduled
+(*「只要不重跑，就没人重跑」*); **(2) the re-run is deferred and roles are derived in place** — the
+Q8 rationale for re-running belonged to the voiceprint route, role determination is text-based now,
+and after 9008's M13 confirms, `speaker_role` derives on the existing archive with no re-run (only
+the 159 never-transcribed calls over 380s need one). Until M13 confirms, 0/718 records carry a role
+and — per Q28's ruling — Argus does not process them. *Original question kept below.*
 
 Not resolved. M2 and
 M3 are correct as written but produce no usable input until the producer's pass has been run over
