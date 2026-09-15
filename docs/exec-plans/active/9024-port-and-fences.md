@@ -429,6 +429,20 @@ both sides: **the archive backup proceeds now** (safe, an independent prerequisi
 reads the backup); **the re-run gates on M13's CONFIRMED.** M7's consumer-side tests stay on
 synthetic records plus the decline path until the re-run lands.
 
+**Updated 2026-09-15, later — the human revised both halves (relayed by 9008).** **(1) No backup.**
+The ruling's reasoning: *「只要不重跑，就没人重跑」* — the backup protected the corpus against the
+re-run, and the re-run is no longer scheduled. **(2) The re-run itself is deferred; roles are
+derived in place.** The Q8 rationale for re-running (*"role identification … needs the audio, and
+the audio is not retained"*) belonged to the voiceprint route; role determination is now
+text-based, so after M13 CONFIRMS, `speaker_role` (and `normalized_text`) can be derived on the
+existing archive **without any re-run** — only the 159 calls over 380s that were never transcribed
+need one. 9008 records the accepted cost: the archive is gitignored and single-copy, in-place
+derivation is its first write, and the pass only adds fields plus recomputes two derived blocks
+(`turns[]`, `between_turn_pauses`), both recomputable from `segments[]` — which the contract
+forbids touching. **Net for M7: unchanged wait, shorter wait** — real role-labelled corpus arrives
+when M13 confirms, no backup or full re-run in between. Q25's backup item on 9023's side is
+withdrawn by the same ruling.
+
 
 **Q16: Does `core/` stop importing `io/`?** — **Awaiting Steering: resolved 2026-09-12.** Forbid
 `core → io`; M8 lands the four forbidden contracts with `include_external_packages = True` and
