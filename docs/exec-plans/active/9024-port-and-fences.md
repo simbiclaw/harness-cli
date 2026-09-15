@@ -297,12 +297,39 @@ against the populated tree with the allowlist reasoned, not widened to admit vio
 ## 4. Progress
 
 - [x] M5: Port B's schemas into types/  (done 2026-09-14 16:40 PT; round-6 CONFIRMED at `3315bd6`)
-- [ ] M6: Extend evidence to an I2 anchor slot  (reconciled 2026-09-15 — implementation landed in types/anchored.py; see the milestone's corrections)
+- [x] M6: Extend evidence to an I2 anchor slot  (done 2026-09-15 — round-1 CONFIRMED; reconciled 2026-09-15, implementation landed in types/anchored.py)
 - [ ] M7: Move B's proposal half into io/ — import list redrawn along the architecture's seam  (amended 2026-09-14)
 - [ ] M8: Land the four forbidden import-linter contracts  (created 2026-09-12)
 - [ ] M9: Repoint the I8 checker at the populated tree  (created 2026-09-12)
 
 ## 5. Decision Log
+
+### M6 adversarial verification
+
+**Verdict: CONFIRMED** — round 1, no rejection-grade finding.
+
+**The attacks the round ran, and what they found:**
+
+- *Unresolvable evidence passing:* no path. `resolve_quote` returns only after equality with the
+  exact span slice; mismatch raises, out-of-bounds raises, NFC-vs-NFD normalised quotes raise,
+  negative-index wraparound is impossible (`start >= 0` enforced), empty and 1-char transcripts
+  raise.
+- *Decoration check:* `resolve_quote` is consumed — `core/grounding.py:75` imports and `:211`
+  calls it (deliberately discarding the return: "run rather than trusted"); `Span` feeds
+  `core/corroboration.py:90`; `SHA_RE` feeds `core/replay.py:58`. Signature changes break at
+  import/call time.
+- *Nine mutations:* eight killed by named acceptance tests. The ninth — dropping `Span`'s own
+  `frozen=True` — was caught by **nothing** (the existing freeze test mutates through the
+  parent). Closed in the flip bundle with `test_span_itself_is_frozen`; the mutation fails closed
+  regardless, but the docstring's adjective is now asserted where it is claimed.
+- *Pydantic bypass probes:* `model_copy(update=...)` skips validation and `object.__setattr__`
+   pierces `frozen` — see §6.
+- *Multi-byte:* length validation and slicing are both code-point based; no encode/decode path
+  exists in the module; astral characters survive JSON round-trip with spans intact.
+- *Suite:* `test_evidence_anchor.py` 11/11 at verification (12 after the flip-bundle test), full
+  `tests/` 480 passed / 3 skipped / 4 failed, and all four failures fail identically at the
+  pre-M6-landing commit `a03c56b` — pre-existing, not regressions. Tier-1 floor: exactly the
+  three known failures, 192 passed.
 
 ### Decision: The import list is cut by ownership, not by B's module graph (2026-09-14)
 
@@ -336,6 +363,21 @@ carried. That ruling is why this plan exists in its current shape.
 **Confidence:** high; the six-round verification record is the evidence.
 
 ## 6. Surprises & Discoveries
+
+**Pydantic's invariants are constructor-only, and that is fine here — but say it out loud
+(2026-09-15, from M6's verification).** `model_copy(update=...)` skips every validator, and
+`object.__setattr__` mutates a `frozen` model in place: both produce an `AnchoredEvidence` whose
+`intents_sha` fails the 40-hex check or whose quote no longer matches its span. Nothing downstream
+re-checks the *format* — but every axis that routes (quote-vs-transcript, epoch equality,
+provenance) is re-verified by M12's gate at run time, so a forged record fails closed. The
+general lesson for every frozen type this plan lands: **the type's checks are a constructor
+contract, not a runtime guarantee; whatever the gate must re-verify, name it.**
+
+**XOR is enforced at the gate, not the type (2026-09-15).** `AnchoredEvidence`'s docstring says
+`turn_id` XOR `doc_path`, but both-set and both-None are accepted at construction;
+`core/grounding.py` enforces the stricter half at gate time. Deliberate layering — the type
+accepts, the gate disposes — but the docstring's "XOR" overstates what the type does.
+
 
 **The pyc-taint hazard arrives with the sweep (2026-09-14, absorbed from 9022).** Any sweep that
 mutates a source file and re-runs must purge `__pycache__` and set `PYTHONDONTWRITEBYTECODE=1`.

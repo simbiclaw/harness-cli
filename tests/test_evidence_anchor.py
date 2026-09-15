@@ -186,3 +186,18 @@ def test_the_port_is_untouched():
 
     for field in ("span", "quote", "intents_sha"):
         assert field not in pipeline.EvidenceItem.model_fields
+
+
+def test_span_itself_is_frozen():
+    """Span's own frozen config, not only AnchoredEvidence's.
+
+    Verification round 1 found by mutation that the acceptance file never
+    mutated a bare `Span` instance — dropping `Span`'s `frozen=True` was
+    caught by nothing, because the existing freeze test mutates `ev.span`
+    through the parent. It fails closed regardless (the parent is frozen and
+    `resolve_quote` raises on any resulting mismatch), but an adjective this
+    module's docstring leans on is now asserted where it is claimed.
+    """
+    span = Span(start=0, end=5)
+    with pytest.raises(ValidationError):
+        span.start = 3
