@@ -103,9 +103,12 @@ def test_pipeline_runs_from_io_matches_the_m4_baseline():
     # The kb stub the sequencing note allows: the 25-item rubric the baseline
     # was captured with, as data, until 9026's compiled nodes and 9025's
     # Provider replace this fixture with the real referent.
+    # low_coverage_warning=True is the faithful value: the baseline context was
+    # produced on an empty KB, and B's retriever warns at that coverage.
     items = [RubricItem.model_validate(i) for i in items_data]
     kb_context = SessionKBContext(
-        all_rubric_items=items, applicable_rubrics=items
+        all_rubric_items=items, applicable_rubrics=items,
+        low_coverage_warning=True,
     )
 
     session = call_record.build_session(record)

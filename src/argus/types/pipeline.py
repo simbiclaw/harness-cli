@@ -1,10 +1,23 @@
 """The evaluation pipeline's data contracts.
 
-A faithful port of `simbiclaw/sim@0c2cccd` `models/schemas.py` — same classes,
+A faithful port of `simbiclaw/sim@929d5a7` `models/schemas.py` — same classes,
 same field names, same defaults, same enum members and wire values, same stage
 order. The only changes are mechanical: `Optional[X]` written as `X | None`,
 `List[X]` as `list[X]`, and mutable literal defaults (`[]`, `{}`) expressed as
 `default_factory`, which pydantic already treated as per-instance.
+
+The pin moved from `0c2cccd` to `929d5a7` in M7: 9023 M3 retired the
+reliability chain (`ASRQuality`, `TurnFlag`, every `reliability`/`flags` field,
+`asr_quality_warning`, `role_swap_detected`) and path C (`ClaimType.ASR_UNCERTAIN`,
+`Verdict.checking_path`'s `"C"`). A port that recreated those fields to satisfy
+the old snapshot would be faithful to a revision upstream has moved past — and
+the fields it would recreate are the ones 9023 retired *for being fabricated*.
+The pin is the current upstream, not the one this floor happened to be built on.
+
+One member is retained against that pin, deliberately:
+`VerdictResult.HUMAN_REVIEW`. It is signed in
+`tests/fixtures/intentional_deviations.yaml`; the reason is there rather than
+here so that the comparator can read it and the exemption is auditable.
 
 **Nothing here is redesigned, and that is deliberate.** The first attempt at
 this port renamed enum members, invented two that exist nowhere upstream,
@@ -43,26 +56,11 @@ from pydantic import BaseModel, Field
 # ══════════════════════════════════════
 
 
-class ASRQuality(str, Enum):
-    GOOD = "good"
-    FAIR = "fair"
-    POOR = "poor"
-
-
-class TurnFlag(str, Enum):
-    INCOMPLETE = "INCOMPLETE"
-    ASR_ERROR = "ASR_ERROR"
-    ROLE_SWAPPED = "ROLE_SWAPPED"
-    NORMAL = "NORMAL"
-
-
 class CleanTurn(BaseModel):
     id: str
     role: Literal["customer", "agent"]
     text: str  # verbatim — upstream mutates it only by stripping whitespace,
     # which is what lets M6 recover an exact character span (I2)
-    flags: list[TurnFlag] = Field(default_factory=list)
-    reliability: Literal["high", "low"] = "high"
     timestamp_start: int | None = None
     timestamp_end: int | None = None
 
@@ -70,9 +68,6 @@ class CleanTurn(BaseModel):
 class CleanTranscript(BaseModel):
     session_id: str
     turns: list[CleanTurn]
-    asr_quality: ASRQuality
-    role_swap_detected: bool = False
-    low_reliability_turn_ids: list[str] = Field(default_factory=list)
 
 
 # ══════════════════════════════════════
@@ -141,8 +136,6 @@ class Turn(BaseModel):
     id: str
     role: Literal["customer", "agent"]
     text: str
-    reliability: Literal["high", "low"] = "high"
-    flags: list[TurnFlag] = Field(default_factory=list)
 
 
 class Session(BaseModel):
@@ -186,7 +179,6 @@ class Atom(BaseModel):
     atom_type: str
     content: str
     decontextualized: str
-    reliability: Literal["high", "low"] = "high"
     intent_group: str | None = None
 
 
@@ -233,7 +225,6 @@ class ClaimType(str, Enum):
     DIALOGUE_CONSISTENCY = "dialogue_consistency"
     EXTERNAL_FACT = "external_fact"
     INTERNAL_POLICY = "internal_policy"
-    ASR_UNCERTAIN = "asr_uncertain"
 
 
 class ImpliedQType(str, Enum):
@@ -287,6 +278,13 @@ class VerdictResult(str, Enum):
     PARTIAL = "partial"
     NEI = "NEI"
     NA = "NA"
+    # Retained against the pin — signed in
+    # `tests/fixtures/intentional_deviations.yaml`, which is what lets the
+    # snapshot comparison pass over it. Argus's own disposition vocabulary:
+    # core/score.py keys _CREDIT and _DEFERRALS on it (a verdict that must go
+    # to a human) and spec §3.4 names the same concept as meta_verdict
+    # "escalate". It is not a fabricated measurement of the class 9023
+    # retired; it is a disposition outcome.
     HUMAN_REVIEW = "human_review"
 
 
@@ -304,7 +302,7 @@ class Verdict(BaseModel):
     evidence: list[EvidenceItem] = Field(default_factory=list)
     requires_human_review: bool = False
     review_reason: str | None = None
-    checking_path: Literal["A", "B", "C"] = "A"
+    checking_path: Literal["A", "B"] = "A"
 
 
 # ══════════════════════════════════════
@@ -333,8 +331,6 @@ class QAReport(BaseModel):
 
     requires_human_review: bool
     human_review_items: list[str]
-    asr_quality_warning: bool
-    role_swap_detected: bool
     multi_intent_detected: bool
     unresolved_intents: list[str]
     low_kb_coverage_warning: bool

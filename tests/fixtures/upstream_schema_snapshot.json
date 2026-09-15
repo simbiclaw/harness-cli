@@ -1,7 +1,5 @@
 {
   "declared_classes": [
-    "ASRQuality",
-    "TurnFlag",
     "CleanTurn",
     "CleanTranscript",
     "RubricCategory",
@@ -27,39 +25,8 @@
     "DimensionScore",
     "QAReport"
   ],
-  "digest": "sha256:ee33e231262b80ca72270ec0f37ce2b27eca17faa01b874d9ee9ab150876f001",
+  "digest": "sha256:8473050fe0f994430aa08a2ca0f0b654708c7551a57722ac88e410c14da947c0",
   "enums": {
-    "ASRQuality": {
-      "bases": [
-        "str",
-        "Enum",
-        "object"
-      ],
-      "callables": {
-        "__format__": "enum",
-        "__new__": "enum",
-        "__repr__": "enum",
-        "__str__": "enum",
-        "_generate_next_value_": "enum",
-        "_member_type_": "builtins",
-        "_new_member_": null,
-        "_value_repr_": null
-      },
-      "members": [
-        [
-          "GOOD",
-          "good"
-        ],
-        [
-          "FAIR",
-          "fair"
-        ],
-        [
-          "POOR",
-          "poor"
-        ]
-      ]
-    },
     "AgentAtomType": {
       "bases": [
         "str",
@@ -143,10 +110,6 @@
         [
           "INTERNAL_POLICY",
           "internal_policy"
-        ],
-        [
-          "ASR_UNCERTAIN",
-          "asr_uncertain"
         ]
       ]
     },
@@ -329,41 +292,6 @@
         ]
       ]
     },
-    "TurnFlag": {
-      "bases": [
-        "str",
-        "Enum",
-        "object"
-      ],
-      "callables": {
-        "__format__": "enum",
-        "__new__": "enum",
-        "__repr__": "enum",
-        "__str__": "enum",
-        "_generate_next_value_": "enum",
-        "_member_type_": "builtins",
-        "_new_member_": null,
-        "_value_repr_": null
-      },
-      "members": [
-        [
-          "INCOMPLETE",
-          "INCOMPLETE"
-        ],
-        [
-          "ASR_ERROR",
-          "ASR_ERROR"
-        ],
-        [
-          "ROLE_SWAPPED",
-          "ROLE_SWAPPED"
-        ],
-        [
-          "NORMAL",
-          "NORMAL"
-        ]
-      ]
-    },
     "VerdictResult": {
       "bases": [
         "str",
@@ -400,10 +328,6 @@
         [
           "NA",
           "NA"
-        ],
-        [
-          "HUMAN_REVIEW",
-          "human_review"
         ]
       ]
     }
@@ -507,22 +431,6 @@
           "validate_default": null,
           "validation_alias": null
         },
-        "reliability": {
-          "alias": null,
-          "annotation": "typing.Literal['high', 'low']",
-          "constraints": [],
-          "default": "'high'",
-          "discriminator": null,
-          "exclude": null,
-          "frozen": null,
-          "kw_only": null,
-          "repr": true,
-          "required": false,
-          "serialization_alias": null,
-          "title": null,
-          "validate_default": null,
-          "validation_alias": null
-        },
         "role": {
           "alias": null,
           "annotation": "typing.Literal['client', 'agent']",
@@ -563,7 +471,6 @@
         "atom_type",
         "content",
         "decontextualized",
-        "reliability",
         "intent_group"
       ]
     },
@@ -584,54 +491,6 @@
         "validators": []
       },
       "fields": {
-        "asr_quality": {
-          "alias": null,
-          "annotation": "<enum 'ASRQuality",
-          "constraints": [],
-          "default": "<required>",
-          "discriminator": null,
-          "exclude": null,
-          "frozen": null,
-          "kw_only": null,
-          "repr": true,
-          "required": true,
-          "serialization_alias": null,
-          "title": null,
-          "validate_default": null,
-          "validation_alias": null
-        },
-        "low_reliability_turn_ids": {
-          "alias": null,
-          "annotation": "list[str]",
-          "constraints": [],
-          "default": "<factory:list:fresh-empty>",
-          "discriminator": null,
-          "exclude": null,
-          "frozen": null,
-          "kw_only": null,
-          "repr": true,
-          "required": false,
-          "serialization_alias": null,
-          "title": null,
-          "validate_default": null,
-          "validation_alias": null
-        },
-        "role_swap_detected": {
-          "alias": null,
-          "annotation": "bool",
-          "constraints": [],
-          "default": "False",
-          "discriminator": null,
-          "exclude": null,
-          "frozen": null,
-          "kw_only": null,
-          "repr": true,
-          "required": false,
-          "serialization_alias": null,
-          "title": null,
-          "validate_default": null,
-          "validation_alias": null
-        },
         "session_id": {
           "alias": null,
           "annotation": "str",
@@ -667,10 +526,7 @@
       },
       "order": [
         "session_id",
-        "turns",
-        "asr_quality",
-        "role_swap_detected",
-        "low_reliability_turn_ids"
+        "turns"
       ]
     },
     "CleanTurn": {
@@ -690,22 +546,6 @@
         "validators": []
       },
       "fields": {
-        "flags": {
-          "alias": null,
-          "annotation": "list[TurnFlag]",
-          "constraints": [],
-          "default": "<factory:list:fresh-empty>",
-          "discriminator": null,
-          "exclude": null,
-          "frozen": null,
-          "kw_only": null,
-          "repr": true,
-          "required": false,
-          "serialization_alias": null,
-          "title": null,
-          "validate_default": null,
-          "validation_alias": null
-        },
         "id": {
           "alias": null,
           "annotation": "str",
@@ -717,22 +557,6 @@
           "kw_only": null,
           "repr": true,
           "required": true,
-          "serialization_alias": null,
-          "title": null,
-          "validate_default": null,
-          "validation_alias": null
-        },
-        "reliability": {
-          "alias": null,
-          "annotation": "typing.Literal['high', 'low']",
-          "constraints": [],
-          "default": "'high'",
-          "discriminator": null,
-          "exclude": null,
-          "frozen": null,
-          "kw_only": null,
-          "repr": true,
-          "required": false,
           "serialization_alias": null,
           "title": null,
           "validate_default": null,
@@ -807,8 +631,6 @@
         "id",
         "role",
         "text",
-        "flags",
-        "reliability",
         "timestamp_start",
         "timestamp_end"
       ]
@@ -1448,22 +1270,6 @@
           "validate_default": null,
           "validation_alias": null
         },
-        "asr_quality_warning": {
-          "alias": null,
-          "annotation": "bool",
-          "constraints": [],
-          "default": "<required>",
-          "discriminator": null,
-          "exclude": null,
-          "frozen": null,
-          "kw_only": null,
-          "repr": true,
-          "required": true,
-          "serialization_alias": null,
-          "title": null,
-          "validate_default": null,
-          "validation_alias": null
-        },
         "dimension_scores": {
           "alias": null,
           "annotation": "list[DimensionScore]",
@@ -1608,22 +1414,6 @@
           "validate_default": null,
           "validation_alias": null
         },
-        "role_swap_detected": {
-          "alias": null,
-          "annotation": "bool",
-          "constraints": [],
-          "default": "<required>",
-          "discriminator": null,
-          "exclude": null,
-          "frozen": null,
-          "kw_only": null,
-          "repr": true,
-          "required": true,
-          "serialization_alias": null,
-          "title": null,
-          "validate_default": null,
-          "validation_alias": null
-        },
         "session_id": {
           "alias": null,
           "annotation": "str",
@@ -1733,8 +1523,6 @@
         "questions",
         "requires_human_review",
         "human_review_items",
-        "asr_quality_warning",
-        "role_swap_detected",
         "multi_intent_detected",
         "unresolved_intents",
         "low_kb_coverage_warning",
@@ -2523,22 +2311,6 @@
         "validators": []
       },
       "fields": {
-        "flags": {
-          "alias": null,
-          "annotation": "list[TurnFlag]",
-          "constraints": [],
-          "default": "<factory:list:fresh-empty>",
-          "discriminator": null,
-          "exclude": null,
-          "frozen": null,
-          "kw_only": null,
-          "repr": true,
-          "required": false,
-          "serialization_alias": null,
-          "title": null,
-          "validate_default": null,
-          "validation_alias": null
-        },
         "id": {
           "alias": null,
           "annotation": "str",
@@ -2550,22 +2322,6 @@
           "kw_only": null,
           "repr": true,
           "required": true,
-          "serialization_alias": null,
-          "title": null,
-          "validate_default": null,
-          "validation_alias": null
-        },
-        "reliability": {
-          "alias": null,
-          "annotation": "typing.Literal['high', 'low']",
-          "constraints": [],
-          "default": "'high'",
-          "discriminator": null,
-          "exclude": null,
-          "frozen": null,
-          "kw_only": null,
-          "repr": true,
-          "required": false,
           "serialization_alias": null,
           "title": null,
           "validate_default": null,
@@ -2607,9 +2363,7 @@
       "order": [
         "id",
         "role",
-        "text",
-        "reliability",
-        "flags"
+        "text"
       ]
     },
     "Verdict": {
@@ -2631,7 +2385,7 @@
       "fields": {
         "checking_path": {
           "alias": null,
-          "annotation": "typing.Literal['A', 'B', 'C']",
+          "annotation": "typing.Literal['A', 'B']",
           "constraints": [],
           "default": "'A'",
           "discriminator": null,
@@ -2806,9 +2560,9 @@
   },
   "note": "Generated, not transcribed, from a git-verified upstream checkout. A diff here is an on-disk format change (Tier C) and needs a steering entry, not a regenerate-and-move-on. Hand-editing this file breaks `digest` and fails tests/test_schemas.py.",
   "source": {
-    "commit": "0c2cccd178a5696c59ffa90dca129511af5ae5c0",
+    "commit": "929d5a7df5355ef4705dc11da64af053fdaeb93b",
     "path": "models/schemas.py",
     "repo": "simbiclaw/sim",
-    "sha256": "4685ad54cea2b68587bc496d2d1289810023c71ad9d186328cba729b4fa7b15d"
+    "sha256": "eb787fd87453e5c0463741956ddd7666de0a619dc1185d159288ab9bb6273e5a"
   }
 }

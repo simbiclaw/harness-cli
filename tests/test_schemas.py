@@ -44,9 +44,13 @@ same shadow hides a class whose `__module__` is laundered before it binds.
 So the comparison now also refuses contract-shaped bindings the namespace
 cannot explain: anything pydantic-or-enum shaped, owned by no module the
 snapshot owns, and inherited by nothing is named. And an enum's behaviour
-hooks were unwatched entirely — a `_missing_` added to TurnFlag silently
-coerces `TurnFlag("garbage")` to INCOMPLETE where upstream raises — so every
-callable an enum defines is now a recorded fact.
+hooks were unwatched entirely — a `_missing_` added to an enum silently
+coerces garbage input to a member where upstream raises — so every callable an
+enum defines is now a recorded fact. (Round 4 wrote that example against
+`TurnFlag`; 9023 M3 deleted `TurnFlag` at the pin this floor now compares
+against, so the example and its mutation row moved to `ClaimType`, a live
+`(str, Enum)` of the same shape. The defect class is unchanged; only the
+target had to be one that exists.)
 
 Round-5's verification found the same failure one level up, in the filters
 themselves. A filtered record is an attack surface: `model_post_init` lives
@@ -77,6 +81,7 @@ from pathlib import Path
 from typing import Literal, get_args, get_origin
 
 import pytest
+import yaml
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from argus.types import compiler_schemas
@@ -88,8 +93,8 @@ SNAPSHOT = Path(__file__).resolve().parent / "fixtures" / "upstream_schema_snaps
 # a fixture stamped with a different commit must fail against a copy of the
 # truth the builder cannot edit. If the pin ever moves, it moves in both files
 # in the same commit, and the diff shows it.
-UPSTREAM_COMMIT = "0c2cccd178a5696c59ffa90dca129511af5ae5c0"
-UPSTREAM_SOURCE_SHA256 = "4685ad54cea2b68587bc496d2d1289810023c71ad9d186328cba729b4fa7b15d"
+UPSTREAM_COMMIT = "929d5a7df5355ef4705dc11da64af053fdaeb93b"
+UPSTREAM_SOURCE_SHA256 = "eb787fd87453e5c0463741956ddd7666de0a619dc1185d159288ab9bb6273e5a"
 
 
 def _load_snapshot() -> dict:
@@ -322,6 +327,99 @@ def _digest_of(doc: dict) -> str:
     return "sha256:" + hashlib.sha256(_canonical(body).encode("utf-8")).hexdigest()
 
 
+# --- The deviation register --------------------------------------------------
+#
+# `tests/fixtures/intentional_deviations.yaml`. A port faithful to a *moving*
+# upstream has exactly two honest states for a member it keeps against the pin:
+# the member does not exist, or someone signed for it. This is the second — and
+# it is read by the comparison, not by a reader, so a divergence fails the
+# build unless a named human authorised it on a named date for a stated reason.
+# A register nobody's code consults is a comment, and the divergence it
+# describes is still a failure.
+
+DEVIATIONS = Path(__file__).resolve().parent / "fixtures" / "intentional_deviations.yaml"
+
+
+def _load_deviations() -> dict[str, dict]:
+    """The register, keyed by `Class.MEMBER`.
+
+    The class name is the key because that is what the diff walks by. `path`
+    is the human-facing record of which file the divergence lives in.
+    """
+    entries = yaml.safe_load(DEVIATIONS.read_text(encoding="utf-8")) or []
+    return {entry["member"]: entry for entry in entries}
+
+
+DEVIATION_REGISTER = _load_deviations()
+
+
+def _drop_signed_extras(
+    upstream: dict,
+    port: dict,
+    deviations: dict[str, dict],
+    problems: list[str],
+) -> None:
+    """Remove from the port document every extra the register signs for.
+
+    Applied *before* the diff rather than at the point of a finding, so the
+    comparison stays the plain mechanical thing it was and this is the single
+    place a divergence can be excused. Direction is enforced twice over:
+
+    - removal happens only where upstream does **not** declare the member. An
+      entry whose member upstream also has is refused and reported: the
+      register signs for extras, and one that masked a real divergence would be
+      a suppression wearing a signature.
+    - nothing here can hide a *missing* member. Only the port document is
+      touched, so snapshot-has/port-lacks stays a failure by construction.
+
+    And an entry that removes nothing is itself a finding. A register entry for
+    a member that is gone is an exemption nobody re-read; left unreported it
+    would sit there accumulating authority, and the day the member came back
+    the divergence would pass silently.
+    """
+    for key, entry in deviations.items():
+        cls, _, member = str(entry["member"]).rpartition(".")
+        note = f"no class named {cls!r} is declared by both the snapshot and the port"
+        for section, kind in (("models", "model"), ("enums", "enum")):
+            if cls not in upstream[section] or cls not in port[section]:
+                continue
+            up, down = upstream[section][cls], port[section][cls]
+            if kind == "enum":
+                if any(m[0] == member for m in up["members"]):
+                    note = (
+                        "upstream declares this member too — the register signs "
+                        "for extras only, so this entry would mask a real divergence"
+                    )
+                else:
+                    kept = [m for m in down["members"] if m[0] != member]
+                    if len(kept) == len(down["members"]):
+                        note = (
+                            "the port does not carry this member — the exemption "
+                            "is stale and exempts nothing"
+                        )
+                    else:
+                        down["members"] = kept
+                        note = None
+            else:
+                if member in up["fields"]:
+                    note = (
+                        "upstream declares this field too — the register signs "
+                        "for extras only, so this entry would mask a real divergence"
+                    )
+                elif member not in down["fields"]:
+                    note = (
+                        "the port does not carry this field — the exemption is "
+                        "stale and exempts nothing"
+                    )
+                else:
+                    del down["fields"][member]
+                    down["order"] = [f for f in down["order"] if f != member]
+                    note = None
+            break
+        if note is not None:
+            problems.append(f"{key}: {note}")
+
+
 # --- The comparison ----------------------------------------------------------
 
 
@@ -406,7 +504,11 @@ def unexplained_bindings(namespace: object, owned: set[str]) -> list[str]:
     return problems
 
 
-def compare_to_snapshot(namespace: object, owned: set[str] | None = None) -> list[str]:
+def compare_to_snapshot(
+    namespace: object,
+    owned: set[str] | None = None,
+    deviations: dict[str, dict] | None = None,
+) -> list[str]:
     """Every way `namespace` differs from the upstream contract.
 
     This is the function the live port is judged by, and the one
@@ -414,9 +516,18 @@ def compare_to_snapshot(namespace: object, owned: set[str] | None = None) -> lis
     that one fires is a demonstration about the real check, not about `!=`.
     It diffs the snapshot the filter produced *and* audits what the filter
     skipped: the diff alone is blind to anything the ownership filter hides.
+
+    Signed divergences leave the port document before the diff runs
+    (`_drop_signed_extras`), so a registered extra is not a finding while an
+    unregistered one still is. `deviations` defaults to the shipped register;
+    passing `{}` compares against the bare contract, which is how the
+    register's own test proves each entry is load-bearing.
     """
+    register = DEVIATION_REGISTER if deviations is None else deviations
     port = _snapshot_module(namespace, owned=owned)
-    problems = diff_documents(SNAP, port)
+    problems: list[str] = []
+    _drop_signed_extras(SNAP, port, register, problems)
+    problems.extend(diff_documents(SNAP, port))
     problems.extend(unexplained_bindings(namespace, owned or {getattr(namespace, "__name__", "")}))
     return problems
 
@@ -434,7 +545,8 @@ def test_a_generated_value_is_guarded_by_its_freshness_not_its_type():
     recorded by type alone. That made `lambda: "FIXED"` and
     `lambda: str(uuid.uuid4())[:8]` the same string, and a port giving every
     `Session` one shared id passed all 23 tests green. `session_id` is what
-    `QAReport` keys on (`simbiclaw/sim@0c2cccd core/aggregator.py:98`) and
+    `QAReport` keys on (`simbiclaw/sim@929d5a7 core/aggregator.py:96` — it was
+    `:98` before 9023 M3 deleted two fields above it) and
     what M21's replay record carries, so two different calls would have been
     indistinguishable in storage.
 
@@ -550,8 +662,10 @@ def test_a_generated_value_is_guarded_by_its_freshness_not_its_type():
     assert pinned_field["title"] is None
 
     # And the shipped snapshot carries the same raw shape for the real
-    # contract: machinery on the enums, bare MROs on the models.
-    assert snap["enums"]["TurnFlag"]["callables"]["__new__"] == "enum"
+    # contract: machinery on the enums, bare MROs on the models. The enum was
+    # `TurnFlag` until 9023 M3 deleted it at the current pin; `ClaimType` is
+    # the live one — the fact is about the encoding, not about that enum.
+    assert snap["enums"]["ClaimType"]["callables"]["__new__"] == "enum"
     assert snap["models"]["Verdict"]["bases"] == ["BaseModel", "object"]
 
 
@@ -583,6 +697,93 @@ def test_the_snapshot_is_the_pinned_commit_and_has_not_been_hand_edited():
 
 
 # --- The contract itself -----------------------------------------------------
+
+
+def test_the_register_signs_for_real_divergences_only():
+    """The register is load-bearing, resolvable and signed — or it is not one.
+
+    A comparator that consults a file can fail in three ways, and each turns an
+    exemption into a silence:
+
+    1. **Vacuous.** An entry that suppresses nothing means the member is not a
+       divergence — and the next reader would trust a signature for a
+       divergence that never existed. Proven by comparing against the bare
+       contract (`deviations={}`): every entry's member must be named in the
+       problems the unexempted comparison reports.
+    2. **Stale or misdirected.** An entry naming a member upstream also
+       declares would mask a real divergence; one naming a member nothing
+       declares exempts nothing. Both are refused by `_drop_signed_extras`,
+       and both refusals are exercised here rather than described.
+    3. **Unsigned.** A missing `authorised_by` or `decided` is a divergence
+       nobody signed, which is the one thing this file exists to prevent. The
+       keys are required, and the `path` must resolve — an entry describing a
+       file that is not this port describes no divergence at all.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    assert DEVIATION_REGISTER, "the register is empty; the comparator reads nothing"
+
+    required = {
+        "path", "member", "upstream", "port", "reason", "consumers",
+        "authorised_by", "decided",
+    }
+    for key, entry in DEVIATION_REGISTER.items():
+        assert not (missing := sorted(required - set(entry))), (
+            f"{key}: register entry is missing {missing}"
+        )
+        for field_name in ("reason", "upstream", "port", "authorised_by", "decided"):
+            assert str(entry[field_name]).strip(), f"{key}: {field_name} is empty"
+        assert (repo_root / entry["path"]).exists(), (
+            f"{key}: {entry['path']} does not resolve — the entry describes no "
+            "file in this tree"
+        )
+        cls, _, member = str(entry["member"]).rpartition(".")
+        declared = getattr(p, cls, None)
+        assert declared is not None, f"{key}: {cls} is not a class in the port"
+        # `path` is a claim about where the divergence lives, so it is checked
+        # against where the class actually lives. Without this it is decoration,
+        # and an entry could point at a file that has nothing to do with the
+        # member it signs for.
+        assert (declared_file := Path(inspect.getfile(declared)).resolve()) == (
+            repo_root / entry["path"]
+        ).resolve(), (
+            f"{key}: {cls} is defined in {declared_file.relative_to(repo_root)}, "
+            f"not {entry['path']} — the entry names a file the divergence is not in"
+        )
+        assert (
+            member in getattr(declared, "__members__", {})
+            or member in getattr(declared, "model_fields", {})
+        ), f"{key}: {cls} does not declare {member}"
+
+    # Live: with the register the port matches the pin, and without it the same
+    # comparison names every registered member. Both halves, or the entries are
+    # signatures over nothing.
+    assert compare_to_snapshot(p) == [], (
+        "the port does not match the pin even with the register applied"
+    )
+    bare = compare_to_snapshot(p, deviations={})
+    assert bare, "the register exempts nothing — the port matches the bare contract"
+    for key, entry in DEVIATION_REGISTER.items():
+        cls, _, member = str(entry["member"]).rpartition(".")
+        assert any(cls in line and member in line for line in bare), (
+            f"{key}: the bare contract does not report this as a divergence, so "
+            "the entry signs for something that is not one"
+        )
+
+    # And the two refusals, on the live comparison: a signature that would mask
+    # a real divergence, one for a member the port dropped, one for a class
+    # that does not exist. Each must be reported, not honoured.
+    masking = compare_to_snapshot(
+        p, deviations={"_probe": {"member": "VerdictResult.PASS"}}
+    )
+    assert any("upstream declares this member too" in line for line in masking), masking
+    stale = compare_to_snapshot(
+        p, deviations={"_probe": {"member": "VerdictResult.NOT_A_MEMBER"}}
+    )
+    assert any("the port does not carry this member" in line for line in stale), stale
+    nowhere = compare_to_snapshot(
+        p, deviations={"_probe": {"member": "NoSuchClass.MEMBER"}}
+    )
+    assert any("no class named" in line for line in nowhere), nowhere
 
 
 def test_port_matches_the_upstream_contract_exactly():
@@ -650,8 +851,6 @@ def test_the_checks_can_fail():
         id: str
         role: Literal["customer", "agent"]
         text: str
-        flags: list[p.TurnFlag] = []
-        reliability: Literal["high", "low"] = "high"
         timestamp_start: int | None = None
 
     class ChangedDefault(BaseModel):  # the score-doubling mutation
@@ -672,8 +871,6 @@ def test_the_checks_can_fail():
         id: str
         role: str
         text: str
-        reliability: Literal["high", "low"] = "high"
-        flags: list[p.TurnFlag] = []
 
     class RelaxedRequirement(BaseModel):  # hypothesis pair made optional
         turn_id: str | None = None
@@ -689,18 +886,15 @@ def test_the_checks_can_fail():
         turns: list[p.Turn] = Field(default_factory=list)
         metadata: dict[str, object] = Field(default_factory=dict)
 
-    class WrongWire(str, enum.Enum):
-        INCOMPLETE = "INCOMPLETE"
-        ASR_ERROR = "asr_error"  # upstream is "ASR_ERROR"
-        ROLE_SWAPPED = "ROLE_SWAPPED"
-        NORMAL = "NORMAL"
+    class WrongWire(str, enum.Enum):  # ClaimType with one wire value misspelled
+        DIALOGUE_CONSISTENCY = "dialogue_consistency"
+        EXTERNAL_FACT = "external-fact"  # upstream is "external_fact"
+        INTERNAL_POLICY = "internal_policy"
 
     class AliasedField(BaseModel):  # Group A #1: the wire key silently moves
         id: str
         role: Literal["customer", "agent"]
         text: str = Field(alias="body")
-        flags: list[p.TurnFlag] = Field(default_factory=list)
-        reliability: Literal["high", "low"] = "high"
         timestamp_start: int | None = None
         timestamp_end: int | None = None
 
@@ -722,8 +916,6 @@ def test_the_checks_can_fail():
         id: str
         role: Literal["customer", "agent"]
         text: str
-        flags: list[p.TurnFlag] = Field(default_factory=list)
-        reliability: Literal["high", "low"] = "high"
         timestamp_start: int | None = None
         timestamp_end: int | None = None
 
@@ -739,7 +931,7 @@ def test_the_checks_can_fail():
         evidence: list[p.EvidenceItem] = Field(default_factory=list)
         requires_human_review: bool = False
         review_reason: str | None = None
-        checking_path: Literal["A", "B", "C"] = "A"
+        checking_path: Literal["A", "B"] = "A"
 
         @field_validator("score")
         @classmethod
@@ -756,7 +948,7 @@ def test_the_checks_can_fail():
         evidence: list[p.EvidenceItem] = Field(default_factory=list)
         requires_human_review: bool = False
         review_reason: str | None = None
-        checking_path: Literal["A", "B", "C"] = "A"
+        checking_path: Literal["A", "B"] = "A"
 
         @model_validator(mode="after")
         def _clear(self):
@@ -764,23 +956,20 @@ def test_the_checks_can_fail():
             return self
 
     class WrongBase(enum.Enum):  # Group A #5: (str, Enum) -> (Enum)
-        INCOMPLETE = "INCOMPLETE"
-        ASR_ERROR = "ASR_ERROR"
-        ROLE_SWAPPED = "ROLE_SWAPPED"
-        NORMAL = "NORMAL"
+        DIALOGUE_CONSISTENCY = "dialogue_consistency"
+        EXTERNAL_FACT = "external_fact"
+        INTERNAL_POLICY = "internal_policy"
 
-    class ReorderedFlag(str, enum.Enum):  # Group A #6: order is observable
-        NORMAL = "NORMAL"
-        INCOMPLETE = "INCOMPLETE"
-        ASR_ERROR = "ASR_ERROR"
-        ROLE_SWAPPED = "ROLE_SWAPPED"
+    class ReorderedClaimType(str, enum.Enum):  # Group A #6: order is observable
+        INTERNAL_POLICY = "internal_policy"
+        DIALOGUE_CONSISTENCY = "dialogue_consistency"
+        EXTERNAL_FACT = "external_fact"
 
-    class AliasedFlag(str, enum.Enum):  # Group B #11: iteration skips aliases
-        INCOMPLETE = "INCOMPLETE"
-        ASR_ERROR = "ASR_ERROR"
-        ASR_GARBLED = "ASR_ERROR"  # a second name for the same member
-        ROLE_SWAPPED = "ROLE_SWAPPED"
-        NORMAL = "NORMAL"
+    class AliasedClaimType(str, enum.Enum):  # Group B #11: iteration skips aliases
+        DIALOGUE_CONSISTENCY = "dialogue_consistency"
+        DIALOGUE_CONSISTENT = "dialogue_consistency"  # a second name, same member
+        EXTERNAL_FACT = "external_fact"
+        INTERNAL_POLICY = "internal_policy"
 
     class SharedMetadata(BaseModel):  # Group B #8: one dict for every Session
         session_id: str = Field(default_factory=lambda: str(uuid.uuid4())[:8])
@@ -803,20 +992,17 @@ def test_the_checks_can_fail():
         id: str
         role: Literal["customer", "agent"]
         text: str
-        flags: list[p.TurnFlag] = Field(default_factory=list)
-        reliability: Literal["high", "low"] = "high"
         timestamp_start: int | None = Field(default=None, repr=False)
         timestamp_end: int | None = None
 
-    class LenientFlag(str, enum.Enum):  # round-4 #21: garbage coerces to a member
-        INCOMPLETE = "INCOMPLETE"
-        ASR_ERROR = "ASR_ERROR"
-        ROLE_SWAPPED = "ROLE_SWAPPED"
-        NORMAL = "NORMAL"
+    class LenientClaimType(str, enum.Enum):  # round-4 #21: garbage coerces
+        DIALOGUE_CONSISTENCY = "dialogue_consistency"
+        EXTERNAL_FACT = "external_fact"
+        INTERNAL_POLICY = "internal_policy"
 
         @classmethod
         def _missing_(cls, value):
-            return cls.INCOMPLETE
+            return cls.DIALOGUE_CONSISTENCY
 
     class ModuleRewritten(BaseModel):  # round-4 #20b: ownership filter laundered
         proposed_score: float = 0.0
@@ -833,22 +1019,21 @@ def test_the_checks_can_fail():
         evidence: list[p.EvidenceItem] = Field(default_factory=list)
         requires_human_review: bool = False
         review_reason: str | None = None
-        checking_path: Literal["A", "B", "C"] = "A"
+        checking_path: Literal["A", "B"] = "A"
 
         def model_post_init(self, __context: object) -> None:
             self.score = 0.0
 
-    class PostHocFlag(str, enum.Enum):  # round-5 AT2: assigned after the class
-        INCOMPLETE = "INCOMPLETE"
-        ASR_ERROR = "ASR_ERROR"
-        ROLE_SWAPPED = "ROLE_SWAPPED"
-        NORMAL = "NORMAL"
+    class PostHocClaimType(str, enum.Enum):  # round-5 AT2: assigned after the class
+        DIALOGUE_CONSISTENCY = "dialogue_consistency"
+        EXTERNAL_FACT = "external_fact"
+        INTERNAL_POLICY = "internal_policy"
 
     def _coerce(value):
-        return PostHocFlag.INCOMPLETE
+        return PostHocClaimType.DIALOGUE_CONSISTENCY
 
     _coerce.__module__ = "enum"  # the forge: claiming to be machinery
-    PostHocFlag._missing_ = _coerce
+    PostHocClaimType._missing_ = _coerce
 
     class Freeze:  # round-5 AT3: plain mixin, registered nowhere
         def __setattr__(self, name, value):
@@ -864,7 +1049,7 @@ def test_the_checks_can_fail():
         evidence: list[p.EvidenceItem] = Field(default_factory=list)
         requires_human_review: bool = False
         review_reason: str | None = None
-        checking_path: Literal["A", "B", "C"] = "A"
+        checking_path: Literal["A", "B"] = "A"
 
     class ValidatedDefault(BaseModel):  # round-5 AT5: default runs validators
         id: int
@@ -892,20 +1077,20 @@ def test_the_checks_can_fail():
         ("changed default", "RubricItem", {"RubricItem": ChangedDefault}),
         ("widened annotation", "Turn", {"Turn": WidenedAnnotation}),
         ("relaxed requirement", "EvidenceItem", {"EvidenceItem": RelaxedRequirement}),
-        ("changed wire value", "TurnFlag", {"TurnFlag": WrongWire}),
+        ("changed wire value", "ClaimType", {"ClaimType": WrongWire}),
         ("constant factory", "Session", {"Session": ConstantFactory}),
         ("field alias", "CleanTurn", {"CleanTurn": AliasedField}),
         ("added constraint", "RubricItem", {"RubricItem": ConstrainedWeight}),
         ('extra="forbid"', "CleanTurn", {"CleanTurn": ForbiddingConfig}),
         ("field validator", "Verdict", {"Verdict": ZeroingValidator}),
         ("model validator", "Verdict", {"Verdict": EvidenceClearer}),
-        ("enum base", "TurnFlag", {"TurnFlag": WrongBase}),
-        ("enum reorder", "TurnFlag", {"TurnFlag": ReorderedFlag}),
-        ("enum alias", "TurnFlag", {"TurnFlag": AliasedFlag}),
+        ("enum base", "ClaimType", {"ClaimType": WrongBase}),
+        ("enum reorder", "ClaimType", {"ClaimType": ReorderedClaimType}),
+        ("enum alias", "ClaimType", {"ClaimType": AliasedClaimType}),
         ("shared-empty factory", "Session", {"Session": SharedMetadata}),
         ("weak-entropy factory", "Session", {"Session": WeakEntropy}),
         ("repr=False", "CleanTurn", {"CleanTurn": HiddenField}),
-        ("enum _missing_ hook", "TurnFlag", {"TurnFlag": LenientFlag}),
+        ("enum _missing_ hook", "ClaimType", {"ClaimType": LenientClaimType}),
         (
             "namespace re-export",
             "SpecificRubric",
@@ -913,7 +1098,7 @@ def test_the_checks_can_fail():
         ),
         ("laundered __module__", "ModuleRewritten", {"ModuleRewritten": ModuleRewritten}),
         ("model_post_init hook", "Verdict", {"Verdict": PostInitZeroer}),
-        ("post-hoc forged hook", "TurnFlag", {"TurnFlag": PostHocFlag}),
+        ("post-hoc forged hook", "ClaimType", {"ClaimType": PostHocClaimType}),
         ("plain mixin base", "Verdict", {"Verdict": MixinVerdict}),
         ("validate_default", "RubricItem", {"RubricItem": ValidatedDefault}),
     ]:
@@ -988,11 +1173,34 @@ def test_every_contract_roundtrips(name):
 def test_upstream_output_loads():
     """The port reads what the upstream system actually writes.
 
-    The first attempt could not: it had invented TurnFlag members and dropped
+    The first attempt could not: it had invented `TurnFlag` members and dropped
     ASR_ERROR and ROLE_SWAPPED, both emitted by live code at
-    core/asr_preprocessor.py:46,54.
+    `core/asr_preprocessor.py:46,54`. 9023 M3 then retired that whole surface
+    — `flags`, `reliability`, `asr_quality`, `role_swap_detected`,
+    `low_reliability_turn_ids` — at the pin this floor now compares against,
+    and `core/asr_preprocessor.py` constructs `CleanTurn` without any of it.
+
+    So the payload below is the shape 929d5a7 writes, and the retired keys then
+    ride along on a record that predates the deletion. That second half is the
+    clause with teeth: `extra` is `ignore`, so an old record must still load,
+    but nothing here may resurrect a field 9023 deleted — the fields were
+    retired *for being fabricated measurements*, and a port that quietly
+    re-declared them would be re-manufacturing them one revision later.
     """
     on_disk = (
+        '{"session_id":"S-0001",'
+        '"turns":[{"id":"T01","role":"customer","text":"您好，我在登录时显示CA锁未绑定。",'
+        '"timestamp_start":1,"timestamp_end":20}]}'
+    )
+    t = p.CleanTranscript.model_validate_json(on_disk)
+    assert t.turns[0].timestamp_end == 20
+    assert t.turns[0].role == "customer"
+    assert set(t.model_dump()) == {"session_id", "turns"}
+    assert set(t.model_dump()["turns"][0]) == {
+        "id", "role", "text", "timestamp_start", "timestamp_end"
+    }
+
+    retired = (
         '{"session_id":"S-0001",'
         '"turns":[{"id":"T01","role":"customer","text":"您好，我在登录时显示CA锁未绑定。",'
         '"flags":["ASR_ERROR","ROLE_SWAPPED"],"reliability":"low",'
@@ -1000,9 +1208,12 @@ def test_upstream_output_loads():
         '"asr_quality":"fair","role_swap_detected":true,'
         '"low_reliability_turn_ids":["T01"]}'
     )
-    t = p.CleanTranscript.model_validate_json(on_disk)
-    assert t.turns[0].flags == [p.TurnFlag.ASR_ERROR, p.TurnFlag.ROLE_SWAPPED]
-    assert t.turns[0].timestamp_end == 20
+    old = p.CleanTranscript.model_validate_json(retired)
+    assert old.turns[0].timestamp_end == 20, "the retired keys must not block the load"
+    assert set(old.model_dump()) == {"session_id", "turns"}
+    assert set(old.model_dump()["turns"][0]) == {
+        "id", "role", "text", "timestamp_start", "timestamp_end"
+    }
 
     coverage = '{"client_atom_id":"CA-01","agent_atom_id":"AA-01","status":"responded"}'
     assert p.CoverageRelation.model_validate_json(coverage).status is p.CoverageStatus.RESPONDED

@@ -1,0 +1,17 @@
+# Deliberate divergences between the port and upstream. The comparator consults
+# this file instead of failing on these members. Every entry MUST name the
+# decision that authorised it — suppressing a divergence is an act someone
+# signs, never a silence.
+- path: "src/argus/types/pipeline.py"
+  member: "VerdictResult.HUMAN_REVIEW"
+  upstream: "absent at simbi@929d5a7 (removed with the reliability chain, 9023 M3)"
+  port: "retained"
+  reason: >
+    Argus's own disposition vocabulary. core/score.py uses it as a key in
+    _CREDIT and _DEFERRALS (a verdict that must go to a human), and spec §3.4
+    names the same concept as meta_verdict "escalate". It is not a fabricated
+    measurement of the class 9023 retired — it is a disposition outcome.
+  consumers: ["src/argus/core/score.py", "src/argus/core/route.py",
+              "tests/test_score.py", "tests/test_adjust.py"]
+  authorised_by: "human ruling 2026-09-15 (9024 §7 Q29 thread); revisit when 9027 executes"
+  decided: "2026-09-15"

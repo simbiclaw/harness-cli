@@ -92,7 +92,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 OUT = REPO_ROOT / "tests" / "fixtures" / "upstream_schema_snapshot.json"
 
 UPSTREAM_REPO = "simbiclaw/sim"
-UPSTREAM_COMMIT = "0c2cccd178a5696c59ffa90dca129511af5ae5c0"
+UPSTREAM_COMMIT = "929d5a7df5355ef4705dc11da64af053fdaeb93b"
 UPSTREAM_PATH = "models/schemas.py"
 
 # The seven decorator buckets pydantic records per model. Read off the dataclass
@@ -150,7 +150,7 @@ def default_key(info: object) -> str:
             # be called here. Recording every such factory as one opaque string
             # made any two of them compare equal; the code object's constants and
             # names are the cheapest fact that actually distinguishes them.
-            # Unreachable on the 0c2cccd contract — upstream has exactly one
+            # Unreachable on the 929d5a7 contract — upstream has exactly one
             # factory and it takes no arguments — so this is a floor, not a
             # feature: if upstream ever grows one, the oracle already sees it.
             code = getattr(factory, "__code__", None)
@@ -331,10 +331,12 @@ def model_facts(model: type[BaseModel]) -> dict:
 def enum_facts(member_type: type[enum.Enum]) -> dict:
     """An enum's members *in order*, what it inherits from, and what it defines.
 
-    `bases` catches `class TurnFlag(Enum)` written where upstream has
-    `class TurnFlag(str, Enum)`: same names, same values, but
-    `TurnFlag.NORMAL == "NORMAL"` flips to False and every string comparison in
-    the pipeline quietly stops matching.
+    `bases` catches `class ClaimType(Enum)` written where upstream has
+    `class ClaimType(str, Enum)`: same names, same values, but
+    `ClaimType.INTERNAL_POLICY == "internal_policy"` flips to False and every
+    string comparison in the pipeline quietly stops matching. (`TurnFlag` used
+    to be this docstring's example; 9023 M3 deleted it at the pin, so the
+    illustration moved to a live `(str, Enum)` of the same shape.)
 
     `members` is a list, not a mapping, because declaration order is observable:
     `list(VerdictResult)[0]` is what a caller reaching for a fallback gets, and
@@ -344,8 +346,8 @@ def enum_facts(member_type: type[enum.Enum]) -> dict:
     adjacent to its canonical member, in declaration order.
 
     `callables` is every callable on the class, raw (`callables_of`). Bases
-    and members do not see behaviour: a `_missing_` added to TurnFlag makes
-    `TurnFlag("garbage")` coerce to INCOMPLETE where upstream raises
+    and members do not see behaviour: a `_missing_` added to ClaimType makes
+    `ClaimType("garbage")` coerce to DIALOGUE_CONSISTENCY where upstream raises
     ValueError, and no wire value changes. This record used to filter the
     class dict to callables the contract module defined — which is exactly
     the hole a forged `__module__` walks through, so the filter is gone and
