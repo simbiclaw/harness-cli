@@ -1,0 +1,1266 @@
+{
+  "_meta": {
+    "source": "simbiclaw/sim @ local (9023 M4 baseline, tests/fakes.py)",
+    "input": "TRANSCRIPT_NORMAL (tests/conftest.py)",
+    "captured": "2026-09-15",
+    "note": "M7 acceptance: the io/ port produces the same output as the M4 baseline on the same input, with arguments supplied from the sources in M7's data-flow table (kb_root empty here = Provider stub)."
+  },
+  "report": {
+    "session_id": "baseline",
+    "agent_id": "UNKNOWN",
+    "overall_score": 100.0,
+    "grade": "优秀",
+    "veto_triggered": false,
+    "veto_items": [],
+    "dimension_scores": [
+      {
+        "name": "流程遵守",
+        "applicable_count": 6,
+        "passed_count": 6,
+        "weighted_score": 7.0,
+        "total_weight": 7.0
+      },
+      {
+        "name": "态度规范",
+        "applicable_count": 7,
+        "passed_count": 7,
+        "weighted_score": 7.0,
+        "total_weight": 7.0
+      },
+      {
+        "name": "技能技巧",
+        "applicable_count": 7,
+        "passed_count": 7,
+        "weighted_score": 7.0,
+        "total_weight": 7.0
+      },
+      {
+        "name": "准确性",
+        "applicable_count": 5,
+        "passed_count": 5,
+        "weighted_score": 5.0,
+        "total_weight": 5.0
+      },
+      {
+        "name": "隐性服务能力",
+        "applicable_count": 1,
+        "passed_count": 1,
+        "weighted_score": 1.0,
+        "total_weight": 1.0
+      }
+    ],
+    "verdicts": [
+      {
+        "question_id": "RQ-01",
+        "rubric_id": 1,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-02",
+        "rubric_id": 2,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-03",
+        "rubric_id": 3,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-04",
+        "rubric_id": 4,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-05",
+        "rubric_id": 5,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-06",
+        "rubric_id": 6,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 2.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-07",
+        "rubric_id": 8,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-08",
+        "rubric_id": 9,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-09",
+        "rubric_id": 10,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-10",
+        "rubric_id": 11,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-11",
+        "rubric_id": 12,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-12",
+        "rubric_id": 13,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-13",
+        "rubric_id": 14,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-14",
+        "rubric_id": 15,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-15",
+        "rubric_id": 16,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-16",
+        "rubric_id": 17,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-17",
+        "rubric_id": 18,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-18",
+        "rubric_id": 19,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-19",
+        "rubric_id": 20,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-20",
+        "rubric_id": 21,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-21",
+        "rubric_id": 23,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-22",
+        "rubric_id": 24,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-23",
+        "rubric_id": 25,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-24",
+        "rubric_id": 26,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": false,
+        "review_reason": null,
+        "checking_path": "A"
+      },
+      {
+        "question_id": "RQ-25",
+        "rubric_id": 27,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": true,
+        "review_reason": "一票否决项",
+        "checking_path": "A"
+      },
+      {
+        "question_id": "IQ-01",
+        "rubric_id": null,
+        "result": "pass",
+        "confidence": 0.9,
+        "score": 1.0,
+        "weight": 1.0,
+        "evidence": [
+          {
+            "turn_id": "T01",
+            "doc_path": null,
+            "text": "您好。",
+            "score": 0.9,
+            "supports": true
+          },
+          {
+            "turn_id": "T02",
+            "doc_path": null,
+            "text": "你好，我想问一下CA锁未绑定怎么处理。",
+            "score": 0.9,
+            "supports": true
+          }
+        ],
+        "requires_human_review": true,
+        "review_reason": "Implied Q需人工审阅",
+        "checking_path": "A"
+      }
+    ],
+    "questions": [
+      {
+        "id": "RQ-01",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 1,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "流程遵守",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-02",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 2,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "流程遵守",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-03",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 3,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "流程遵守",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-04",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 4,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "流程遵守",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-05",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 5,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "流程遵守",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-06",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 6,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "流程遵守",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-07",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 8,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "态度规范",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-08",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 9,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "态度规范",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-09",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 10,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "态度规范",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-10",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 11,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "态度规范",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-11",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 12,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "态度规范",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-12",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 13,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "态度规范",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-13",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 14,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "态度规范",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-14",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 15,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "技能技巧",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-15",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 16,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "技能技巧",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-16",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 17,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "技能技巧",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-17",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 18,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "技能技巧",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-18",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 19,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "技能技巧",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-19",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 20,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "技能技巧",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-20",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 21,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "技能技巧",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-21",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 23,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "准确性",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-22",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 24,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "准确性",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-23",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 25,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "准确性",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-24",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 26,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "准确性",
+        "is_veto": false,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "RQ-25",
+        "question": "客服是否确认了客户身份并给出可执行的指引？",
+        "q_type": "literal",
+        "source": "rubric_driven",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": 27,
+        "source_atom_ids": [
+          "AT-01",
+          "AT-02"
+        ],
+        "hypothesis_pos": "HIGH 客服确认了身份并给出了指引",
+        "hypothesis_neg": "LOW 客服没有确认身份也没有给出指引",
+        "dimension": "准确性",
+        "is_veto": true,
+        "implied_q_type": null,
+        "applicability": "applicable",
+        "na_reason": null
+      },
+      {
+        "id": "IQ-01",
+        "question": "客服是否说明了证书过期的可能原因？",
+        "q_type": "implied",
+        "source": "atom_implied",
+        "claim_type": "dialogue_consistency",
+        "rubric_id": null,
+        "source_atom_ids": [
+          ""
+        ],
+        "hypothesis_pos": "HIGH 客服说明了过期原因",
+        "hypothesis_neg": "LOW 客服没有说明过期原因",
+        "dimension": "隐性服务能力",
+        "is_veto": false,
+        "implied_q_type": "CONTEXT",
+        "applicability": "applicable",
+        "na_reason": null
+      }
+    ],
+    "requires_human_review": true,
+    "human_review_items": [
+      "RQ-25",
+      "IQ-01"
+    ],
+    "multi_intent_detected": false,
+    "unresolved_intents": [],
+    "low_kb_coverage_warning": true,
+    "summary": "本次通话客服确认了客户身份并给出指引。",
+    "improvement_suggestions": [
+      "建议一",
+      "建议二",
+      "建议三"
+    ]
+  }
+}

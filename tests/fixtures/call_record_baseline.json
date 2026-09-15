@@ -1,0 +1,318 @@
+{
+  "schema_version": "1.0.0",
+  "audio": {
+    "id": "baseline",
+    "path": "fixtures://baseline.wav",
+    "channel_mode": "mono",
+    "channels": 1,
+    "duration_sec": 50,
+    "sample_rate": 16000
+  },
+  "config": {
+    "asr_engine": "qwen3-asr-0.6b",
+    "diarizer": "pyannote-segmentation-3.0",
+    "vad": "pyannote-via-diarize",
+    "feature_set": "prosody+rate+voice"
+  },
+  "speakers": [
+    {
+      "id": "S0",
+      "label": null,
+      "channel": 0,
+      "num_segments": 6,
+      "total_speech_sec": 30.0,
+      "wpm_mean": 200.0,
+      "speaker_role": "agent",
+      "speaker_role_source": "voiceprint"
+    },
+    {
+      "id": "S1",
+      "label": null,
+      "channel": 0,
+      "num_segments": 4,
+      "total_speech_sec": 20.0,
+      "wpm_mean": 180.0,
+      "speaker_role": "customer",
+      "speaker_role_source": "voiceprint"
+    }
+  ],
+  "turns": [
+    {
+      "id": "T01",
+      "speaker": "S0",
+      "text": "您好。",
+      "start_sec": 0,
+      "end_sec": 5,
+      "segment_ids": [
+        "S001"
+      ]
+    },
+    {
+      "id": "T02",
+      "speaker": "S1",
+      "text": "你好，我想问一下CA锁未绑定怎么处理。",
+      "start_sec": 5,
+      "end_sec": 10,
+      "segment_ids": [
+        "S002"
+      ]
+    },
+    {
+      "id": "T03",
+      "speaker": "S0",
+      "text": "请问您贵姓？",
+      "start_sec": 10,
+      "end_sec": 15,
+      "segment_ids": [
+        "S003"
+      ]
+    },
+    {
+      "id": "T04",
+      "speaker": "S1",
+      "text": "梅。",
+      "start_sec": 15,
+      "end_sec": 20,
+      "segment_ids": [
+        "S004"
+      ]
+    },
+    {
+      "id": "T05",
+      "speaker": "S0",
+      "text": "梅先生，您稍等我查一下。",
+      "start_sec": 20,
+      "end_sec": 25,
+      "segment_ids": [
+        "S005"
+      ]
+    },
+    {
+      "id": "T06",
+      "speaker": "S0",
+      "text": "您手上的Key不是汇信的。",
+      "start_sec": 25,
+      "end_sec": 30,
+      "segment_ids": [
+        "S006"
+      ]
+    },
+    {
+      "id": "T07",
+      "speaker": "S1",
+      "text": "那怎么办？",
+      "start_sec": 30,
+      "end_sec": 35,
+      "segment_ids": [
+        "S007"
+      ]
+    },
+    {
+      "id": "T08",
+      "speaker": "S0",
+      "text": "建议您找对应服务商处理，还有其他问题吗？",
+      "start_sec": 35,
+      "end_sec": 40,
+      "segment_ids": [
+        "S008"
+      ]
+    },
+    {
+      "id": "T09",
+      "speaker": "S1",
+      "text": "没有了，谢谢。",
+      "start_sec": 40,
+      "end_sec": 45,
+      "segment_ids": [
+        "S009"
+      ]
+    },
+    {
+      "id": "T10",
+      "speaker": "S0",
+      "text": "好的，再见，请稍后给个评价，满意请按1，再见。",
+      "start_sec": 45,
+      "end_sec": 50,
+      "segment_ids": [
+        "S010"
+      ]
+    }
+  ],
+  "segments": [
+    {
+      "id": "S001",
+      "speaker": "S0",
+      "text": "您好。",
+      "start_sec": 0,
+      "end_sec": 5,
+      "acoustic": {
+        "f0": 200.0,
+        "intensity": 60.0,
+        "speaking_rate": 4.5,
+        "voice_quality": "modal"
+      }
+    },
+    {
+      "id": "S002",
+      "speaker": "S1",
+      "text": "你好，我想问一下CA锁未绑定怎么处理。",
+      "start_sec": 5,
+      "end_sec": 10,
+      "acoustic": {
+        "f0": 200.0,
+        "intensity": 60.0,
+        "speaking_rate": 4.5,
+        "voice_quality": "modal"
+      }
+    },
+    {
+      "id": "S003",
+      "speaker": "S0",
+      "text": "请问您贵姓？",
+      "start_sec": 10,
+      "end_sec": 15,
+      "acoustic": {
+        "f0": 200.0,
+        "intensity": 60.0,
+        "speaking_rate": 4.5,
+        "voice_quality": "modal"
+      }
+    },
+    {
+      "id": "S004",
+      "speaker": "S1",
+      "text": "梅。",
+      "start_sec": 15,
+      "end_sec": 20,
+      "acoustic": {
+        "f0": 200.0,
+        "intensity": 60.0,
+        "speaking_rate": 4.5,
+        "voice_quality": "modal"
+      }
+    },
+    {
+      "id": "S005",
+      "speaker": "S0",
+      "text": "梅先生，您稍等我查一下。",
+      "start_sec": 20,
+      "end_sec": 25,
+      "acoustic": {
+        "f0": 200.0,
+        "intensity": 60.0,
+        "speaking_rate": 4.5,
+        "voice_quality": "modal"
+      }
+    },
+    {
+      "id": "S006",
+      "speaker": "S0",
+      "text": "您手上的Key不是汇信的。",
+      "start_sec": 25,
+      "end_sec": 30,
+      "acoustic": {
+        "f0": 200.0,
+        "intensity": 60.0,
+        "speaking_rate": 4.5,
+        "voice_quality": "modal"
+      }
+    },
+    {
+      "id": "S007",
+      "speaker": "S1",
+      "text": "那怎么办？",
+      "start_sec": 30,
+      "end_sec": 35,
+      "acoustic": {
+        "f0": 200.0,
+        "intensity": 60.0,
+        "speaking_rate": 4.5,
+        "voice_quality": "modal"
+      }
+    },
+    {
+      "id": "S008",
+      "speaker": "S0",
+      "text": "建议您找对应服务商处理，还有其他问题吗？",
+      "start_sec": 35,
+      "end_sec": 40,
+      "acoustic": {
+        "f0": 200.0,
+        "intensity": 60.0,
+        "speaking_rate": 4.5,
+        "voice_quality": "modal"
+      }
+    },
+    {
+      "id": "S009",
+      "speaker": "S1",
+      "text": "没有了，谢谢。",
+      "start_sec": 40,
+      "end_sec": 45,
+      "acoustic": {
+        "f0": 200.0,
+        "intensity": 60.0,
+        "speaking_rate": 4.5,
+        "voice_quality": "modal"
+      }
+    },
+    {
+      "id": "S010",
+      "speaker": "S0",
+      "text": "好的，再见，请稍后给个评价，满意请按1，再见。",
+      "start_sec": 45,
+      "end_sec": 50,
+      "acoustic": {
+        "f0": 200.0,
+        "intensity": 60.0,
+        "speaking_rate": 4.5,
+        "voice_quality": "modal"
+      }
+    }
+  ],
+  "between_turn_pauses": [
+    {
+      "after_segment": "S001",
+      "duration_sec": 0.5
+    },
+    {
+      "after_segment": "S002",
+      "duration_sec": 0.5
+    },
+    {
+      "after_segment": "S003",
+      "duration_sec": 0.5
+    },
+    {
+      "after_segment": "S004",
+      "duration_sec": 0.5
+    },
+    {
+      "after_segment": "S005",
+      "duration_sec": 0.5
+    },
+    {
+      "after_segment": "S006",
+      "duration_sec": 0.5
+    },
+    {
+      "after_segment": "S007",
+      "duration_sec": 0.5
+    },
+    {
+      "after_segment": "S008",
+      "duration_sec": 0.5
+    },
+    {
+      "after_segment": "S009",
+      "duration_sec": 0.5
+    }
+  ],
+  "stats": {
+    "num_segments": 10,
+    "num_speakers": 2,
+    "speech_overlap_sec": 0.0,
+    "total_silence_sec": 4.5,
+    "total_speech_sec": 50.0
+  }
+}
