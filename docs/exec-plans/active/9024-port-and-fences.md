@@ -62,7 +62,7 @@ hazard it carried came with it, and there is no longer a second plan to negotiat
 - `tests/test_schemas.py` (modify — M6's anchor assertions, and the fidelity floor's comparison machinery, absorbed from 9022 on 2026-09-14)
 - `scripts/build_schema_snapshot.py` (modify — the fidelity oracle; absorbed from 9022)
 - `scripts/mutate_m5_contract.py` (modify — the mutation sweep; absorbed from 9022)
-- `tests/fixtures/intentional_deviations.yaml` (new — **the register of deliberate divergences**, consumed by the comparison instead of failing on them; this plan lands it, and its first entry is M7's absent-role state)
+- `tests/fixtures/intentional_deviations.yaml` (new — **the register of deliberate divergences**, consumed by the comparison instead of failing on them. Its first entry is `VerdictResult.HUMAN_REVIEW`, retained against a B that deleted it — the register's first genuine use; the absent-role state it was originally reserved for was withdrawn by Q29. See the 2026-09-15 Decision Log entry)
 - `tests/test_i8_provenance_separation.py` (modify — widen the live scan)
 - `pyproject.toml` (modify — dependency changes; the archive declared this path and the split dropped it from every successor until 2026-09-14)
 - `docs/decisions/dep-vet-transformers.md` (new — `nli` is imported unchanged and B's `utils/nli.py` imports `transformers`, which is not yet a declared dependency of this repository; deps-and-secrets requires a dep-vet record before the install is allowed)
@@ -231,10 +231,12 @@ and does not need to. Consequences, all three consequences of the original block
   port's fidelity to upstream is preserved, no longer deliberately broken.**
 - The consumer-side assertion is now `tests/test_call_record.py::test_unattributed_call_is_not_processed`
   (decline at intake), which replaces the planned "routes to a human rather than being scored".
-- **The register's entry one never existed to be written.** `tests/fixtures/intentional_deviations.yaml`
-  is deferred until a real deviation lands; creating it to hold a withdrawn entry would be a
-  register performing bookkeeping about itself. The fidelity floor and the port no longer fight —
-  which was the register's whole purpose.
+- **The register's entry one is no longer the absent-role state — that entry was withdrawn with the
+  deviation.** `tests/fixtures/intentional_deviations.yaml` still lands in this milestone, but for a
+  different member: `VerdictResult.HUMAN_REVIEW`, retained against a B that deleted it. See the
+  2026-09-15 Decision Log entry, "The fidelity target moves with B". The fidelity floor and the port
+  no longer fight — which was the register's whole purpose — and the mechanism now has the genuine
+  use it was built for rather than a bookkeeping one.
 
 *The original block:*
 
