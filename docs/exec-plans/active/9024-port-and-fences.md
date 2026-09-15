@@ -220,26 +220,49 @@ and the records carry `turns[].speaker` as `S0`/`S1` with `speakers[].label` nul
 **not** carry a role and the consumer must defer, which is exactly what M7's absent-role state and
 `test_absent_role_defers` establish from the other side.
 
-**M7 also carries the role-type deviation — the consumer must be able to say "not established."**
-This arrived split across plans and had no executable home (found 2026-09-14 by adversarial
-verification): `9023`'s M2 requires an absent-role state and names the acceptance test, but 9023's
-own out-of-scope excludes this repository and its File Scope lists only its plan file, while no
-milestone here performed the schema change this plan's File Scope already claimed. It belongs
-**here**, because the port is this plan's file and the change is a port property:
+**The role-type deviation is WITHDRAWN (2026-09-15, consequence of Q29).** The block below is the
+deviation as planned on 2026-09-14, kept as the record. The human's Q29 ruling — *角色必须确立，
+否则 Argus 不处理* — supersedes its premise: role establishment became an **input precondition**,
+declined at intake by `argus.io.call_record` (`RolesNotEstablished`), so an unestablished role
+never reaches the types at all. A port whose types never see an absent role cannot express one —
+and does not need to. Consequences, all three consequences of the original block:
 
-- `src/argus/types/pipeline.py` is a faithful port of upstream's `CleanTurn.role`
-  (`Literal["customer", "agent"]`, `:61`/`:142`) — a type that cannot express "nobody established
-  this". The port gains an absent state (nullable, or a third member; the shape is M2's to choose,
-  recorded in 9023).
-- **The consumer-side consequence lives here:** a call whose role is absent routes to a human
-  rather than being scored. That is this plan's assertion, tested here, because 9023 cannot test
-  this repository's code.
-- **It is a declared deviation from upstream, and it must be registered.** The fidelity floor
-  compares the port against upstream mechanically and cannot distinguish a deliberate deviation
-  from an accidental drift without a register. **This plan owns that register now** (File Scope,
-  `tests/fixtures/intentional_deviations.yaml`), and this milestone's change is its first entry.
-  The register is deliberately awkward to add to: an entry must name the decision that authorised
-  it, so suppressing a divergence is an act someone signs, never a silence.
+- `pipeline.py`'s `Turn.role` stays exactly upstream's `Literal["customer", "agent"]` — **the
+  port's fidelity to upstream is preserved, no longer deliberately broken.**
+- The consumer-side assertion is now `tests/test_call_record.py::test_unattributed_call_is_not_processed`
+  (decline at intake), which replaces the planned "routes to a human rather than being scored".
+- **The register's entry one never existed to be written.** `tests/fixtures/intentional_deviations.yaml`
+  is deferred until a real deviation lands; creating it to hold a withdrawn entry would be a
+  register performing bookkeeping about itself. The fidelity floor and the port no longer fight —
+  which was the register's whole purpose.
+
+*The original block:*
+
+> **M7 also carries the role-type deviation — the consumer must be able to say "not established."**
+> This arrived split across plans and had no executable home (found 2026-09-14 by adversarial
+> verification): `9023`'s M2 requires an absent-role state and names the acceptance test, but 9023's
+> own out-of-scope excludes this repository and its File Scope lists only its plan file, while no
+> milestone here performed the schema change this plan's File Scope already claimed. It belongs
+> **here**, because the port is this plan's file and the change is a port property:
+>
+> - `src/argus/types/pipeline.py` is a faithful port of upstream's `CleanTurn.role`
+>   (`Literal["customer", "agent"]`, `:61`/`:142`) — a type that cannot express "nobody established
+>   this". The port gains an absent state (nullable, or a third member; the shape is M2's to choose,
+>   recorded in 9023).
+> - **The consumer-side consequence lives here:** a call whose role is absent routes to a human
+>   rather than being scored.
+> - **It is a declared deviation from upstream, and it must be registered.** This plan owns the
+>   register (`tests/fixtures/intentional_deviations.yaml`), and this milestone's change is its
+>   first entry.
+
+**Also M7's, by the import list's own bindingness: B's aggregation logic is absorbed into
+`io/qa_agent.py`, not ported as an eighth module.** B's `qa_agent` Stage 6 assembles the report
+through its aggregator; the rewired orchestrator still has to produce that report (the M4-baseline
+comparison is field-for-field), but `core/aggregator.py` is not on the seven-module list. The
+aggregation is the proposal half's own score assembly — not a producer decision — so it moves as
+private functions inside `io/qa_agent.py`, and later milestones replace it with `core/score` per
+the two-stage contract. Porting it as a separate `io/aggregator.py` would require amending the
+binding list; absorbing it requires nothing but a paragraph.
 
 `Acceptance Test (this plan):` `tests/test_call_record.py::test_absent_role_defers` — a call whose
 role is not established routes to a human rather than being scored.
