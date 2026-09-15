@@ -377,6 +377,16 @@ records carry a role — so M7's consumer-side assertions run on synthetic recor
 field, plus the decline path exercised on records that lack it. Real-data conformance waits for
 the re-run and is 9024 M7's or M4-inheritance's to pick up when it lands.
 
+**Updated 2026-09-15, same day — the re-run is gated, not scheduled.** The 9008 session reported
+back (correctly asking for the ruling's anchor before acting; `2b36eed` was provided): **M13
+carries three open, independently-falsified defects** — segment backfill manufactures roles,
+ties resolved by the complement erase 39 numbered under-segmentation signals, and the
+`between_turn_pauses` schema invariant breaks on 176/671 calls. Running the pass now would write
+wrong roles into the corpus, which Q29's ruling then mass-rejects at intake. Agreed disposition,
+both sides: **the archive backup proceeds now** (safe, an independent prerequisite; Argus never
+reads the backup); **the re-run gates on M13's CONFIRMED.** M7's consumer-side tests stay on
+synthetic records plus the decline path until the re-run lands.
+
 
 **Q16: Does `core/` stop importing `io/`?** — **Awaiting Steering: resolved 2026-09-12.** Forbid
 `core → io`; M8 lands the four forbidden contracts with `include_external_packages = True` and
