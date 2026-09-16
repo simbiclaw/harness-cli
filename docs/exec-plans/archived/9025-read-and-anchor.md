@@ -174,3 +174,15 @@ rather than silently overridden.
 ## 8. Outcomes & Retrospective
 
 *Written at completion or cancellation.*
+
+
+---
+
+**Status: SUPERSEDED (9021 family overturn, human ruling 2026-09-16 — "no simbi at all").**
+
+Reason and full record: the parent plan's overturn entry in this directory
+(`9021-relayer-argus-eval-pipeline.md`, Outcomes & Retrospective — OVERTURN RECORD).
+Checkbox history above stands as recorded.
+
+**Disposition of this plan's work:**
+M12 (the grounding gate) is landed spec work — kept, and 9031 wires the new S2 into it. M13 (the Provider) is **absorbed into 9031** as the S1 read stage. The dependency declaration on "the imported proposal" is superseded: the gate will judge spec-shaped proposals.

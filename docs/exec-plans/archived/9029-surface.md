@@ -141,3 +141,15 @@ as the machine contract.
 ## 8. Outcomes & Retrospective
 
 *Written at completion or cancellation.*
+
+
+---
+
+**Status: SUPERSEDED (9021 family overturn, human ruling 2026-09-16 — "no simbi at all").**
+
+Reason and full record: the parent plan's overturn entry in this directory
+(`9021-relayer-argus-eval-pipeline.md`, Outcomes & Retrospective — OVERTURN RECORD).
+Checkbox history above stands as recorded.
+
+**Disposition of this plan's work:**
+The divergence probe is landed spec work — kept. The CLI/record surface (M22) is **absorbed into 9031** as the minimal machine-readable output of the report record; the human-facing rendering belongs to sira-proxy per PRODUCERS.md §9.3.

@@ -1646,3 +1646,60 @@ layer and a CLI. A milestone whose neighbours are unrelated is a milestone nobod
 and the recurring defect this plan produced (M5's six rounds; the import seam drawn along the wrong
 boundary; a §6 milestone missing entirely) shares one shape: **nobody was looking at the whole**.
 Splitting does not fix that by itself, but it makes each part small enough that someone can.
+
+
+---
+
+## Outcomes & Retrospective — OVERTURN RECORD (2026-09-16)
+
+**Status: SUPERSEDED (completely overturned by human ruling)**
+
+**Original outcome:**
+
+The porting strategy ("import B's proposal half, bridge to the spec-derived core") was
+executed across this family: M5/M6 of 9024 landed and were adversarially CONFIRMED; 9023
+repaired B end-to-end against a fake LLM (38 tests green, in B's own repo); the spec-derived
+dispose side (2007 lines in `src/argus/core/`) landed and is kept. Milestone checkboxes
+above are recorded history and stand.
+
+**Overturn reason (2026-09-16, human ruling — "no simbi at all"):**
+
+The plan's core assumption — that porting simbi buys time-to-value on the proposal stage —
+was overturned by measurement, not by execution failure:
+
+- The port emits whole-turn evidence with no spans; the spec's finding (§3.2) needs
+  span + quote + epoch anchor. 7 of 11 spec fields existed nowhere in `src/`.
+- The fidelity floor (2,370 lines of guard infrastructure) made extending the ported
+  contracts structurally impossible, so no seam to the spec-derived core could be built.
+- B itself has never executed against a real model (empty `data/reports/` since its
+  initial commit; first end-to-end ran against a fake LLM — 9023 M4).
+- The integrity floor's *cost* (M5's six adversarial rounds) bought equality with an
+  unexecuted prototype.
+- B's local NLI instrument — the one candidate asset — is ruled **assumed empty without
+  measurement** (human ruling 2026-09-16; it never loaded a model, and its configured
+  model is an English cross-encoder over a Chinese corpus).
+
+Two adversarial rebuttals (issue #20) corrected the derivation — the seam *was* buildable
+(turn-level anchoring), and I7 was mis-cited — but not the conclusion: retiring the port
+is a cost call, and the human took it. **The forcing language in the sections above
+("structurally cannot", "the decision is forced") is superseded by this record.**
+
+**What survives:**
+
+- `src/argus/core/**` (spec-derived, zero B lineage) — kept untouched.
+- The S1 fixture discipline, the fences (9024 M8/M9, unlanded), the anchor types
+  (`types/anchored.py`), score/adjust/route/corroboration/replay/divergence — all kept.
+- simbi's remaining value (failure-mode catalogue) is discharged in
+  `docs/experiments/9021-ab-investigation/report-B.md`.
+
+**Replacement plan:** `docs/exec-plans/active/9031-argus-derivation-pipeline.md`
+
+**Lessons learned:**
+
+- Porting buys fidelity to a snapshot, not capability; if the source never ran, the
+  fidelity is to a hypothesis.
+- A floor that forbids extending the port also forbids building the bridge — the
+  constraint and the goal were contradictory from the start.
+- Adversarial rebuttal worked exactly as designed: two rounds broke the derivation,
+  kept the conclusion honest, and produced the turn-level-anchoring concession the new
+  plan builds on.

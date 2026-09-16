@@ -106,4 +106,4 @@ This document is the product-level statement of a specified system; every claim 
 
 **Plan of record**
 
-- `docs/exec-plans/active/9021-relayer-argus-eval-pipeline.md` — the parent plan and its architecture review: the producer/consumer seam (audio2tree, doc2graph, the criteria compiler, curation produce the knowledge base; Argus consumes it and never re-derives what a producer establishes), and the shared record this product spec's guarantees rest on.
+- `docs/exec-plans/active/9031-argus-derivation-pipeline.md` — the derivation pipeline plan (successor to the overturned 9021 family, archived 2026-09-16): the producer/consumer seam (audio2tree, doc2graph, the criteria compiler, curation produce the knowledge base; Argus consumes it and never re-derives what a producer establishes), the consumer contracts of `INTENTS/PRODUCERS.md` §9, and the plan this product spec's guarantees rest on.

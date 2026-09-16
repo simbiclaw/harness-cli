@@ -138,3 +138,15 @@ it — it becomes an entry here, and this section is not empty any more.
 ## 8. Outcomes & Retrospective
 
 *Written at completion or cancellation.*
+
+
+---
+
+**Status: SUPERSEDED (9021 family overturn, human ruling 2026-09-16 — "no simbi at all").**
+
+Reason and full record: the parent plan's overturn entry in this directory
+(`9021-relayer-argus-eval-pipeline.md`, Outcomes & Retrospective — OVERTURN RECORD).
+Checkbox history above stands as recorded.
+
+**Disposition of this plan's work:**
+This plan reconciled family bookkeeping. Its open items (QUALITY_SCORE regrade staleness, the Tier-1 floor bell on bare `Plan: 9021` trailer commits) die with the family they bookkept; the new plan's Decision Log carries the rulings forward. Nothing here survives as a dependency.

@@ -161,3 +161,15 @@ measurement of agreement at all.
 ## 8. Outcomes & Retrospective
 
 *Written at completion or cancellation.*
+
+
+---
+
+**Status: SUPERSEDED (9021 family overturn, human ruling 2026-09-16 — "no simbi at all").**
+
+Reason and full record: the parent plan's overturn entry in this directory
+(`9021-relayer-argus-eval-pipeline.md`, Outcomes & Retrospective — OVERTURN RECORD).
+Checkbox history above stands as recorded.
+
+**Disposition of this plan's work:**
+Routing is spec work, largely landed. M19.5 (the §6 agreement instrument and CriterionHealth) is **absorbed into 9031** as part of making the first end-to-end run honest.

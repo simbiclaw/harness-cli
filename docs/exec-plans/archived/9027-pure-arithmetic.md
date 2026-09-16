@@ -278,3 +278,15 @@ recorded in the Decision Log rather than re-litigated here.*
 ## 8. Outcomes & Retrospective
 
 *Written at completion or cancellation.*
+
+
+---
+
+**Status: SUPERSEDED (9021 family overturn, human ruling 2026-09-16 — "no simbi at all").**
+
+Reason and full record: the parent plan's overturn entry in this directory
+(`9021-relayer-argus-eval-pipeline.md`, Outcomes & Retrospective — OVERTURN RECORD).
+Checkbox history above stands as recorded.
+
+**Disposition of this plan's work:**
+The landed stages (score, adjust, corroboration, replay hash, divergence) are spec work — kept untouched. M17's premise "B's local NLI is an independent instrument" is superseded by the human ruling of 2026-09-16 (instrument assumed empty without measurement). Remaining unlanded milestones are **absorbed into 9031**; the finding-extractor's `ScorableFact` producer obligation moves there.

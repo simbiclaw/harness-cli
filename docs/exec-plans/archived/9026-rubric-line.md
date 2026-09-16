@@ -219,3 +219,15 @@ blocked on it. The alternative considered and rejected: re-adding `dimension_wei
 ## 8. Outcomes & Retrospective
 
 *Written at completion or cancellation.*
+
+
+---
+
+**Status: SUPERSEDED (9021 family overturn, human ruling 2026-09-16 — "no simbi at all").**
+
+Reason and full record: the parent plan's overturn entry in this directory
+(`9021-relayer-argus-eval-pipeline.md`, Outcomes & Retrospective — OVERTURN RECORD).
+Checkbox history above stands as recorded.
+
+**Disposition of this plan's work:**
+M14 (polarity fix) and M16 (compile the 27 rows) are compiler-line work, **absorbed into 9031** unchanged in substance. M15's switch of `question_generator`'s input dies with B — under 9031 the compiled nodes have exactly one consumer (the spec-shaped proposer), and the second derivation path this milestone closed no longer exists.

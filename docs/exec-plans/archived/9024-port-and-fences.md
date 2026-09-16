@@ -509,3 +509,15 @@ The text above is the parent's own wording, restored.
 ## 8. Outcomes & Retrospective
 
 *Written at completion or cancellation.*
+
+
+---
+
+**Status: SUPERSEDED (9021 family overturn, human ruling 2026-09-16 — "no simbi at all").**
+
+Reason and full record: the parent plan's overturn entry in this directory
+(`9021-relayer-argus-eval-pipeline.md`, Outcomes & Retrospective — OVERTURN RECORD).
+Checkbox history above stands as recorded.
+
+**Disposition of this plan's work:**
+M5/M6 landed and CONFIRMED (history stands), but their subject — the ported contracts — retires under 9031, which gives `VerdictResult`/`RubricItem` Argus-side homes and deletes the fidelity floor. M7 is moot. M8 (four fences) and M9 (I8 repoint) are invariant enforcement, not port work: **absorbed into 9031.** The uncommitted M7 repair left in the old worktree is abandoned.
