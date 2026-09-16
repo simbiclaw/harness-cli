@@ -99,10 +99,12 @@ finer, exact quote, pinned `intents_sha`). Reconcile with the established parts:
 `calls/` record schema (producer's real shape, `schema_version: "1.0"`).
 
 - *Deliverable:* the facet/schema specification as a PRODUCERS.md §9.1 revision
-  proposal (staged, not committed to the tree), reviewed with the producer sessions.
-- *Known evidence (advisory):* the acoustic shelf's producer is unowned (9023 Q6c
-  ruling: five indicators have definitions but no producer); the facet spec must name
-  who measures, or declare the class human-only.
+  proposal (staged, not committed to the tree), reviewed with the producer sessions
+  — **this includes the two-tier report-storage refinement of §9.3** (ruling #1).
+- *Known evidence (advisory):* ~~the acoustic shelf's producer is unowned~~ **resolved
+  by ruling #2 (2026-09-16): the 12 acoustic indicators are produced by audio2tree
+  (its M11 per-turn measurement, in flight); Argus consumes them as facts.** The
+  facet spec names audio2tree as the acoustic producer.
 - `Behavioral Test:` `tests/test_facet_contract.py::test_every_facet_maps_to_a_gradable_criterion`
   and `::test_every_facet_names_its_producer` — the spec, parsed as data, must satisfy
   both over all eight classes; validation runs against one real compiled `_rubric/`
@@ -201,24 +203,37 @@ identical raw and adjusted.
 - `Structural Test:` `::test_score_receives_no_history` (the existing canary, now fed
   by real output instead of test literals).
 
-### M7 — S5 Route and the report record (the write path)
+### M7 — S5 Route and the report record (the write path, two-tier storage)
 
 **Contract.** `core/route.py` (exists) → `io/report_record.py`: the report-data schema
-per PRODUCERS.md §9.3 — one call ↔ one record, append-only, carrying the evaluation
-epoch, the findings with evidence, applied precedents, routing reason, derivation
-trail. Written to `<domain>/<case>/reports/report.<call-id>.json`. **Gated on the
-human-authorized `_meta/ownership.yaml` re-sync registering the `argus` glob** (Awaiting
-Steering A1 — the re-sync must land before any report does; doc2graph's zero-orphan CI
-depends on the ordering). Amend `tests/test_no_write_path.py`: no writes outside the
-report glob; the referent prohibition keeps its teeth.
+per PRODUCERS.md §9.3 — one call ↔ one record, carrying the evaluation epoch, the
+findings with evidence, applied precedents, routing reason, derivation trail
+(**logical granularity, human ruling 2026-09-16 #4: one full record per call**).
+**Physical storage is two-tier (human ruling 2026-09-16 #1):** the tree receives a
+**daily summary JSONL** (append-only, one line per call: score, verdict counts,
+routing reason, epoch, replay hash, and a content-addressed pointer + sha256 to the
+full record); full records go to the **content-addressed cold tier** (replay forever,
+I4/I5); an **annual compaction job exports Parquet** for Metis-style cross-case
+analytics. At production scale (≈1,500–2,000 calls/day ≈ 25–45 GB/year of full
+records, 0.5–0.7 M files) one-file-per-report in the git tree is infeasible — this
+shape keeps HEAD small and makes the annual archive the analytics instrument. The
+§9.3 physical-shape refinement rides the M1 contract revision proposal (producer
+review before landing tree-side). **Gated on the human-authorized
+`_meta/ownership.yaml` re-sync registering the `argus` glob** (Awaiting Steering A1 —
+the re-sync must land before any report does; doc2graph's zero-orphan CI depends on
+the ordering). Amend `tests/test_no_write_path.py`: no writes outside the report
+glob; the referent prohibition keeps its teeth.
 
-- *Acceptance property:* one real call → one report record in the tree, replayable
-  from its stored epoch; knowledge nodes untouched.
-- `Behavioral Test:` `tests/test_report_record.py::test_one_real_call_writes_one_record`,
-  `::test_the_record_round_trips_and_replays_at_its_recorded_epoch`,
-  `::test_knowledge_globs_are_untouched_by_a_report_write`.
+- *Acceptance property:* one real call → one summary line in the day's JSONL + one
+  full record in the cold tier, byte-replayable from its stored epoch; knowledge
+  nodes untouched.
+- `Behavioral Test:` `tests/test_report_record.py::test_one_real_call_writes_one_summary_and_one_full_record`,
+  `::test_the_full_record_round_trips_and_replays_at_its_recorded_epoch`,
+  `::test_knowledge_globs_are_untouched_by_a_report_write`,
+  `::test_the_annual_export_covers_exactly_one_year_of_summaries` (fixture-scale day
+  files; the exporter runs on real summary lines).
 - `Structural Test:` `test_no_write_path.py` red/green updated — a write to `_rubric/`
-  still fails; a write to `reports/` passes; any other path fails.
+  still fails; a write to the report glob passes; any other path fails.
 
 ### M8 — The report template and the sira-proxy contract
 
@@ -252,9 +267,15 @@ end-to-end on real data. Nothing about this milestone is allowed to be a fixture
 **Contract.** 9028 M19.5 absorbed: the §6 agreement store (Argus-vs-human κ per
 criterion, τ gate), CriterionHealth, and the random-tranche audit sampling (patch-1
 D22 — random floor only in the escape-rate estimate). This is what makes auto-final
-honest per Argus.md's guarantees 3 and 4. Scope note: the instrument needs human-labeled
-samples; landing the machinery and its data contract is in scope, producing the labels
-is the calibration channel's (curated's) — declared, not silently dropped.
+honest per Argus.md's guarantees 3 and 4. **Seed path (human ruling 2026-09-16 #5):**
+the κ seeds are **Chain B's 20–50 complete calls** (sourced from the 2026-06-26
+archive per ruling; dispatched to audio2tree) — QA labels them per-item 1/0/NA from
+transcript + rubric standards **before any machine verdict exists** (physically
+blind); pairing against M5–M9's verdicts seeds the store. Independent of SIRA. Thin
+per-criterion κ on rare items degrades honestly through the τ gate (routes to human),
+with no compensatory relaxation. Landing the machinery and its data contract is in
+scope; producing the labels is the calibration channel's (curated's) — declared, not
+silently dropped.
 
 - `Behavioral Test:` `tests/test_agreement.py::test_a_criterion_below_tau_cannot_auto_finalize`
   (on a real criterion with injected labels),
@@ -348,6 +369,56 @@ is what converts this to measured).
   natural unit there anyway); if a future criterion needs sub-turn precision, that is a
   new facet requirement through M1's contract, not a silent upgrade.
 
+### Decision: the 2026-09-16 steering-interview rulings (recorded verbatim)
+
+The human ruled on seven open questions in one sitting (steering-interview playground,
+2026-09-16). Recorded as one entry with the per-ruling consequences; the source for
+each is the human's own words, captured in the interview transcript and quoted in the
+plan sections they amend.
+
+**R1 — Report co-location + two-tier storage.** Reports co-locate **only** beside
+audio2tree's `calls/` (strict sibling; doc2graph-derived leaves carry no reports) —
+for Metis-class consumer agents. Physically: **tree = daily summary JSONL** (append-
+only, one line per call, with pointer + sha256) → **cold tier = content-addressed
+full records** (replay forever) → **annual Parquet compaction** (the Metis analytics
+instrument). Human nuance, translated: at 1,500–2,000 calls/day the one-file-per-
+report tree is infeasible; the annual archive is feasible only over a bounded hot
+tier. Amends M7 (done); the §9.3 physical-shape refinement rides M1's revision
+proposal. *Confidence: high (ruling, with the volume arithmetic on record).*
+
+**R2 — Acoustic producer.** The 12 acoustic indicators are produced by **audio2tree**
+(its per-turn measurement chain; M11's repetition work is one named instance, not the
+mandate's scope — the producer *identity* is the ruling, the vehicle is audio2tree's
+scoping call). Argus consumes as facts, never measures. Resolves Awaiting-Steering
+A2. *Confidence: high (ruling).*
+
+**R3 — S2 model and interface.** S2 runs the **LAN 27b behind `local_proposer.py`'s
+`LogitModel` protocol** — D7's `proposed_score` comes from scoring-token logits,
+matching Argus.md's on-premise deployment shape without exception. *Confidence: high
+(ruling).*
+
+**R4 — Report record granularity.** One full record per call: per-item verdicts with
+evidence, per-dimension rollups, raw and adjusted scores, applied precedents, routing
+reason. (Logical granularity; R1 governs physical storage.) *Confidence: high
+(ruling).*
+
+**R5 — κ bootstrap.** Seeds = **Chain B's 20–50 complete calls** (sourced from the
+2026-06-26 archive per the same sitting's corpus ruling; dispatched to audio2tree).
+QA labels per-item 1/0/NA from transcript + rubric standards **before any machine
+verdict exists** — physically blind. Independent of SIRA. Thin per-criterion κ on
+rare items degrades through the τ gate with no compensatory relaxation. The
+exemplar-clip library (Chain A, also dispatched) is a *different* instrument —
+confirmed referents for I6's correlated class and calibration injection, not a κ
+source. *Confidence: high (ruling).*
+
+**R6 — Rubric scope stays 25.** Items 6–7 deferred pending ticketing-system access;
+they activate when it exists. Approximating from transcript alone is explicitly
+rejected (fabrication). *Confidence: high (ruling).*
+
+**R7 — Contract text location.** The facet/schema contract lives as a
+**PRODUCERS.md §9.1 revision** (staged in harness-cli, landed tree-side after
+producer review). Resolves Awaiting-Steering A3. *Confidence: high (ruling).*
+
 ## 6. Surprises & Discoveries
 
 _(empty — filled during execution)_
@@ -355,24 +426,18 @@ _(empty — filled during execution)_
 ## 7. Awaiting Steering
 
 **A1 — `_meta/ownership.yaml` re-sync authorizing the `argus` report glob.**
-Tier C (on-disk format / tree ledger change; agent edits require explicit human
-authorization per the 2026-09-13 precedent). Proposed default: `*/**/reports/*.json` →
-`argus`, sequenced **before** any report lands (doc2graph's zero-orphan CI). The
-co-location question doc2graph raised — whether `reports/` may sit inside doc2graph-derived
-L2/L3 leaves or only beside audio2tree `calls/` — settles here too.
+~~Proposed default~~ **Shape now fully settled by R1/R4** (strict-sibling report
+location; two-tier storage; daily summary JSONL as the tree-side artifact). What
+remains is the **Tier-C act itself**: the human-authorized ledger edit registering
+`argus` for the report glob (the 2026-09-13 precedent requires the human's explicit
+hand; agents cannot self-authorize). Sequencing unchanged: **before any report
+lands** (doc2graph's zero-orphan CI). The exact glob expression is part of the M1
+contract revision (daily JSONL changes the natural glob from
+`*/**/reports/*.json` toward `*/**/reports/*.jsonl`).
 **Deadline:** before M7 can execute. **Default if undecided:** M7 blocks; nothing writes.
 
-**A2 — The acoustic shelf's producer.** Five of twelve indicators have definitions but
-no producer (9023 Q6c). M1's facet spec must name who measures (audio2tree's M11
-repetition measurement is in flight and is the named route) or declare the class
-human-only. **Deadline:** M1 review. **Default:** declare acoustic facets human-only
-until a producer commits; items served only by acoustic evidence then route to human —
-honest, and degrades nothing.
-
-**A3 — Where M1's contract text lives.** PRODUCERS.md revision (tree-side, all parties)
-vs a harness-cli design doc citing it. Default: revision proposal staged in this repo,
-landed tree-side after producer review — the contract is system-wide (human direction
-2026-09-16).
+**A2 — RESOLVED (R2, 2026-09-16):** acoustic producer = audio2tree; Argus consumes.
+**A3 — RESOLVED (R7, 2026-09-16):** contract text = PRODUCERS.md §9.1 revision.
 
 ## 8. Outcomes & Retrospective
 
