@@ -421,7 +421,24 @@ producer review). Resolves Awaiting-Steering A3. *Confidence: high (ruling).*
 
 ## 6. Surprises & Discoveries
 
-_(empty — filled during execution)_
+**S1 (2026-09-17, from audio2tree-0916's SIRA Phase-1 report) — the LAN 27b endpoint is
+flaky under batched load.** Timeouts at batch=20; stable at batch=10 (40 declines in the
+A-arm run were 2 endpoint batch timeouts, not classifier failures). Directly constrains
+M5: the proposer's batch interface must respect a conservative batch size with
+retry/timeout handling against this endpoint — and D7's logit scoring multiplies request
+counts. Fold into M5's implementation notes when it starts.
+
+**S2 (same report) — ASR quality is a live chain-property risk.** audio2tree's local
+ASR (qwen3-0.6B) measured **median CER 0.51** against the v1_5_cuda gold on this G.723
+corpus (causes separated: homophone/name errors, G.723 hallucination, a suspected
+audio↔gold pair mismatch, and the gold's own noise floor). Argus consumes transcripts;
+per Argus.md, quality is a chain property — if production transcripts carry this error
+rate, every downstream finding inherits it. **Not blocking the κ bootstrap** (Chain B
+labels from the archive's existing tree-shape records — text-side, no ASR dependency),
+and the transcription choice is the producer's domain. Recorded so M9's first end-to-end
+run states which transcription it consumed, and so the chain-quality conversation
+happens with audio2tree before production claims are made. Full per-line diffs:
+`/tmp/sira_aarm_prod_diff.csv`, `/tmp/sira_barm_wer.csv`.
 
 ## 7. Awaiting Steering
 
