@@ -29,7 +29,7 @@ from argus.core.divergence import (
     probe_divergence,
     window_divergence,
 )
-from argus.types.pipeline import RubricCategory
+from argus.types.verdict import RubricCategory
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MODULE = REPO_ROOT / "src" / "argus" / "core" / "divergence.py"

@@ -38,7 +38,7 @@ from argus.core.adjust import (
     adjust,
 )
 from argus.core.score import Rubric, ScorableFact, score
-from argus.types.pipeline import RubricCategory, RubricItem, VerdictResult
+from argus.types.verdict import RubricCategory, RubricItem, VerdictResult
 
 EPOCH = "a" * 40
 

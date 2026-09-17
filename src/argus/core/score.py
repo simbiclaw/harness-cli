@@ -48,7 +48,7 @@ from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from argus.types.pipeline import RubricItem, VerdictResult
+from argus.types.verdict import RubricItem, VerdictResult
 
 
 class DeferReason(str, Enum):

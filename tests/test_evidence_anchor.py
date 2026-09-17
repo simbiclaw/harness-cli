@@ -174,19 +174,6 @@ def test_an_intents_sha_must_look_like_an_epoch():
             _anchored(intents_sha=bad)
 
 
-def test_the_port_is_untouched():
-    """M6 extends alongside the port; it does not edit it.
-
-    `types/pipeline.py` mirrors the upstream contract and M5's snapshot test
-    rejects fields upstream does not have. If a later change moves these fields
-    into the port, that test fails — as it should. This assertion states the
-    boundary so the failure reads as intended rather than as a puzzle.
-    """
-    from argus.types import pipeline
-
-    for field in ("span", "quote", "intents_sha"):
-        assert field not in pipeline.EvidenceItem.model_fields
-
 
 def test_span_itself_is_frozen():
     """Span's own frozen config, not only AnchoredEvidence's.

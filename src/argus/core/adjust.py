@@ -45,7 +45,7 @@ from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from argus.core.score import Contribution, Deferral, RawScore, credit_for, tally
-from argus.types.pipeline import VerdictResult
+from argus.types.verdict import VerdictResult
 
 # Same shape M6 requires of an evidence epoch, for the same reason: a pin that
 # is not a commit is not a pin (I4).

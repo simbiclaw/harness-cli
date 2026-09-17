@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 ADR_DIR = REPO_ROOT / "docs" / "adr"
@@ -49,11 +51,15 @@ def test_four_foundational_adrs_exist_and_are_wellformed() -> None:
 
     assert not failures, "\n  ".join(["", *failures])
 
-    # Also assert no unexpected ADRs (exactly these four)
-    adr_names = {p.name for p in adr_files}
-    expected = set(REQUIRED_ADRS)
-    extra = adr_names - expected
-    assert not extra, (
-        f"Unexpected files in docs/adr/ (only the four foundational ADRs "
-        f"should exist at this milestone): {extra}"
-    )
+    # Every ADR present must be well-formed — Status and Decision — whether or
+    # not it is one of the four foundational ones. (The exclusivity clause that
+    # used to live here died when ADR-0005 landed; new ADRs are welcome, but
+    # they are held to the same shape.)
+    for path in adr_files:
+        if path.name in REQUIRED_ADRS:
+            continue  # already checked above
+        text = path.read_text()
+        if "**Status**:" not in text and "**Status:**" not in text:
+            pytest.fail(f"{path.name}: extra ADR missing '**Status**:' line")
+        if "## Decision" not in text:
+            pytest.fail(f"{path.name}: extra ADR missing '## Decision' section")

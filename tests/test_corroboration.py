@@ -42,7 +42,7 @@ from argus.core.corroboration import (
 )
 from argus.core.score import Rubric, ScorableFact, score
 from argus.types.anchored import Span
-from argus.types.pipeline import RubricCategory, RubricItem, VerdictResult
+from argus.types.verdict import RubricCategory, RubricItem, VerdictResult
 
 FINDING = FindingClaim(finding_id="F01", span=Span(start=100, end=200))
 

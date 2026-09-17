@@ -39,7 +39,7 @@ from argus.core.score import (
     auto_final_eligible,
     score,
 )
-from argus.types.pipeline import RubricCategory, RubricItem, VerdictResult
+from argus.types.verdict import RubricCategory, RubricItem, VerdictResult
 
 
 def _item(rubric_id: int, *, weight: float = 1.0, is_veto: bool = False) -> RubricItem:

@@ -37,7 +37,7 @@ from argus.core.replay import (
 from argus.core.score import Rubric, ScorableFact, score
 from argus.core.adjust import adjust
 from argus.types.anchored import AnchoredEvidence, Span
-from argus.types.pipeline import RubricCategory, RubricItem, VerdictResult
+from argus.types.verdict import RubricCategory, RubricItem, VerdictResult
 
 EPOCH = "a" * 40
 OTHER_EPOCH = "b" * 40

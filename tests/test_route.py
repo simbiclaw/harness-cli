@@ -40,7 +40,7 @@ from argus.core.route import (
     route,
 )
 from argus.core.score import Rubric, ScorableFact, score
-from argus.types.pipeline import RubricCategory, RubricItem, VerdictResult
+from argus.types.verdict import RubricCategory, RubricItem, VerdictResult
 
 
 def _item(rubric_id: int) -> RubricItem:

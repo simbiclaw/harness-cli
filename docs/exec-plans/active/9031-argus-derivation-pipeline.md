@@ -90,6 +90,8 @@ Each milestone carries its Behavioral/Structural test declarations per
 first lesson.
 
 ### M1 — The upstream facet/schema contract (criteria-shaped)
+`Acceptance Test:` `tests/test_facet_contract.py::test_every_facet_maps_to_a_gradable_criterion` — run against one real compiled `_rubric/` node per dimension.
+
 
 **Contract.** For each of the eight expertise classes, state: which facets must be
 extracted, the output schema, and how each facet maps to the gradable criteria it
@@ -115,6 +117,8 @@ finer, exact quote, pinned `intents_sha`). Reconcile with the established parts:
 - **Depends on:** nothing (doc milestone; the only one that can run in parallel with M2).
 
 ### M2 — Retire the port; re-home the two symbols; land the fences
+`Acceptance Test:` `tests/test_port_retired.py::test_no_ported_provenance_strings` + `::test_rehomed_types_import` — the port gone, the kept types in their Argus-side homes.
+
 
 **Contract.** Delete the seven ported `io/` modules, the ported `types/pipeline.py`,
 and the fidelity floor's artifacts. Give `core/`'s two needed symbols
@@ -134,6 +138,8 @@ ruling; removal needs no dep-vet).
   allowlist, and `::test_no_ported_provenance_strings` — the grep above as a fixture.
 
 ### M3 — S1 Read: the Provider at a pinned epoch
+`Acceptance Test:` `tests/test_reader.py::test_reads_a_real_record_at_the_pinned_epoch` — one real `calls/*.json` + one real `_rubric/` item at the pinned SHA.
+
 
 **Contract.** One read surface (`io/reader.py`): the call record, the compiled
 `_rubric/` nodes for the applicable dimensions, and the history shelves
@@ -148,6 +154,8 @@ by capsule id per 9025 M13's design. No write path (unchanged until M7's carve-o
   `::test_sole_read_surface` (no other `src/argus/` module opens INTENTS).
 
 ### M4 — Turn-level span addressing
+`Acceptance Test:` `tests/test_spans.py::test_every_turn_in_a_real_batch_resolves` — ≥50 real records; `::test_a_colliding_short_turn_routes_ungrounded_not_guessed`.
+
 
 **Contract.** `io/spans.py`: resolve each turn's `text` (via the record's
 `segments[]`/`start_sec`/`end_sec`, no longer dropped by `call_record.py`) to a
@@ -169,6 +177,8 @@ by I2's own wording ("exact-quote verified" is a substring check).
   comment is gone with the code that wrote it).
 
 ### M5 — S2 Propose: the finding extractor and its prompts
+`Acceptance Test:` `tests/test_extractor.py::test_one_real_call_yields_anchored_findings` — real call, real findings or honest quarantine; `::test_a_finding_without_a_resolving_quote_is_quarantined_not_scored` (I2 red).
+
 
 **Contract.** `io/extractor.py` + `io/propose_prompts.py`: the spec-shaped proposer.
 Output is `ProposedFinding` (the §3.2 shape: `finding_id`, `rubric_id`, `intents_node`,
@@ -192,6 +202,8 @@ permitted *correlated*-signal method (I6, W_C = 0.4), never the verdict mechanis
   import from the extractor; quarantine shape per I1).
 
 ### M6 — Wire S3 → S4: gate, score, adjust
+`Acceptance Test:` `tests/test_wire_s3_s4.py::test_a_real_call_derives_a_deterministic_score` — run twice, byte-identical.
+
 
 **Contract.** Extractor output → `core/grounding.py` (exists) → `ScorableFact`
 production (the first real producer of one — currently zero exist) → `core/score.py` →
@@ -204,6 +216,8 @@ identical raw and adjusted.
   by real output instead of test literals).
 
 ### M7 — S5 Route and the report record (the write path, two-tier storage)
+`Acceptance Test:` `tests/test_report_record.py::test_one_real_call_writes_one_summary_and_one_full_record` — real call, summary line in-tree + full record in cold tier.
+
 
 **Contract.** `core/route.py` (exists) → `io/report_record.py`: the report-data schema
 per PRODUCERS.md §9.3 — one call ↔ one record, carrying the evaluation epoch, the
@@ -236,6 +250,8 @@ glob; the referent prohibition keeps its teeth.
   still fails; a write to the report glob passes; any other path fails.
 
 ### M8 — The report template and the sira-proxy contract
+`Acceptance Test:` `tests/test_report_template.py::test_the_template_renders_a_real_record` — the reference renderer over a real report record.
+
 
 **Contract.** The human-readable report template (likely H5) and the rendering
 contract: what fields sira-proxy reads from the record, what the reviewer sees, how the
@@ -249,6 +265,8 @@ a producer.
   scraping of the record).
 
 ### M9 — The first end-to-end run
+`Acceptance Test:` `tests/test_end_to_end.py::test_one_real_call_end_to_end` + `::test_the_record_replays_bit_for_bit` — the first real run, no human-patched inputs.
+
 
 **Contract.** One real call, producer output → S1 → S2 → S3 → S4 → S5 → report record
 in the tree → rendered template. The first time anything in this repository has run
@@ -263,6 +281,8 @@ end-to-end on real data. Nothing about this milestone is allowed to be a fixture
 - `Structural Test:` the full fence suite over the live run path.
 
 ### M10 — Agreement instrument and the audit floor
+`Acceptance Test:` `tests/test_agreement.py::test_a_criterion_below_tau_cannot_auto_finalize` — on a real criterion with injected labels.
+
 
 **Contract.** 9028 M19.5 absorbed: the §6 agreement store (Argus-vs-human κ per
 criterion, τ gate), CriterionHealth, and the random-tranche audit sampling (patch-1

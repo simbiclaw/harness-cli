@@ -47,7 +47,7 @@ strings into `session.metadata`; nothing downstream reads that metadata, and
 re-deriving structure from text is the producer's work. `agent_id` keeps the
 `Session` default — the record carries no agent identity.
 """
-from argus.types.pipeline import Session, SessionKBContext, Turn
+from argus.types.session import Session, Turn
 
 
 class CallDeclined(Exception):
@@ -173,10 +173,3 @@ def build_session(record: dict) -> Session:
         duration_sec=record["audio"].get("duration_sec"),
         turns=turns,
     )
-
-
-def stub_kb_context(record: dict) -> SessionKBContext:
-    """Production placeholder until 9025's Provider lands: an empty context —
-    no rubric items, no domain summary. Takes the record so the call site
-    reads the same when the Provider replaces it."""
-    return SessionKBContext()
