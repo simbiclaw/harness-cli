@@ -8,6 +8,9 @@ rests on. One contract, one copy — this file carries no normative text that §
 **Authorities:** `INTENTS/PRODUCERS.md` §9 · `docs/adr/0001` (epistemic classes) ·
 `docs/adr/0005` (pointer) · `docs/PRD/PMCA.txt` §1–2 · `docs/product-specs/argus/Argus.md`
 (25 items, two evidence instruments) · `docs/PRD/eval/*` (rubric source) ·
+**`docs/exec-plans/active/9011-evidence-citation-compile.md` @ `33f6efe`** (the
+compiler line's implementation plan — lane definitions, admission gates, future
+coverage map; cited by location so this proposal and that plan cannot drift apart) ·
 9031 M1 contract. Measurements dated 2026-09-17 against the live tree.
 
 ---
@@ -30,7 +33,7 @@ Classes per ADR-0001. "Current state" is measured against the live tree (2026-09
 
 | module | producer | facets required | anchoring |
 |---|---|---|---|
-| Rules & criteria (25 items) | soft-compiler (9003/9011) | the four-layer node: `human_version` (authority) / `machine_criterion` / `signals` / `facets`; programmatic lane = deterministic checks, model_based lane = model-judged extraction | n/a (yardstick) — items reference indicators/lexicon by **pinned_sha**, never inline copies (9011's dedup) |
+| Rules & criteria (25 items) | soft-compiler (9003/9011) | the four-layer node: `human_version` (authority) / `machine_criterion` / `signals` / `facets`. **Lane definition — cite verbatim from 9011, never restate:** programmatic = phrase gates (`values_gate_locates`) **+ acoustic indicator refs** (`facets.programmatic[].indicator + calculation`, with indicator id + threshold + window + producer + combination); model_based = model-judged extraction facets; the split is *deterministic computation vs model judgment* — I6's 1.0 vs `W_C`/0.0 (9011 @ `33f6efe`, Decision Log Part 2, "The association carrier is `facets.programmatic[].indicator + calculation`, never `corroborators[]`") | n/a (yardstick) — items reference indicators/lexicon by **pinned_sha**, never inline copies (9011's dedup) |
 | Acoustic indicator framework (12) | audio2tree (ruling R2) | per indicator: id, unit, measurement window, threshold semantics, **schema aligned to what S0 actually emits** (§3.1) | n/a (yardstick); per-call readings are facts (§2.3) |
 | Phrase & keyword lexicons | audio2tree (extensible part: curated) | per group: id, language, term list, match semantics | n/a (yardstick) |
 
@@ -106,7 +109,24 @@ Rationale on record: at 1,500–2,000 calls/day the one-file-per-report tree is
 infeasible (~25–45 GB/year, 0.5–0.7 M files); the bounded hot tier keeps the tree
 clonable while the annual archive serves cross-case analysis.
 
-## 5. Anchoring requirements (all classes; the consumer's side of §9.1)
+## 5. The two admission gates (9011's flip precondition, conjunctive)
+
+A rubric item turns `checkable: true` only when **both** hold — partial green over
+fake wiring is the failure mode these gates exist to forbid:
+
+1. **measurable** — the predicate's 口径 exists (an indicator/lexicon entry with
+   defined semantics) **and** a producer's schema supplies the reading;
+2. **computable** — thresholds + combination logic + NA conditions fully specified,
+   with **no step left to model discretion**.
+
+Owned by 9011 (its M2), carried with negative tests there; this contract states the
+gates because they are the consumer's requirement, not the compiler's preference.
+Two 9011 artifacts land later and complete this proposal's §2.1 picture — cited now,
+consumed when they flip: the **coverage map** (25-item three-way ledger: green /
+model_only / reason ∈ {no indicator coverage, no producer, inherently
+whole-judgment}, 9011 M5) and the **mapping-input format** (9011 M0).
+
+## 6. Anchoring requirements (all classes; the consumer's side of §9.1)
 
 - A scored finding anchors to **a real transcript span** (turn-level or finer, resolved
   by exact-substring against the pinned transcript) **and a real node** (compiled
@@ -117,7 +137,7 @@ clonable while the annual archive serves cross-case analysis.
 - Spans, quotes and epochs ride the record; replay uses the recorded epoch, never the
   current tree (I4/I5).
 
-## 6. Open items for producer review
+## 7. Open items for producer review
 
 1. soft-compiler: fold §3.1/§3.2/§3.5 resolutions and the 9011 quantification results
    into the §9.1 text before it lands.
