@@ -94,6 +94,18 @@ answers to one question.
 orthogonal to this contract but the same finding that blocks the κ blind-eval audio
 (open human decision, 2026-09-17).
 
+**3.7 Duration-threshold collapse — a class, 2 of 6 hits.** The compiler's audit
+(9011 `f6a223c`) checked every `extracted` threshold against its compiled node:
+items 2 and 8 are clean count predicates with verbatim clause provenance; items 4
+and 17 exist in the nodes **only as lexical phrase gates** — "转接、候线时长不超过30秒"
+and the attribution split "非客服原因>30s / 客服原因>15s" have no duration predicate
+at all (`decomposed_from` empty on the S-lane gates 4-S01/17-S01/12-S01). The
+extraction entries in the registry stand as-is — they faithfully reflect the rubric;
+the nodes are the unfaithful side. Recovery is 9011 M2's acceptance
+(`test_item17_attribution_recovered`, `test_item4_duration_predicates`), with the
+principle recorded there: phrase gates stay a lexical channel, duration predicates
+are a new programmatic channel, never a silent substitution.
+
 ## 4. §9.3 refinement — the two-tier report storage (ruling R1)
 
 Argus's write path stays one: the report record, append-only, beside the call log.
@@ -140,7 +152,9 @@ whole-judgment}, 9011 M5) and the **mapping-input format** (9011 M0).
 ## 7. Open items for producer review
 
 1. soft-compiler: fold §3.1/§3.2/§3.5 resolutions and the 9011 quantification results
-   into the §9.1 text before it lands.
+   into the §9.1 text before it lands. §3.7 is registered in 9011's Surprises with two
+   acceptance tests; §3.6's item-6 typo awaits the human's ruling (recorded verbatim in
+   the registry's extraction_notes).
 2. audio2tree: confirm the acoustic facet schema (which fields are contractual vs
    diagnostic) and the overlap sign convention (§3.4).
 3. doc2graph: confirm `PROPER_NOUNS.yaml`'s facet row (§2.2) reads correctly as contract.
