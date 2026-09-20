@@ -46,6 +46,28 @@ def test_rubric_item_roundtrips():
     assert RubricItem(**item.model_dump()) == item
 
 
+def test_two_rubric_item_classes_remain_distinct():
+    """`compiler_schemas.RubricItem` (a compiled judgment node, str id) and
+    `verdict.RubricItem` (a scoring-sheet row, int id) share a name and must
+    not converge — nor leak into the package namespace as a coin flip.
+
+    Re-homed from `test_schemas.py:1244`, whose subject survived the port's
+    retirement: it compares two Argus-side classes, not the port. Dropped in
+    the first pass of M2 and restored on review round 1 (B-verify, 2026-09-20)
+    — the worst moment to lose it was exactly when M2 relocated one of the two
+    classes into a new module.
+    """
+    import argus.types as pkg
+    from argus.types import compiler_schemas, verdict
+
+    assert compiler_schemas.RubricItem.model_fields["id"].annotation is str
+    assert verdict.RubricItem.model_fields["id"].annotation is int
+    assert not hasattr(pkg, "RubricItem"), (
+        "argus.types must not re-export either RubricItem — the two are "
+        "distinguished by module, and a package-level name makes it a coin flip"
+    )
+
+
 def test_session_and_turn_roundtrip():
     session = Session(
         turns=[
