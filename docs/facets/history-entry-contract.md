@@ -58,9 +58,14 @@ matching:                                   # what the correlated matcher consum
 
 ## Hard requirements
 
-1. **Quote verbatim.** `quote` is an exact substring of the record's `turns[].text` at
-   turn granularity (9031 M4's anchoring unit); a quote that does not resolve makes the
-   entry unusable, not approximately usable.
+1. **Quote verbatim, span in characters.** `quote` is an exact substring of the archive's
+   transcript text, and `span.start` / `span.end` are **character offsets into that text**
+   — the invariant is `len(quote) == span.end - span.start` and
+   `transcript_text[span.start:span.end] == quote`. A time window is not a span: turn
+   timestamps already live in `turns[].start_sec/end_sec` and are cited via `turn_id`,
+   never duplicated into `span`. (First implementer read the field as seconds — the
+   contract now says which; a quote that does not resolve makes the entry unusable, not
+   approximately usable.)
 2. **Instrument ids come from the registry** (`_rubric/evidence/acoustic/indicators.yaml`,
    now argus-owned): every `instruments[].id` must exist there with a threshold. A reading
    with no registry entry is a new-instrument proposal — coordinate the id before shipping.
