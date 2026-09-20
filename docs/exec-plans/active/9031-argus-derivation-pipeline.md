@@ -389,6 +389,32 @@ is what converts this to measured).
   natural unit there anyway); if a future criterion needs sub-turn precision, that is a
   new facet requirement through M1's contract, not a silent upgrade.
 
+### Decision: indicators.yaml ownership transfers to Argus; the registry becomes the rubric's quantified predicates
+
+**Rationale:**
+- Source: Human ruling 2026-09-20 ("正式确定 indicator.yaml 的 owner 为 argus"), with the
+  extraction requirement: the compiler pulls the quantified predicates already present
+  in the rubric text (候线时长 ≤30s in 流程遵守 4; 询问贵姓 >2 次 in 流程遵守 2's 0分标准;
+  密集重复口语 >2 次 in 态度规范 8's 0分标准) and hands the list to Argus to land in
+  `indicators.yaml`.
+- The transfer aligns the file with ADR-0001's own line: the indicator framework is
+  *versioned rubric* (the yardstick) — authored on the consumer's side — while per-call
+  readings stay facts, produced by audio2tree (ruling R2 unchanged).
+
+**Confidence:** high (ruling).
+
+**Consequences:**
+- `PRODUCERS.md` §1/§2 rows and `_meta/ownership.yaml` change the acoustic shelf's owner
+  to `argus`; one epoch minted with the content landing (the human's ruling is the
+  authorization the ledger edits require).
+- The registry's scope broadens: not only the 12 acoustic indicators but every
+  quantified predicate extracted from the rubric (behavioural counters included), each
+  carrying its source item, verbatim rubric text, threshold, unit, measure and producer.
+- M1's §2.1 row updated (done); soft-compiler's 9011 keeps referencing the file by
+  `{shelf_path, entry_ids, pinned_sha}`.
+- The extraction list is the third §9.1 table (indicator registry) — it rides the same
+  revision proposal to the tree.
+
 ### Decision: the 2026-09-16 steering-interview rulings (recorded verbatim)
 
 The human ruled on seven open questions in one sitting (steering-interview playground,
