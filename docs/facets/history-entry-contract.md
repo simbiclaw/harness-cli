@@ -75,6 +75,33 @@ matching:                                   # what the correlated matcher consum
    live finding the kind of thing this precedent confirms" from these, not by semantic
    crawl of the evidence block — keep them discriminative and short.
 
+## How the matcher uses these fields (authoritative)
+
+The three layers do three different jobs; none is a second copy of another:
+
+- **`anchor`** = the business location (and the shelf path). Where the precedent lives.
+- **`finding.source_item`** = the rule this sample was labeled as. What it confirms.
+- **`matching.applicable_items`** = the rules this precedent may corroborate. *All* the
+  rules it can speak to — for most entries one, but a precedent about interrupted
+  turn-taking can declare both item-12 and item-26.
+
+**Matching is two-stage, and the first stage is deterministic:**
+
+1. **Pre-filter (deterministic):** a live finding scored against `rubric_id = item-N`
+   is only ever matched against precedents whose `applicable_items` **contains
+   item-N**. No cross-item corroboration — a precedent for another item contributes
+   nothing, whatever the semantic similarity. This is auditable and cheap, and it is
+   the same prohibition as the recorded cross-use rule (no judging item-21 from an
+   item-20 entry), enforced in the matcher instead of in a note.
+2. **Within the candidate set (model judgment):** `description` + `key_features` are
+   the surface on which the model judge decides "is this live finding the kind of
+   thing this precedent confirms". This judgment is the I6 correlated signal
+   (W_C = 0.4) — it can clear `finding_thin`, never `criterion_below_tau`.
+
+Consequence, stated so nobody is surprised: a rule with zero precedents declaring it
+gets no correlated corroboration at all — the honest degradation, not a gap to paper
+over by loosening the pre-filter.
+
 ## Notes
 
 - **Kinds stay `errors` | `cookbook` (human ruling 2026-09-20).** An NA sample — a call
