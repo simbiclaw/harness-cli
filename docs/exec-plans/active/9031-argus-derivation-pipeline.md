@@ -307,7 +307,7 @@ silently dropped.
 ## 4. Progress
 
 - [ ] M1: The upstream facet/schema contract
-- [ ] M2: Retire the port; re-home the two symbols; land the fences
+- [x] M2: Retire the port; re-home the two symbols; land the fences  (done 2026-09-20 — B round 1 REJECTED narrowly at `12daef0`; repaired at `5b43097`; B round 2 **CONFIRMED**; round-2 follow-ups at `8ada20c`. The final-confirmation pass was **waived by the human on cost grounds** — it never ran, and no claim here says it did. Details in `9031-derivation-pipeline-notes/M2.md`.)
 - [ ] M3: S1 Read — the Provider at a pinned epoch
 - [ ] M4: Turn-level span addressing
 - [ ] M5: S2 Propose — the finding extractor and its prompts
