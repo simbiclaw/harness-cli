@@ -125,7 +125,7 @@ RED_PROPOSER = "from argus.io.local_proposer import LocalProposer\n"
 RED_IMPURE = "import httpx\n"
 RED_MATCHER = "from sentence_transformers import SentenceTransformer\n"
 
-GREEN_PURE = "import math\nimport re\nfrom argus.types import pipeline\n"
+GREEN_PURE = "import math\nimport re\nfrom argus.types import verdict\n"
 
 
 def test_the_checker_catches_every_fence_crossing():

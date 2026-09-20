@@ -73,6 +73,7 @@ signal (I6, W_C = 0.4) — never as a verdict mechanism.
 | `src/argus/io/{qa_agent,fact_checker,nli,question_generator,atomizer,prompts,llm_client}.py` | delete (M2) |
 | `src/argus/types/pipeline.py` | delete; `VerdictResult`/`RubricItem` re-homed (M2) |
 | `tests/fixtures/upstream_schema_snapshot.json`, `scripts/build_schema_snapshot.py`, `scripts/mutate_m5_contract.py`, `tests/fixtures/intentional_deviations.yaml` | delete with the floor (M2) |
+| `tests/fakes.py`, `tests/fixtures/io_import_baseline.json` | delete with the floor (M2) — the enumeration above missed this pair (B-review round 1, 2026-09-20); orphaned simbi-lineage test harness, zero consumers since the port's tests died |
 | `tests/test_schemas.py` | floor half deleted; roundtrip half re-homed to Argus types (M2) |
 | `tests/test_no_write_path.py` | amended: report-glob carve-out (M7) |
 | `src/argus/io/call_record.py` | keep; stop dropping `start_sec`/`end_sec`/`segment_ids` (M4) |
