@@ -77,6 +77,12 @@ matching:                                   # what the correlated matcher consum
 
 ## Notes
 
+- **Kinds stay `errors` | `cookbook` (human ruling 2026-09-20).** An NA sample — a call
+  where the item does not apply — is **not a precedent**: a precedent confirms a
+  pass/fail judgment, while "not applicable" is an applicability-gate outcome. NA
+  samples are held in a separate archive as material for the applicability work, never
+  landed as shelf entries (a third kind would also break the `errors.*`/`cookbook.*`
+  file-naming convention). First application: `item-20-NA` leaves the delivery batch.
 - The shelves are **empty today** (measured: zero `dkb/cookbook/errors.*.yaml` files) —
   these would be the first entries. Format changes before the first landing are cheap;
   after, they are migrations.
