@@ -1,6 +1,6 @@
 # 9031 — The Argus Derivation Pipeline: Upstream Contract, S2, and the First End-to-End Run
 
-**Session handoff (read first):** `9031-derivation-pipeline-notes/HANDOFF.md` — current
+**Session handoff (read first):** `9031-derivation-pipeline-notes/HANDOFF-argus-0922.md` — current
 state, rulings of record, traps, and the ordered next actions (2026-09-22).
 
 ## 1. Purpose
