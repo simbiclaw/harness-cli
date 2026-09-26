@@ -214,8 +214,32 @@ production (the first real producer of one — currently zero exist) → `core/s
 `core/adjust.py` with real history from the tree. Deterministic replay: same inputs,
 identical raw and adjusted.
 
+**This milestone owns the PASS fact, and that is a load-bearing part of its contract.**
+`ProposedFinding` can only claim a violation, so nothing today emits "this item was
+applicable, it was checked, and no grounded violation survived" — which means a call
+with no violations has `denominator == 0`, cannot clear the coverage gate, and can never
+auto-finalise (measured 2026-09-26: zero-finding call → `human`; one-finding call →
+`auto_final`). `route.py`'s `denominator > 0` guard is about *inapplicability* ("a call
+where every criterion was inapplicable has answered no question"), not about requiring a
+violation; `score.py` already credits PASS at 1.0; and Argus.md's model (weighted total
+÷ 9, PASS ≥ 7.5) scores **every applicable item on every call**. So M6 defines the pass
+fact, and its criteria come from the applicability gate, never from a label: a label's
+「否」 is an uncalibrated instrument's silence and can never be a pass.
+
+**And the orphan-fact guard lands here, not later.** `ReplayRecord` gains a validator
+asserting that every fact's `finding_id` is in `findings` **and** that its `rubric_id`
+equals that finding's — the second check closes the same hole one level down (a real
+finding scored against the wrong criterion). Today neither is asserted anywhere, and a
+`ScorableFact` whose `finding_id` appears in no finding scores at full weight, clears
+coverage, and auto-finalises.
+
+- *Acceptance property:* a call with zero violations on trusted, calibrated criteria
+  reaches `auto_final`; and no fact can reach the arithmetic without a grounded finding
+  behind it.
 - `Behavioral Test:` `tests/test_wire_s3_s4.py::test_a_real_call_derives_a_deterministic_score`
-  (run twice, byte-identical), `::test_the_replay_hash_covers_grounded_inputs_and_precedents_only`.
+  (run twice, byte-identical), `::test_the_replay_hash_covers_grounded_inputs_and_precedents_only`,
+  `::test_a_call_with_zero_violations_on_trusted_criteria_reaches_auto_final`,
+  `::test_a_fact_without_a_grounded_finding_cannot_score_or_clear_coverage`.
 - `Structural Test:` `::test_score_receives_no_history` (the existing canary, now fed
   by real output instead of test literals).
 
@@ -550,6 +574,62 @@ contract revision (daily JSONL changes the natural glob from
 
 **A2 — RESOLVED (R2, 2026-09-16):** acoustic producer = audio2tree; Argus consumes.
 **A3 — RESOLVED (R7, 2026-09-16):** contract text = PRODUCERS.md §9.1 revision.
+
+*A4–A9 come from the adversarial review of the label mechanism (four independent
+designs, each attacked by two skeptics) and the cloud reviewer's comments on issue #24,
+both 2026-09-26. They are recorded here so the thread's Tier C list and the plan's are
+one list.*
+
+**A4 — may labels influence disposition, and in which direction?** The goal they were
+meant to serve is recorded above ("more calls auto-finalised"), and the review's finding
+is that the rate is gated by criterion *trust*, not by evidence.
+Options: (1) ordering only — labels order the human queue, nothing escalates; (2)
+ordering plus one-way escalation, and only in the direction "the label says the 0-score
+condition is not met while the pipeline holds an anchored deduction"; (3) both
+directions.
+The review's amendment: record the eventual lane as **"A, failure direction only"** and
+rule (3) out explicitly — a 「否」 cannot be grounded, so "both directions" is not a
+design choice but a contradiction.
+**Default if undecided:** (1). (2)/(3) additionally require that the escape sampling
+frame stay defined by `route()`'s two axes, that escalated calls never enter the κ pool,
+and an amendment to Argus.md's auto-final definition.
+
+**A5 — how does Argus receive the label column?** (Tier C: dependency / external API)
+Options: (a) read the NocoDB table directly — a new HTTP dependency, a runtime token, and
+a live mutable external table inside I4's surface; (b) a human-run export snapshot that
+Argus reads as a file — no new dependency, one manual step; (c) the producer writes a
+sidecar beside the call archive — a producer contract change, riding §9.1.
+**Default if undecided:** none is wired; types and mapping may be built against a
+fixture only; the channel stays blocked.
+
+**A6 — who authors and signs the (dimension, item, polarity, severity) mapping?** The
+0-score reading belongs to the compiler line, the dimension semantics to the label
+producer, and three dims (表达强势 / 轻微质问 / 中性) have no item at all. Note the
+severity anchors are *not* anyone's to invent — they come from calibration fragments.
+Options: (1) the compiler line authors, a human signs, Argus only reads; (2) leave
+unsigned.
+**Default if undecided:** (2) — unsigned dims stay report context and influence nothing.
+
+**A7 — is a label-driven "ask a human to look" the same species as §5.1's per-call
+residue prohibition?**
+Options: (1) yes → that direction never escalates, ordering only; (2) no → requires
+amending §5.1's scope explicitly, in writing.
+**Default if undecided:** (1), the conservative reading.
+
+**A8 — do the review hints enter `replay_hash`?**
+Options: (1) keep today's state — a routing decision is not hash-covered today; (2) hash
+the routing inputs, which would make the hash depend on a producer-mutable external
+table and replay strictly worse.
+**Default if undecided:** (1).
+
+**A9 — the 2026-09-16 execution gate.** Its text (*"等待 audio2tree 完成链 A 及链 B
+两项任务后，再开始执行 9031 计划"*) is recorded in session memory and written nowhere in
+the repo, while the handoff records M2 flipped and M3 committed — the two cannot both be
+true of an active gate.
+Options: (1) lift it and schedule per this plan; (2) write it into this section as a
+standing gate that holds everything except guard-level fixes.
+**Default if undecided:** (2) — an unrecorded directive is not thereby lifted, so only
+guard-level work proceeds.
 
 **A10 — the agreement statistic and its threshold.** The 2026-09-27 ruling (Decision
 Log, above) makes both sides score per item on a graded scale, so agreement is no
