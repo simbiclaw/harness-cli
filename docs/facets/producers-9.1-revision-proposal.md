@@ -51,6 +51,16 @@ Classes per ADR-0001. "Current state" is measured against the live tree (2026-09
 | module | producer | facets required | anchoring |
 |---|---|---|---|
 | Call record (`calls/*.json`) | audio2tree | top: `schema_version`/`audio`/`config`/`speakers`/`segments`/`turns`/`between_turn_pauses`/`stats`. **Per segment**: `acoustic{f0,intensity,speaking_rate,voice_quality}` (§3.1). **Per turn**: speaker/start_sec/end_sec/segment_ids/text | **the anchor source**: turn-level spans resolve here; exact quotes verified against `turns[].text` in the pinned transcript |
+
+**Which of those fields are contractual, and which are the producer's to change.** The
+split is stated here rather than requested from the producer, because the consumer is
+what defines its own dependencies: **contractual** = every field this row names, plus
+every field a compiled `facets.programmatic[]` facet cites, plus the fields the reader
+validates by access (`audio.id`; `speakers[].id`/`speaker_role`/`speaker_role_source`;
+`turns[].id`/`speaker`/`text`/`start_sec`/`end_sec`; the existence of `segments`).
+**Diagnostic** = everything else — free to change, and read by nothing. A field moves
+from diagnostic to contractual only by being cited in a compiled criterion or named in
+this row, and that move is a contract revision like any other.
 | Per-call attitude labels (`服务态度标签`, a JSON column on the Coco side's `stack-a` table — not carried in `calls/*.json`) | `call-inspector/v1_5_cuda` (Coco side) | per call, five dimensions `机械化` / `敷衍` / `亲切` / `不耐烦` / `中性`, each `{value ∈ {是, 否, 未知}, unknown_reasons[] (closed enum: `z_uncalibrated` / `baseline_missing` / `baseline_insufficient` / `baseline_degenerate` / `insufficient_windows`; two further values reserved, never emitted), baseline_ref, calibration_ref, n, n_excluded_mixed, k}`. A z component is evaluated by a fixed four-step short-circuit cascade (baseline state → `n < 2` → uncalibrated → calibrated `F = k/n ≥ c`) and the dimension is a strong-Kleene OR union of its components; invariant: `z_uncalibrated ∈ unknown_reasons ⇔ calibration_ref is None`. `value = 是` carries an empty reason set. **Empty is not "measured"**: `n_excluded_mixed` is structurally 0 this round (`exclude_mixed=False` — no data source, not "no mixed windows found"), and the 28 pre-existing baseline rows carry `baseline_ref = None` by construction (built before the ref mechanism), never to be back-filled. Alignment of record on the producer side: `call-inspector/v1_5_cuda` `docs/phase3-bfamily-plan.md` §6.3 (2026-09-26) | **no span — a call-level aggregate ⇒ consumed as facts / context only.** Never evidence for a finding, and never a corroborator: corroboration requires the signal's span to co-locate with the finding's (I6), which a call-level aggregate cannot satisfy. Serving these labels as an acoustic corroborator would require per-window / per-turn anchoring — a **new facet requirement**, not an upgrade of this row |
 
 ### 2.4 Accumulated history (grows at runtime, anchored to L3 nodes)
@@ -82,9 +92,12 @@ instrument must be Chinese before any criterion can lean on it.
 next compile-side touch.
 
 **3.4 Overlap semantics.** `between_turn_pauses` carries **negative** durations
-(measured: −0.33s) that mean inter-speaker overlap; the schema does not say so. The
-turn-taking-overlap indicator (and item-12's 抢话/压话) consumes exactly this — define
-the sign convention in the schema, not in a reader's head.
+(measured: −0.33s) that mean inter-speaker overlap; the schema does not say so. **The
+convention is now stated as contract, not left to a reader:** a value of
+`between_turn_pauses` at or below zero means the two turns **overlap by that many
+seconds** (turntaking overlap), and a positive value means silence between them.
+Measured on the live corpus, not assumed: the −0.33 s figure above. The
+turn-taking-overlap indicator and item-12's 抢话/压话 consume exactly this.
 
 **3.5 Two rate measures exist**: per-segment `speaking_rate.words_per_sec` and
 per-speaker `wpm_mean`. The contract must name which is canonical for the speech-rate
@@ -156,8 +169,12 @@ whole-judgment}, 9011 M5) and the **mapping-input format** (9011 M0).
    into the §9.1 text before it lands. §3.7 is registered in 9011's Surprises with two
    acceptance tests; §3.6's item-6 typo awaits the human's ruling (recorded verbatim in
    the registry's extraction_notes).
-2. audio2tree: confirm the acoustic facet schema (which fields are contractual vs
-   diagnostic) and the overlap sign convention (§3.4).
+2. ~~audio2tree: confirm the acoustic facet schema (which fields are contractual vs
+   diagnostic) and the overlap sign convention (§3.4).~~ **CLOSED 2026-09-27 — both
+   halves are now stated in this text rather than requested**: the overlap convention is
+   written into §3.4, and the contractual/diagnostic split into §2.3. What remains is
+   the producer review of this proposal as a whole, which is R7's own vehicle and not a
+   separate open item.
 3. doc2graph: confirm `PROPER_NOUNS.yaml`'s facet row (§2.2) reads correctly as contract.
 4. Human: the κ audio-source decision (§3.6) is independent of this proposal but
    blocks the calibration that would calibrate §3.1's thresholds.
