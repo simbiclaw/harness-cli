@@ -454,8 +454,12 @@ reason. (Logical granularity; R1 governs physical storage.) *Confidence: high
 
 **R5 — κ bootstrap.** Seeds = **Chain B's 20–50 complete calls** (sourced from the
 2026-06-26 archive per the same sitting's corpus ruling; dispatched to audio2tree).
-QA labels per-item 1/0/NA from transcript + rubric standards **before any machine
-verdict exists** — physically blind. Independent of SIRA. Thin per-criterion κ on
+~~QA labels per-item 1/0/NA~~ **Labeling form superseded 2026-09-27** — the labels
+are now made with the *same algorithm as the machine* (per-item score on the
+compiled `scoring_scale`, dimension-weighted); see the Decision entry below. The
+rest of R5 stands, including that labels are made from transcript + rubric
+standards **before any machine verdict exists** — physically blind. Independent of
+SIRA. Thin per-criterion κ on
 rare items degrades through the τ gate with no compensatory relaxation. The
 exemplar-clip library (Chain A, also dispatched) is a *different* instrument —
 confirmed referents for I6's correlated class and calibration injection, not a κ
@@ -468,6 +472,39 @@ rejected (fabrication). *Confidence: high (ruling).*
 **R7 — Contract text location.** The facet/schema contract lives as a
 **PRODUCERS.md §9.1 revision** (staged in harness-cli, landed tree-side after
 producer review). Resolves Awaiting-Steering A3. *Confidence: high (ruling).*
+
+### Decision: the agreement instrument is same-algorithm — per-item scoring, dimension-weighted
+
+**Rationale:**
+- Source: Human ruling 2026-09-27, verbatim: *"1/0/NA 是之前的做法，纯人工质检，无 AI；
+  κ 衡量的是人与 AI 之间的偏差，既然如此，那就采用同一套算法——给每个 ITEM 打分，按维度加权。"*
+- Context: R5 (2026-09-16) recorded the κ labels as "per-item 1/0/NA". That form belongs
+  to the human-only practice that predates this pipeline: a categorical 1/0/NA label
+  cannot be compared against the machine's per-item score without first inventing a
+  binarization rule, so the two sides would be measured on different instruments and
+  the resulting number would describe that rule at least as much as the divergence.
+
+**Confidence:** high (ruling).
+
+**Consequences:**
+- Both sides score each item on the same compiled scale
+  (`machine_criterion.scoring_scale: 1-10`) and aggregate by the four dimension weights
+  (`docs/product-specs/argus/Argus.md`, §The Quality Model).
+- The agreement statistic can no longer be Cohen's κ, which measures categorical
+  agreement. A graded/ordinal statistic is required — linear- or quadratic-weighted κ,
+  or ICC. `AgreementBlock.current_kappa` therefore carries a name and a semantics the
+  new instrument does not fit, and the compiler-seeded `tau: 0.8` cannot be carried
+  across: the same number is not the same strictness under a weighted statistic. Both
+  are recorded as **A10** below, because τ decides `criterion_below_tau`, and that gate
+  decides whether any criterion may auto-finalise.
+- "NA" is no longer a labeler's third option: inapplicability is decided by
+  `applicability_gate` (AUTH-7 — an item with a non-empty `na_condition` must carry one).
+- R5's blindness requirement is unchanged: labels are made before any machine verdict
+  exists.
+- Carry-through, *not* this plan's edits: the 25 compiled nodes' `agreement` blocks
+  (`tau`, `kappa_sample_plan`, `current_kappa`) and 9003's compiler-input description
+  ("27 `1/0/NA` scored items") still carry the superseded form; both belong to the
+  compiler line and to the tree.
 
 ## 6. Surprises & Discoveries
 
@@ -505,6 +542,18 @@ contract revision (daily JSONL changes the natural glob from
 
 **A2 — RESOLVED (R2, 2026-09-16):** acoustic producer = audio2tree; Argus consumes.
 **A3 — RESOLVED (R7, 2026-09-16):** contract text = PRODUCERS.md §9.1 revision.
+
+**A10 — the agreement statistic and its threshold.** The 2026-09-27 ruling (Decision
+Log, above) makes both sides score per item on a graded scale, so agreement is no
+longer categorical: Cohen's κ — the statistic `AgreementBlock` is named for, with a
+compiler-seeded `tau: 0.8` — does not apply unchanged, and the threshold's strictness
+cannot be carried across the change.
+Options: (1) quadratic-weighted κ on the 1–10 ordinal; (2) linear-weighted κ; (3) ICC;
+(4) one of the above plus MAE reported alongside as the interpretable companion.
+**Deadline:** before M10 executes. **Default if undecided:** the health gate stays
+uncomputable — `current_kappa` stays `null` and `auto_final_allowed` stays `false` for
+every criterion (measured 25/25 on 2026-09-26), so no call can auto-finalise. Nothing
+breaks and nothing is fabricated; the throughput goal is simply unreachable.
 
 ## 8. Outcomes & Retrospective
 
