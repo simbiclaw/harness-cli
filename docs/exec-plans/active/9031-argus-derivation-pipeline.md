@@ -497,8 +497,16 @@ producer review). Resolves Awaiting-Steering A3. *Confidence: high (ruling).*
   across: the same number is not the same strictness under a weighted statistic. Both
   are recorded as **A10** below, because τ decides `criterion_below_tau`, and that gate
   decides whether any criterion may auto-finalise.
-- "NA" is no longer a labeler's third option: inapplicability is decided by
-  `applicability_gate` (AUTH-7 — an item with a non-empty `na_condition` must carry one).
+- "NA" stops being a *machine-side* third option: `applicability_gate` decides
+  inapplicability for the pipeline (AUTH-7 — an item with a non-empty `na_condition`
+  must carry one). **The human side must not inherit that call.** The gate is a machine
+  verdict, and a labeller who scores only the items the gate called applicable has had
+  their measurement shaped before it was made — precisely what R5's blindness rule
+  forbids — and the class of disagreement "the machine called it inapplicable and the
+  human disagreed" would never be recorded. So humans record applicability
+  **independently and blind**; applicability agreement becomes its own measured quantity
+  (categorical, so plain κ); the graded statistic applies only where both sides call the
+  item applicable.
 - R5's blindness requirement is unchanged: labels are made before any machine verdict
   exists.
 - Carry-through, *not* this plan's edits: the 25 compiled nodes' `agreement` blocks
@@ -549,11 +557,36 @@ longer categorical: Cohen's κ — the statistic `AgreementBlock` is named for, 
 compiler-seeded `tau: 0.8` — does not apply unchanged, and the threshold's strictness
 cannot be carried across the change.
 Options: (1) quadratic-weighted κ on the 1–10 ordinal; (2) linear-weighted κ; (3) ICC;
-(4) one of the above plus MAE reported alongside as the interpretable companion.
+(4) one of the above gated on its **confidence-interval lower bound** with **MAE ≤ δ
+required alongside** (not merely reported).
+Two constraints on whichever is chosen:
+- **Gate per criterion, never on the dimension-weighted total.** "按维度加权" defines the
+  *score*; the health gate is `criterion_below_tau`, which is per item — agreement
+  computed on the weighted total would let one bad item hide behind good ones. This is
+  already the shape of the caller: `route(untrusted_criteria: Collection[int])`.
+- **Do not gate on a point estimate.** On a clean-heavy item the scores barely vary, so
+  weighted κ and ICC read misleadingly low even where the two sides mostly agree, and
+  with 20–50 seed calls the intervals are wide. Hence option (4)'s requirement.
 **Deadline:** before M10 executes. **Default if undecided:** the health gate stays
 uncomputable — `current_kappa` stays `null` and `auto_final_allowed` stays `false` for
 every criterion (measured 25/25 on 2026-09-26), so no call can auto-finalise. Nothing
 breaks and nothing is fabricated; the throughput goal is simply unreachable.
+
+**A11 — the shipped score becomes graded.** The 2026-09-27 same-algorithm ruling is not
+satisfiable on the machine side while `score()` is binary: a finding contributes `1.0`
+for PASS and `0.0` for FAIL/PARTIAL (`src/argus/core/score.py:66-74`), so there is no
+machine-side per-item 1–10 number for a graded comparison to run against. Making it
+graded changes the *definition* of the shipped score — `Contribution` / `RawScore` and
+the report record follow — so it is a change to what the product emits, not an
+implementation detail.
+Options: (1) `score()` takes findings plus calibrated severity and emits a per-item
+1–10 — the ruling's own form; (2) keep `score()` binary and derive the graded number in
+a separate stage used only for agreement — recorded for completeness and not
+recommended, because the number the health gate validates would then not be the number
+that ships, which is the two-instruments problem the ruling exists to remove.
+**Deadline:** before M10 executes. **Default if undecided:** the agreement channel
+cannot run on the machine side; κ stays unmeasured; `auto_final_allowed` stays `false`
+for every criterion.
 
 ## 8. Outcomes & Retrospective
 
