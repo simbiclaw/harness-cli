@@ -1,0 +1,335 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# 质检条目 1–5 → 算子程序（operator programs）· rev 2（2026-10-14）
+#
+# 依据：issue #25 及其研究笔记 operator-compilation-research-issue-25.html
+#       （8 种算子：segment · window · measure · event · lexicon/regex · judge · label · combine）
+# 条目原文（权威）：docs/rubric/rubric_com_hotline.md（issue #25 附件，sha256 73f1f905…）
+#   rev 1 曾依据 docs/rubric/specific-rubric-27.yaml（删节版）编译；两者差异见 docs/rubric/rubric-source-diff.md。
+#   rev 2 相对 rev 1 的变化逐条标注为  # rev2: …
+#
+# 约定
+#   stage: extract → audio2tree 执行（生产方测量）；decide → Argus S1m 执行（消费方判定）
+#   prov : det（确定性，I6 独立类 1.0）| model（模型判断，永不作独立佐证）
+#   extraction_params 改动 ⇒ 重新抽取、算子 version+1；decision_params 改动 ⇒ 仅 rubric 新 epoch
+#   status: calibrated_by_text = 原文明确给出的数值（30 秒、>2 次），不需拟合但仍受 κ 监控；
+#           provisional = 拍定初值，待 κ 种子电话校准；calibrated = 已校准
+#   judge 一律"词表优先、judge 兜底"，判"是"必须返回 {turn_id, quote}
+#   NA 求值优先于 FAIL：NA 成立则该条目不计分；无法判定 ⇒ indeterminate ⇒ 人工
+#   原文称来电方为"企业"，下文 customer = 企业
+# ══════════════════════════════════════════════════════════════════════════════
+
+schema: operator-program/v0
+source: docs/rubric/rubric_com_hotline.md
+source_sha256: 73f1f905fd3ca4214c34957329873c77effb65c161ece29ca2687cf5afb94493
+revision: 2
+items_scope: [1, 2, 3, 4, 5]
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 共享算子（多个条目复用，只定义一次；编译器按 op id 去重）
+# ──────────────────────────────────────────────────────────────────────────────
+shared:
+  - op: seg
+    kind: segment
+    stage: extract
+    prov: det
+    extraction_params: { min_pause_ms: 250 }
+    output: { anchor: interval, fields: [speaker, start, end, text, n_syll, asr_conf] }
+    na_when: "speaker_role 未确立"            # 消费方不重猜说话人角色（Argus.md）
+
+  - op: call_meta                              # ⚠ 新增 facet 需求，见 G3
+    kind: event
+    stage: extract
+    prov: det
+    source: telephony_cti                      # 话务系统元数据，而非从音频推断
+    output:
+      fields: [channel_mode, direction, line_type, agent_role, holds, transfers, end_reason, end_side]
+      # direction ∈ {inbound, outbound}；line_type 例如 市监专线
+      # agent_role ∈ {hotline, support}        # rev2: 原文 item 1/2/10 对"支持客服"有豁免或放宽
+      # holds/transfers: [{start, end}]；end_reason ∈ {normal, customer_abort, phone_fault, system}
+    na_when: "字段缺失 ⇒ 依赖它的信号判 unavailable，不推断"
+
+  - op: silence_events
+    kind: event
+    stage: extract
+    prov: det
+    inputs: [seg]
+    extraction_params: { min_silence_ms: 3000 }
+    output:
+      fields: [start, end, duration, owed_by]   # owed_by = 该轮应接话的一方（前一话轮的另一方）
+      confidence: "stereo 逐声道 VAD 为精确；mono 依赖分离置信度"
+    consumers: [4, 13, 17]                      # 与 item 17（空白）、item 13（不及时回应）共享，见 X1
+
+  - op: address_terms                           # 称谓事件：item 2 主用，item 4 召回语复用
+    kind: regex
+    stage: extract
+    prov: det
+    inputs: [seg.agent]
+    params:
+      pattern: "(?P<surname>{百家姓})(?P<honorific>先生|小姐|女士|老师)"
+      surname_lexicon: _rubric/evidence/phrase-keyword/common/surnames.yaml   # 需新建（单/复姓）
+    output: { anchor: span, fields: [turn_id, quote, surname, honorific, t] }
+
+  - op: customer_self_name
+    kind: regex
+    stage: extract
+    prov: det
+    inputs: [seg.customer]
+    params: { pattern: "(我姓|免贵姓|姓)(?P<surname>{百家姓})" }
+    output: { anchor: span, fields: [turn_id, quote, surname] }
+
+  - op: opening_win
+    kind: window
+    stage: extract
+    prov: det
+    extraction_params: { mode: census, span: "首个坐席话轮起 ≤ 15s，且不超过前 2 个坐席话轮" }
+
+  - op: closing_win
+    kind: window
+    stage: extract
+    prov: det
+    extraction_params: { mode: census, span: "通话结束前 ≤ 30s 内的坐席/客户话轮" }
+
+  - op: agent_rate
+    kind: measure
+    stage: extract
+    prov: det
+    inputs: [seg.agent]
+    output: { fields: [art_rate_syll_per_s, n_syll], unit: syll/s }
+    min_support: { n_syll: 15 }                 # 与 item 9 共用的发音速率算子
+
+items:
+# ══════════════════════════════════════════════════════════════════════════════
+# Item 1 · 有起接语且完整/外呼明确身份
+#   1分: 有起接语 标准起接 "您好。" /如外呼电话，需清晰的表明身份，不用明确到人。
+#   0分: （原文空白）→ 由 1 分标准取反，见 G1
+#   NA : 系统原因导致未能听到起接语或开头一小部分（支持电话中若对方已知身份的，未表明身份）
+# ══════════════════════════════════════════════════════════════════════════════
+- item: 1
+  signals:
+    F1: { desc: "呼入：开场窗口内坐席无起接语", from: "1分取反：有起接语", severity: major }
+    F2: { desc: "开场问候非标准（'你好'而非'您好'）", from: "1分：标准起接'您好。'", severity: minor, pending: R1-1 }
+    F3: { desc: "外呼：开场窗口内坐席未表明身份（不必到人）", from: "1分：外呼需清晰的表明身份，不用明确到人", severity: major }
+  extract:
+    - { op: greet_lex,  kind: lexicon, in: [opening_win, seg.agent], terms: { standard: [您好], nonstandard: [你好] } }
+    - { op: ident_lex,  kind: regex,   in: [opening_win, seg.agent],
+        pattern: "(这里是|我是|我这边是).{0,12}(客服|中心|公司|热线|服务)" }
+    - { op: ident_judge, kind: judge, prov: model, when: ident_lex.empty,
+        q: "坐席在开场是否说明了自己代表的机构或服务身份？", returns: [answer, turn_id, quote] }
+    - { op: head_cut,   kind: measure, in: [seg],
+        rule: "首个语段起点 < 0.3s 且该语段为坐席且非问候词开头",   # 录音从说话中途开始
+        output: { fields: [head_truncated] } }
+  decide:
+    - { op: na_1a, kind: combine, rule: "head_cut.head_truncated OR call_meta.end_reason == system_at_start" }  # 系统原因
+    - { op: na_1b, kind: combine, rule: "call_meta.agent_role == support AND call_meta.direction == outbound AND known_party",
+        pending: R1-3 }                       # rev2: 原文"支持电话中若对方已知身份的"——限定在支持电话
+    - { op: F1, kind: combine, rule: "call_meta.direction == inbound AND greet_lex.standard ∪ greet_lex.nonstandard = ∅" }
+    - { op: F2, kind: combine, rule: "greet_lex.standard = ∅ AND greet_lex.nonstandard ≠ ∅" }
+    - { op: F3, kind: combine, rule: "call_meta.direction == outbound AND NOT na_1b AND ident_lex ∪ ident_judge(yes) = ∅" }
+    - { op: verdict_1, kind: combine, rule: "NA if na_1a OR na_1b; FAIL if F1 ∨ F3 (∨ F2 per R1-1); else PASS" }
+  unavailable_when: "call_meta.direction 缺失 ⇒ F1/F3 无法区分呼入外呼 ⇒ indeterminate"
+  open:
+    R1-1: "'你好'算不算合格起接？原文 1 分标准为'您好。'。建议：记 F2 minor，不单独致 0 分。"
+    R1-2: "'完整'的含义原文未展开：当前按原文只要求'您好'。"
+    R1-3: "'对方已知身份'需要话务系统标注（回拨/支持专线已建立关系）；无元数据时不从对话内容推断。"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Item 2 · 有称谓语且规范
+#   1分: 整通电话里礼貌的称呼来话人，如："X小姐/先生/女士"。称谓正确且前后一致。
+#        支持客服只需能合适的称呼对方，礼貌，不引起对方反感即可。
+#        客服问了称谓，但是企业未回答，也不必称呼女士/先生。如遇市监电话需称呼其为老师。
+#   0分: ①无称谓（除对方不愿告知外）；②明显称呼错误（如对方表示姓陈，客服称呼王XX，等）；
+#        ③前后称谓不一致（如前面称呼正确，后面称呼错误）；④>2次询问贵姓。
+#   NA : 其他没有明显得1分或0分的情形   ← 语义是"无法判定"，见 G2
+# ══════════════════════════════════════════════════════════════════════════════
+- item: 2
+  signals:
+    F1: { desc: "整通电话坐席无任何称谓；豁免：客户拒绝告知，或坐席问了称谓而客户未回答", from: "0分 ① + 1分'企业未回答，也不必称呼'", severity: major }
+    F2: { desc: "明显称呼错误：所用姓氏与客户自报姓氏不符（如自报姓陈，称王XX），或客户当场纠正", from: "0分 ②", severity: major }
+    F3: { desc: "前后称谓不一致：先对后错，即出现自报姓氏之外的(姓氏,称谓)", from: "0分 ③", severity: minor }
+    F4: { desc: "坐席询问贵姓 >2 次", from: "0分 ④", severity: minor }
+    F5: { desc: "市监来电未称呼'老师'", from: "1分：如遇市监电话需称呼其为老师", severity: minor, pending: R2-3 }
+  extract:
+    - { op: name_ask,     kind: lexicon, in: [seg.agent], terms: [贵姓, 怎么称呼, 请问您姓, 您姓什么] }
+    - { op: name_refuse,  kind: lexicon, in: [seg.customer], terms: [不方便说, 不用叫, 不用称呼, 不告诉, "叫我.*就行"] }
+    - { op: name_refuse_j, kind: judge, prov: model, when: "name_ask ≠ ∅ AND name_refuse = ∅ AND customer_self_name = ∅",
+        q: "坐席询问称呼后，客户是否拒绝或回避告知姓氏？", returns: [answer, turn_id, quote] }
+    - { op: correction,   kind: lexicon, in: [seg.customer],
+        terms: ["我不姓", "我姓.{1,2}不姓", "是女士", "是先生", "叫错了"] }
+    - { op: shijian_self, kind: lexicon, in: [seg.customer], terms: [市场监管, 市监, 工商所, 监管局] }
+    - { op: support_polite, kind: judge, prov: model, when: "call_meta.agent_role == support",   # rev2
+        q: "坐席对客户的称呼是否合适、礼貌，且未引起客户反感？", returns: [answer, turn_id, quote] }
+  decide:
+    - { op: exempt_f1, kind: combine,                                         # rev2: 新增"问了但未回答"豁免
+        rule: "(name_refuse ∪ name_refuse_j(yes)) ≠ ∅  OR  (name_ask ≠ ∅ AND customer_self_name = ∅)" }
+    - { op: F1, kind: combine, rule: "call_meta.agent_role ≠ support AND address_terms = ∅ AND NOT exempt_f1" }
+    - { op: F2, kind: combine,
+        rule: "∃ a ∈ address_terms: customer_self_name ≠ ∅ AND a.surname ∉ customer_self_name.surname AND a.t > first(customer_self_name).t  OR  correction ≠ ∅" }
+    - { op: F3, kind: combine,
+        rule: "∃ a, b ∈ address_terms: a.t < b.t AND a.surname ∈ customer_self_name.surname AND b.surname ∉ customer_self_name.surname",
+        note: "rev2: 原文'先对后错'；与 F2 同一事件时只记 F2（同一错误称呼不双扣）" }
+    - { op: F4, kind: combine, rule: "count(name_ask) > 2", decision_params: { max_ask: 2 }, status: calibrated_by_text }
+    - { op: F5, kind: combine, rule: "(call_meta.line_type == 市监 OR shijian_self ≠ ∅) AND ∃ a ∈ address_terms: a.honorific ≠ 老师" }
+    - { op: S1, kind: combine, rule: "call_meta.agent_role == support AND support_polite == no",   # rev2: 支持客服的放宽标准
+        desc: "支持客服称呼不合适或引起反感" }
+    - { op: verdict_2, kind: combine,
+        rule: "FAIL if F1∨F2∨F3∨F4∨F5∨S1; PASS if (address_terms ≠ ∅ OR exempt_f1 OR agent_role == support) AND no F; else indeterminate → human (原文 NA 子句)" }
+  not_used:
+    - "不从声音推断客户性别来判'先生/女士'是否叫错：只认客户自报或当场纠正（G5）"
+  open:
+    R2-1: "'整通电话里礼貌的称呼'要求出现几次？当前：知道姓氏后至少 1 次即满足。"
+    R2-2: "原文 NA 子句'其他没有明显得1分或0分的情形'改判 indeterminate → 人工，而非不计分（G2）。"
+    R2-3: "市监来电的识别：话务专线标注优先；仅凭客户自述'市场监管'是否足够？"
+    R2-4: "rev2: 支持客服的'合适、礼貌、不引起反感'只能 judge（模型来源，κ 门控）；是否接受支持客服本条只走 judge？"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Item 3 · 能够快速准确灵活的进行信息查询及搜索
+#   1分: 通过各类系统查询咨询信息的时候，方法正确，操作快速，能灵活的运用不同方式进行搜索，
+#        例如不同的搜索项、关键字等。对常用的地名和区域划分等能准确快速的进行录入。
+#   0分: ①查询方法错误；②不清晰的词组还要反复询问企业（地名和服务点名称县级及以上需掌握）；
+#        ③对常用的地名、区域和清晰的词组还要反复询问企业（地名和服务点名称县级及以上需掌握）；
+#   NA : 电话中不涉及到信息查询。
+#   ⚠ ①"查询方法错误"、"操作快速"、"不同的搜索项、关键字"需要坐席端系统操作日志，录音不可观测
+#     → 声明残差，同 item 6 的 data_dependency
+# ══════════════════════════════════════════════════════════════════════════════
+- item: 3
+  signals:
+    F1: { desc: "查询方法错误", from: "0分 ①", residue: true, data_dependency: "坐席操作/检索日志" }
+    F2: { desc: "对不清晰的词组反复询问企业（≥ n_unclear 次）", from: "0分 ②", severity: minor }
+    F3: { desc: "对常用地名、区域、县级及以上服务点名称或清晰的词组反复询问企业（≥2 次）", from: "0分 ③", severity: major }
+  extract:
+    - { op: query_ep,  kind: lexicon, in: [seg.agent], terms: [查询, 搜索, 查一下, 帮您查, 我查查, 系统里看] }
+    - { op: clarify,   kind: lexicon, in: [seg.agent],
+        terms: [哪个字, 怎么写, 再说一遍, "是.{1,6}还是", 您说的是, 没听清, 能再说下] }
+    - { op: clarify_target, kind: judge, prov: model, in: [clarify],
+        q: "这一句坐席确认的是哪个具体词语？只返回该词在客户话轮中的原文", returns: [answer, turn_id, quote] }
+    - { op: gazetteer, kind: lexicon, in: [clarify_target.quote],
+        group: _rubric/evidence/phrase-keyword/common/admin-divisions-county-up.yaml }   # 需新建：县级及以上行政区划
+    - { op: service_points, kind: lexicon, in: [clarify_target.quote],                 # rev2: 原文"服务点名称县级及以上需掌握"
+        group: "<domain>/dkb.service-points.yaml (县级及以上服务点名称)" }               # 需新建或由 DKB 提供
+    - { op: common_terms, kind: lexicon, in: [clarify_target.quote],
+        group: "<domain>/PROPER_NOUNS.yaml (canonical + aliases)" }                       # doc2graph 已产出
+    - { op: term_clarity, kind: measure, in: [clarify_target, seg.customer],            # rev2: 区分②不清晰 / ③清晰
+        rule: "目标词所在客户语段的 asr_conf 与发音速率；PROPER_NOUNS 的 ASR 误听表命中 ⇒ 视为不清晰",
+        output: { fields: [clear: bool, asr_conf] } }
+    - { op: query_silence, kind: measure, in: [silence_events, query_ep], output: { fields: [durations] } }  # 仅作上下文
+  decide:
+    - { op: na_3, kind: combine, rule: "query_ep = ∅" }
+    - { op: known_target, kind: combine, rule: "target ∈ gazetteer ∪ service_points ∪ common_terms" }
+    - { op: F3, kind: combine, rule: "max over target t: (known_target(t) OR term_clarity(t).clear) AND count(clarify on t) ≥ 2",
+        decision_params: { repeat_clear: 2 }, status: provisional }
+    - { op: F2, kind: combine, rule: "max over target t: NOT term_clarity(t).clear AND count(clarify on t) ≥ n_unclear",
+        decision_params: { n_unclear: 3 }, status: provisional, pending: R3-1 }
+    - { op: verdict_3, kind: combine, rule: "NA if na_3; FAIL if F2 ∨ F3; PASS-candidate otherwise → F1 残差未覆盖，criterion 不得 auto-final" }
+  not_used:
+    - "query_silence 不作 FAIL 依据：查询耗时受系统延迟影响（工具原因），坐席不可控"
+  open:
+    R3-1: "rev2: ② 不清晰词组'还要反复询问'与 ③ 清晰词组的界限：不清晰的词允许确认几次？当前 ③ 2 次、② 3 次，待校准。"
+    R3-2: "常用词组以 PROPER_NOUNS.yaml 为准；其 ASR 误听表兼作'不清晰'的证据。"
+    R3-3: "F1 残差下本条是否保留可计分（部分覆盖），还是整体标 model_only/人工？"
+    R3-4: "rev2: 县级及以上服务点名称清单的来源（DKB？doc2graph？）"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Item 4 · 无声电话、保留电话、转接候线用语规范操作正确，候线时长不超过30秒
+#   1分: 转接、候线操作规范；用语规范。候线语（请稍等、您稍等，您的问题我需要进行确认，请不要挂机）、
+#        召回语（X先生/小姐，您好。非常感谢您的耐心等待，您的问题是这样的...)。转接、候线时长不超过30秒；
+#   0分: 电话中明确需要候线却未采用候线的方法导致电话空白。
+#   NA : 电话中未发生无声电话、保留电话、转接电话。
+#   ⚠ 9011 §3.7：30 秒时长谓词在现有节点中缺失，仅剩词法门 —— 此处补为独立的 measure/label 通道
+#   ⚠ "操作正确/转接、候线操作规范"属于话务系统操作，录音只能部分观测（hold/transfer 元数据）
+# ══════════════════════════════════════════════════════════════════════════════
+- item: 4
+  signals:
+    F1: { desc: "明确需要候线却未用候线语，导致坐席应答方出现空白 ≥ θ_blank", from: "0分（原文唯一）", severity: major }
+    F2: { desc: "单次候线或转接等待 > 30 秒", from: "1分：转接、候线时长不超过30秒", severity: major, pending: R4-2 }   # rev2: 含转接
+    F3: { desc: "候线结束后召回语不完整：缺 称谓 / 您好 / 感谢耐心等待 之一", from: "1分：召回语", severity: minor, pending: G1 }  # rev2: 三要素
+    F4: { desc: "无声电话未按规范处理", from: "题目：无声电话", severity: minor, pending: R4-4 }
+    F5: { desc: "转接/候线操作不规范", from: "1分：转接、候线操作规范", residue: true, data_dependency: "话务系统操作日志" }  # rev2
+  extract:
+    - { op: hold_lex,   kind: lexicon, in: [seg.agent], terms: [请稍等, 您稍等, 稍等一下, 请不要挂机, 我需要进行确认, 我需要确认, 我帮您确认一下] }
+    - { op: recall_thanks, kind: lexicon, in: [seg.agent], terms: ["感谢.{0,4}(耐心)?等待", 让您久等了, 久等了] }
+    - { op: recall_greet,  kind: lexicon, in: [seg.agent], terms: [您好] }
+    - { op: transfer_lex, kind: lexicon, in: [seg.agent], terms: [帮您转接, 转到, 转给] }
+    - { op: hold_spans, kind: event, in: [call_meta.holds, call_meta.transfers, silence_events, hold_lex, transfer_lex],
+        rule: "话务 hold/transfer 区间优先；无元数据时 = hold_lex/transfer_lex 之后、坐席下一次开口之前的静默区间",
+        output: { fields: [start, end, duration, kind: hold|transfer, source] } }
+    - { op: blank_spans, kind: event, in: [silence_events],
+        rule: "owed_by == agent 且前 5s 内无 hold_lex 且不在 hold_spans 内", output: { fields: [start, end, duration] } }
+    - { op: silent_call, kind: measure, in: [seg.customer], rule: "通话前 10s 客户声道无语音", pending: R4-4 }
+  decide:
+    - { op: na_4, kind: combine, rule: "hold_spans = ∅ AND NOT silent_call AND blank_spans = ∅" }
+    - { op: dur_lbl, kind: label, in: [hold_spans.duration], band: { max_s: 30 }, indeterminate_margin_s: 1.0, status: calibrated_by_text }
+    - { op: F1, kind: combine, rule: "∃ b ∈ blank_spans: b.duration ≥ θ_blank", decision_params: { θ_blank_s: 15 }, status: provisional }  # 15s 借自 item 17，见 X1
+    - { op: F2, kind: combine, rule: "∃ h ∈ hold_spans: dur_lbl(h) == over" }
+    - { op: F3, kind: combine,
+        rule: "∃ h ∈ hold_spans(kind=hold): 坐席在 h.end 后首个话轮缺 address_terms 或 recall_greet 或 recall_thanks 之一" }
+    - { op: verdict_4, kind: combine, rule: "NA if na_4; FAIL if F1 ∨ F2 (∨ F3 per G1); else PASS（F5 残差：criterion 不得 auto-final）" }
+  unavailable_when: "channel_mode == mono 且分离置信度低 ⇒ blank_spans.owed_by 不可靠 ⇒ F1 indeterminate"
+  open:
+    R4-1: "等待音乐：若话务系统播放候线音乐，静默检测失效 —— 需 call_meta.holds；有无该元数据？"
+    R4-2: "'不超过30秒'是单次连续等待，还是允许坐席每 30 秒回来续报一次？当前：单段连续 >30s 判 F2；转接等待同样适用（rev2）。"
+    R4-3: "θ_blank 取值：原文只说'导致电话空白'。暂借 item 17 的 15 秒（客服原因），需人工确认。"
+    R4-4: "无声电话的规范用语原文未给出（例如'您好，请问能听到吗'），需补充词表后 F4 才可计算。"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Item 5 · 有结束语且完整
+#   1分: 通话结束前应按标准说结束语："再见！" 每通电话在讲结束语之前，与企业确认是否还有其他问题，
+#        无问题后转结束语；请稍后请对本次服务做个评价，满意请按1，再见！（不含糊，表达清楚意思即可）
+#   0分: 结束语无或不完整；时间允许范围内未报读结束语；结束语含糊带过；
+#   NA : 客户非正常中断电话；话机问题。
+# ══════════════════════════════════════════════════════════════════════════════
+- item: 5
+  signals:
+    F1: { desc: "结束语缺失：确认其他问题 / 邀请评价 / 再见 三段全无", from: "0分：结束语无", severity: major }
+    F2: { desc: "结束语不完整：三段缺任一段（按意思匹配，不要求逐字），或客户仍有问题时即转结束语", from: "0分：不完整 + 1分'无问题后转结束语'", severity: major }
+    F3: { desc: "结束语含糊带过：结束段发音速率显著高于本通坐席常态，或转写置信度过低", from: "0分：含糊带过", severity: minor, prov_note: "det 代理，需校准" }
+  extract:
+    - { op: other_q,  kind: lexicon, in: [closing_win, seg.agent], terms: [还有其他问题, "还有什么.{0,4}帮您", 还有别的, 其他问题吗] }
+    - { op: rating,   kind: lexicon, in: [closing_win, seg.agent], terms: [评价, 满意请按, 按1, 按一] }
+    - { op: bye,      kind: lexicon, in: [closing_win, seg.agent], terms: [再见] }
+    - { op: closing_meaning, kind: judge, prov: model,                        # rev2: 原文"表达清楚意思即可"
+        when: "other_q = ∅ OR rating = ∅ OR bye = ∅",
+        q: "结束前坐席是否（a）确认客户还有无其他问题、（b）邀请客户评价本次服务、（c）道别？对每项分别作答",
+        returns: [answer_a, answer_b, answer_c, turn_id, quote] }
+    - { op: cust_done, kind: lexicon, in: [closing_win, seg.customer], terms: [没有了, 没了, 没别的, 就这样, 好的谢谢] }
+    - { op: closing_rate, kind: measure, in: [closing_win, agent_rate],
+        output: { fields: [closing_art_rate, agent_median_rate, ratio, closing_asr_conf] } }
+    - { op: time_avail, kind: measure, in: [seg, call_meta],
+        rule: "客户最后一个收尾信号(cust_done 或 再见) 到通话结束的时长", output: { fields: [seconds] } }
+  decide:
+    - { op: na_5, kind: combine, rule: "call_meta.end_reason ∈ {customer_abort, phone_fault, system}" }
+    - { op: parts, kind: combine, rule: "A = other_q ∪ closing_meaning.a; B = rating ∪ closing_meaning.b; C = bye ∪ closing_meaning.c" }
+    - { op: order, kind: combine, rule: "ordered_match(A → cust_done → B → C)" }      # rev2: '无问题后转结束语' 入序
+    - { op: allowed, kind: label, in: [time_avail.seconds], band: { min_s: θ_allow }, decision_params: { θ_allow: 3 }, status: provisional }
+    - { op: F1, kind: combine, rule: "allowed AND A ∪ B ∪ C = ∅" }
+    - { op: F2, kind: combine, rule: "allowed AND NOT F1 AND NOT order.complete" }
+    - { op: F3, kind: combine, rule: "closing_rate.ratio > θ_rush OR closing_rate.closing_asr_conf < θ_asr",
+        decision_params: { θ_rush: 1.4, θ_asr: 0.6 }, status: provisional }
+    - { op: verdict_5, kind: combine, rule: "NA if na_5; FAIL if F1 ∨ F2 ∨ F3; else PASS（allowed 不成立且无 F 时也为 PASS：时间不允许不追责）" }
+  unavailable_when: "call_meta.end_reason 缺失 ⇒ 无法区分'客户非正常中断/话机问题'与'坐席未报读' ⇒ 结尾截断的电话 indeterminate"
+  open:
+    R5-1: "rev2 已按原文'无问题后转结束语'把 cust_done 放入顺序；若客户未明确表示没有问题而坐席直接结束，是否判 F2？"
+    R5-2: "'含糊带过'用语速比 + 转写置信度作确定性代理；原文'不含糊，表达清楚意思即可'说明重在可懂度，是否接受该代理？"
+    R5-3: "θ_allow（时间允许）3 秒为拍定值，需校准。"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 跨条目规则与待决事项
+# ══════════════════════════════════════════════════════════════════════════════
+general:
+  G1: "0 分标准为空或窄于 1 分标准时（item 1 全空；item 4 召回语/30 秒；item 5），1 分子句取反是否一律构成 FAIL？
+       建议：明确写出的数值/必备要素取反 = FAIL；措辞类要素取反 = minor 信号，不单独致 0 分。需人工裁定。"
+  G2: "形如'其他没有明显得1分或0分的情形'的 NA 子句，语义是'无法判定'，编译为 indeterminate → 人工，而不是不计分。"
+  G3: "新增 facet 需求（话务/CTI 元数据）：direction、line_type（市监专线/支持专线）、agent_role（热线/支持客服）、holds、transfers、end_reason、end_side。
+       音频推断这些字段不可靠；缺失时依赖信号判 unavailable。归属与 item 6/7 的 data_dependency 同类，需确认数据来源。
+       rev2: agent_role 被 item 1（NA）、2（放宽）、10（反问豁免）三条共用。"
+  G4: "address_terms（称谓）被 item 2 与 item 4 复用 —— 多条目共享应从 Layer 2（条目内嵌）升为 Layer 1（共享词表）。"
+  G5: "不从声学特征推断客户性别以判定'先生/女士'是否叫错；只认客户自报姓氏或当场纠正。"
+  X1: "item 4 F1（无候线语的空白）与 item 17（非客服原因 30 秒以上 / 客服原因 15 秒以上空白）共用 silence_events，存在重复扣分：
+       item 4 只管'需要候线却未候线'的空白，item 17 只管不在候线语境中的节奏空白；二者按 hold_lex 是否适用划分。"
+  X2: "item 5 F3 复用 item 9 的发音速率算子 agent_rate；item 9 的'忽高忽低'指音量（原文 1 分标准），不影响本条。"
+  source_note: "rev1 → rev2 的实质变化：item 2 新增'问了未答'豁免与支持客服放宽；item 3 新增服务点名称与清晰/不清晰之分；
+                item 4 30 秒覆盖转接、召回语三要素、操作残差；item 5 按意思匹配并把'无问题后'入序。详见 docs/rubric/rubric-source-diff.md。"
+  new_lexicons_needed:
+    - _rubric/evidence/phrase-keyword/common/surnames.yaml            # 百家姓（含复姓）
+    - _rubric/evidence/phrase-keyword/common/admin-divisions-county-up.yaml   # 县级及以上行政区划
+    - "<domain>/dkb.service-points.yaml"                              # rev2: 县级及以上服务点名称
+    - item-4 无声电话规范用语（R4-4）

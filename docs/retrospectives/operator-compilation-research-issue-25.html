@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Operator Compilation Research</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --paper: #fffefb;
+    --ink: #1c1a17;
+    --muted: #6b665c;
+    --faint: #9a9488;
+    --rule: #ddd8cd;
+    --blue: #1d4e89;
+    --green: #2a7d4f;
+    --amber: #b87514;
+    --red: #b5402e;
+    --purple: #6a4a9c;
+    --codebg: #1c1f26;
+    --codefg: #e2e0d8;
+    --codekey: #7fb3e8;
+    --codestr: #9ed79e;
+    --codecom: #7a8290;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Newsreader', Georgia, serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+    font-size: 17px;
+    padding: 0 0 6rem;
+  }
+  .wrap { max-width: 54rem; margin: 0 auto; padding: 0 1.5rem; }
+
+  header {
+    border-bottom: 2px solid var(--ink);
+    padding: 3rem 0 1.4rem;
+    margin-bottom: 2rem;
+  }
+  .doctype {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 0.8rem;
+  }
+  h1 { font-size: 2.7rem; line-height: 1.08; font-weight: 600; letter-spacing: -0.02em; }
+  .meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.74rem;
+    color: var(--muted);
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.6rem;
+  }
+  .meta b { color: var(--ink); font-weight: 600; }
+
+  .thesis {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--blue);
+    padding: 1.4rem 1.6rem;
+    margin: 2rem 0;
+    font-size: 1.1rem;
+  }
+  .thesis b { color: var(--blue); }
+
+  h2 {
+    font-size: 1.7rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    margin: 3.2rem 0 0.3rem;
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--rule);
+  }
+  h2 .num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--blue);
+    display: block;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.2rem;
+    border: none;
+  }
+  h3 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.92rem;
+    font-weight: 700;
+    margin: 1.8rem 0 0.5rem;
+  }
+  p { margin-bottom: 0.9rem; }
+  .lead { color: var(--muted); font-size: 1.02rem; }
+
+  code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82em;
+    background: #ece8df;
+    padding: 0.1em 0.38em;
+    border-radius: 3px;
+    color: #5a4a2a;
+  }
+  pre {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    background: var(--codebg);
+    color: var(--codefg);
+    padding: 1.2rem 1.4rem;
+    border-radius: 5px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.55;
+  }
+  pre .k { color: var(--codekey); }
+  pre .s { color: var(--codestr); }
+  pre .c { color: var(--codecom); font-style: italic; }
+  pre .f { color: #e8c07a; }
+
+  .invariant {
+    counter-reset: none;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    border-radius: 5px;
+    margin: 1.2rem 0;
+    overflow: hidden;
+  }
+  .invariant .row {
+    display: grid;
+    grid-template-columns: 3.2rem 1fr;
+    border-bottom: 1px solid var(--rule);
+  }
+  .invariant .row:last-child { border-bottom: none; }
+  .invariant .tag {
+    background: var(--codebg);
+    color: var(--codekey);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.74rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.8rem 0;
+  }
+  .invariant .body { padding: 0.8rem 1.1rem; font-size: 0.92rem; }
+  .invariant .body b { font-family: 'IBM Plex Mono', monospace; font-size: 0.84rem; }
+
+  table.grid {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.4rem 0;
+    font-size: 0.82rem;
+  }
+  table.grid th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: left;
+    padding: 0.6rem 0.7rem;
+    border-bottom: 2px solid var(--ink);
+    color: var(--muted);
+    vertical-align: bottom;
+  }
+  table.grid td {
+    padding: 0.6rem 0.7rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  table.grid td.mono, table.grid th.mono { font-family: 'IBM Plex Mono', monospace; font-size: 0.76rem; }
+
+  .det { color: var(--green); font-weight: 600; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; }
+  .semi { color: var(--amber); font-weight: 600; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; }
+  .hum { color: var(--purple); font-weight: 600; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; }
+  .redm { color: var(--red); font-weight: 600; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; }
+
+  /* independence-class chips for corroboration */
+  .ic { font-family:'IBM Plex Mono',monospace; font-size:0.64rem; font-weight:700; letter-spacing:0.04em;
+        padding:0.12em 0.5em; border-radius:3px; text-transform:uppercase; white-space:nowrap; }
+  .ic.ind { background:#ecf6ef; color:var(--green); border:1px solid #bfe0c9; }
+  .ic.cor { background:#fbf3e6; color:var(--amber); border:1px solid #e6cf9e; }
+  .ic.red { background:#fbeeeb; color:var(--red);   border:1px solid #e6b6ab; }
+  .wgt { font-family:'IBM Plex Mono',monospace; font-size:0.74rem; color:var(--muted); }
+
+  /* toggle-revealed critique panel */
+  details.crit {
+    border:1px solid var(--rule); border-left:4px solid var(--red);
+    border-radius:5px; background:#fdf6f4; margin:1.1rem 0; padding:0 1.2rem;
+  }
+  details.crit > summary {
+    font-family:'IBM Plex Mono',monospace; font-size:0.74rem; font-weight:700;
+    letter-spacing:0.04em; color:var(--red); cursor:pointer; padding:0.85rem 0;
+    list-style:none;
+  }
+  details.crit > summary::-webkit-details-marker { display:none; }
+  details.crit > summary::before { content:"▸ "; }
+  details.crit[open] > summary::before { content:"▾ "; }
+  details.crit .cbody { font-size:0.9rem; padding:0 0 1rem; }
+  details.crit .cbody p { margin-bottom:0.6rem; }
+
+  .prompt { margin:1.2rem 0; border:1px solid var(--rule); border-radius:6px; overflow:hidden; }
+  .prompt .plabel {
+    font-family:'IBM Plex Mono',monospace; font-size:0.66rem; font-weight:700; letter-spacing:0.1em;
+    text-transform:uppercase; color:#fff; background:var(--blue); padding:0.45rem 1rem;
+  }
+  .prompt pre { margin:0; border-radius:0; font-size:0.74rem; }
+
+  .fixture {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    overflow: hidden;
+    margin: 1rem 0;
+  }
+  .fixture .cell { background: var(--paper); padding: 0.9rem 1.1rem; }
+  .fixture .cell.red { background: #fbeeeb; }
+  .fixture .cell.green { background: #ecf6ef; }
+  .fixture .label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+  }
+  .fixture .red .label { color: var(--red); }
+  .fixture .green .label { color: var(--green); }
+  .fixture .cell p { font-size: 0.82rem; margin: 0; }
+  .fixture .cell code { font-size: 0.74rem; }
+
+  .milestone {
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 1.1rem 1.3rem;
+    margin: 0.9rem 0;
+    background: var(--paper);
+  }
+  .milestone .mhead {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 700;
+    font-size: 0.88rem;
+    margin-bottom: 0.3rem;
+  }
+  .milestone .mhead .id {
+    background: var(--blue);
+    color: #fff;
+    padding: 0.1em 0.5em;
+    border-radius: 3px;
+    margin-right: 0.6rem;
+    font-size: 0.78rem;
+  }
+  .milestone .accept {
+    font-size: 0.84rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--rule);
+  }
+  .milestone .accept b { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--green); letter-spacing: 0.04em; }
+
+  .callout {
+    border-radius: 5px;
+    padding: 1rem 1.3rem;
+    margin: 1.2rem 0;
+    font-size: 0.92rem;
+  }
+  .callout.warn { background: #fbf3e6; border: 1px solid #e6cf9e; }
+  .callout.warn b { color: var(--amber); }
+  .callout.key { background: #eaf0f7; border: 1px solid #b8cce4; }
+  .callout.key b { color: var(--blue); }
+
+  ol.spec, ul.spec { padding-left: 1.4rem; margin: 0.6rem 0 1rem; }
+  ol.spec li, ul.spec li { font-size: 0.92rem; margin-bottom: 0.4rem; }
+
+  .stagebar { margin: 1.6rem 0; }
+  figcaption { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--faint); margin-top: 0.5rem; text-align: center; }
+
+  @media (max-width: 640px) {
+    h1 { font-size: 2rem; }
+    .fixture { grid-template-columns: 1fr; }
+    table.grid { display: block; overflow-x: auto; }
+    body { font-size: 16px; }
+  }
+  .computable-footnote { font-size: 0.82rem; color: var(--muted); border: 1px solid var(--rule); border-radius: 8px; padding: 1rem 1.2rem; margin: 0.8rem 0 1.4rem; }
+  .computable-footnote dt { font-family: monospace; font-size: 0.85rem; font-weight: 700; color: var(--ink); margin-top: 0.6rem; }
+  .computable-footnote dd { margin: 0.2rem 0 0; font-size: 0.84rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="doctype">Research note · issue #25 · input to spec v6.1 and the 9011 compiler line · not a spec</div>
+  <h1>Compiling Rubric Items into Agent-Ready Operators</h1>
+  <div class="meta">
+    <span><b>Question</b> How should a soft rubric item become typed operators that audio2tree executes and Argus decides on?</span>
+    <span><b>Chain</b> Argus shapes soft-compiler; soft-compiler shapes audio2tree</span>
+    <span><b>Read</b> issue #25 (body + Item-9, Item-12 comments) · <code>docs/rubric/specific-rubric-27.yaml</code> · <code>docs/facets/producers-9.1-revision-proposal.md</code> · soft-criteria v4 patch-1 (D12) · <code>item-18-example-v2.yaml</code> · spec v6</span>
+    <span><b>Updated 2026-10-14</b> the issue attachment <code>rubric_com_hotline.md</code> was provided and read in full. Item text below is now quoted from it (copied to <code>docs/rubric/</code>). <code>specific-rubric-27.yaml</code> turned out to be abridged; see <code>docs/rubric/rubric-source-diff.md</code>.</span>
+    <span><b>Status</b> research — §9 lists the decisions to settle before anything is built</span>
+  </div>
+</header>
+
+<div class="callout key"><b>Update 2026-10-14: the full rubric text confirms three recommendations and adds two corrections.</b> Item-9's pass standard reads "音量能使客户听清，<b>不会出现忽高忽低</b>的情况". 忽高忽低 attaches to <em>volume</em>, so R5 is now textually grounded, not just inferred. Fail ③ reads "电话中<b>虽未出现抢话</b>，可是多次出现…略有重叠", which confirms R6: Item-9 ③ is the non-competitive overlap class. Fail ④ is a conjunction, "<b>客户语速很慢，客服语速快</b>，客户表达了'需要慢一点'", not the request alone (§4.1f). Item-12's pass standard explicitly allows "当确实需要时，适当礼貌的打断用户，例如：非常抱歉，打断您一下", confirming the apology mitigation. New: Item-26 also penalises "多次带有情绪的抢话、压话", a third consumer of the overlap events (§5.7). The yaml that rev. 1 of this note used drops verdict-changing clauses in 13 items (2, 4, 5, 7, 9, 10, 12, 13, 19, 20, 25, 26, 27); the source diff lists them.</div>
+
+<p class="lead">Issue #25 asks the soft-compiler to turn each human rubric item into graders built from metrics, labels, regex, parameters and LLM judges. Most of the plumbing already exists. What is missing is a <em>typed intermediate representation</em> between Signal Decomposition (B-E, soft-criteria D12) and the facets that producers deliver. The two worked items show why. Item-9 measures the wrong construct for "语音平稳". Item-12 samples windows for an event that must be counted exhaustively, and its onset-timestamp rule cannot tell an interruption from a cooperative overlap. Both problems are fixable in the operator design, before any code is written.</p>
+
+<div class="thesis">
+<b>Read the chain as a contract, not a pipeline.</b> Argus states what it must decide. The soft-compiler compiles each item into an operator program and splits it in two: an <b>extract half</b> that audio2tree runs over the call log, and a <b>decide half</b> that Argus runs over the extracted evidence. Measure in the producer, decide in the consumer. Each operator declares whether it is deterministic or model-judged, so the provenance rules the spec already enforces (I2, I6) apply without a new mechanism.
+</div>
+
+<!-- ════════ §1 ════════ -->
+<h2><span class="num">§1 · THE SHAPING CHAIN</span>Contracts flow right to left; evidence flows left to right</h2>
+
+<div class="stagebar">
+<figure>
+<svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, monospace" role="img" aria-label="Argus demands criteria from the soft-compiler; the soft-compiler emits extract operators to audio2tree and decide operators to Argus; call logs flow through audio2tree to Argus as operator-shaped evidence.">
+  <defs>
+    <marker id="k" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#1c1a17"/></marker>
+    <marker id="p" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#6a4a9c"/></marker>
+    <marker id="b" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#1d4e89"/></marker>
+  </defs>
+
+  <!-- soft-compiler -->
+  <rect x="235" y="18" width="250" height="92" rx="5" fill="#eaf0f7" stroke="#1d4e89" stroke-width="1.3"/>
+  <text x="360" y="38" font-size="10.5" font-weight="700" fill="#1d4e89" text-anchor="middle">SOFT-COMPILER · compile time</text>
+  <text x="360" y="56" font-size="7.6" fill="#1c1a17" text-anchor="middle">rubric item → signals (B-E, D12)</text>
+  <text x="360" y="69" font-size="7.6" fill="#1c1a17" text-anchor="middle">→ typed operator program (§3)</text>
+  <text x="360" y="82" font-size="7.6" fill="#1c1a17" text-anchor="middle">params split: extraction | decision</text>
+  <text x="360" y="99" font-size="7" font-style="italic" fill="#6b665c" text-anchor="middle">versioned in _rubric/ · pinned by intents_sha</text>
+
+  <!-- data row -->
+  <rect x="10" y="200" width="96" height="46" rx="4" fill="#f2efe9" stroke="#9a9488"/>
+  <text x="58" y="219" font-size="8.5" font-weight="700" fill="#6b665c" text-anchor="middle">call log</text>
+  <text x="58" y="233" font-size="7" fill="#6b665c" text-anchor="middle">audio · ASR · turns</text>
+
+  <rect x="140" y="180" width="230" height="86" rx="5" fill="#ecf6ef" stroke="#2a7d4f" stroke-width="1.3"/>
+  <text x="255" y="200" font-size="10.5" font-weight="700" fill="#2a7d4f" text-anchor="middle">AUDIO2TREE · producer</text>
+  <text x="255" y="217" font-size="7.6" fill="#1c1a17" text-anchor="middle">runs the EXTRACT half</text>
+  <text x="255" y="230" font-size="7.6" fill="#1c1a17" text-anchor="middle">window · measure · event · lexicon</text>
+  <text x="255" y="243" font-size="7.6" fill="#b5402e" text-anchor="middle">judge (model, span-anchored)</text>
+  <text x="255" y="258" font-size="7" font-style="italic" fill="#6b665c" text-anchor="middle">facets: criterion- and operator-shaped</text>
+
+  <rect x="440" y="180" width="270" height="86" rx="5" fill="#f3eef9" stroke="#6a4a9c" stroke-width="1.3"/>
+  <text x="575" y="200" font-size="10.5" font-weight="700" fill="#6a4a9c" text-anchor="middle">ARGUS · consumer</text>
+  <text x="575" y="217" font-size="7.6" fill="#1c1a17" text-anchor="middle">S1m runs the DECIDE half: label · combine</text>
+  <text x="575" y="230" font-size="7.6" fill="#1c1a17" text-anchor="middle">thresholds + indeterminate band (D26)</text>
+  <text x="575" y="243" font-size="7.6" fill="#1c1a17" text-anchor="middle">→ Grader (S2–S5) → Coach</text>
+  <text x="575" y="258" font-size="7" font-style="italic" fill="#6b665c" text-anchor="middle">never re-derives a facet (§9.1)</text>
+
+  <!-- data arrows -->
+  <line x1="106" y1="223" x2="138" y2="223" stroke="#1c1a17" stroke-width="1.3" marker-end="url(#k)"/>
+  <line x1="370" y1="223" x2="438" y2="223" stroke="#1c1a17" stroke-width="1.3" marker-end="url(#k)"/>
+  <text x="404" y="216" font-size="6.8" fill="#1c1a17" text-anchor="middle">evidence</text>
+  <text x="404" y="238" font-size="6.8" fill="#1c1a17" text-anchor="middle">+ op ids</text>
+
+  <!-- compiled operator arrows (= the shaping contracts) -->
+  <line x1="300" y1="110" x2="262" y2="178" stroke="#1d4e89" stroke-width="1.3" marker-end="url(#b)"/>
+  <text x="196" y="140" font-size="7" fill="#1d4e89">extract ops +</text>
+  <text x="196" y="151" font-size="7" fill="#1d4e89">extraction params</text>
+  <line x1="420" y1="110" x2="545" y2="178" stroke="#1d4e89" stroke-width="1.3" marker-end="url(#b)"/>
+  <text x="498" y="140" font-size="7" fill="#1d4e89">decide ops + thresholds</text>
+  <text x="498" y="151" font-size="7" fill="#1d4e89">(calibrated rubric)</text>
+
+  <!-- demand arrow Argus → compiler -->
+  <path d="M690 178 V64 H487" fill="none" stroke="#6a4a9c" stroke-width="1.2" stroke-dasharray="5 3" marker-end="url(#p)"/>
+  <text x="596" y="58" font-size="7" fill="#6a4a9c" text-anchor="middle">① shapes: criteria Argus must decide</text>
+  <text x="200" y="168" font-size="7" fill="#6a4a9c" text-anchor="end">② shapes</text>
+
+  <text x="360" y="290" font-size="7.2" fill="#6b665c" text-anchor="middle">a re-calibrated threshold re-runs only the decide half · a new indicator re-runs the extract half</text>
+</svg>
+<figcaption>Fig. 1 — the compiled operator program is the contract. The compiler hands audio2tree its extract half and hands Argus its decide half. Evidence comes back carrying operator ids, so Argus can check what produced each reading.</figcaption>
+</figure>
+</div>
+
+<!-- ════════ §2 ════════ -->
+<h2><span class="num">§2 · WHAT ALREADY EXISTS</span>Issue #25 against the artifacts on the 9031 branch</h2>
+
+<table class="grid">
+  <thead><tr><th style="width:28%">Issue #25 concept</th><th style="width:40%">Existing artifact</th><th style="width:32%">Gap</th></tr></thead>
+  <tbody>
+    <tr><td>Operationalise adjectives into observable checks</td><td><b>B-E Signal Decomposition</b> (soft-criteria v4 patch-1 D12): <code>fail_standard</code>/<code>pass_standard</code> → FAIL/EXCELLENCE signals, each gate-checkable; AUTH-1 rejects adjective signals</td><td>Signals exist; how each signal is <em>computed</em> is not typed</td></tr>
+    <tr><td>Metrics, regex, parameters</td><td><code>facets.programmatic[]</code>: <code>indicator</code> + <code>calculation</code> + <code>output_schema</code> (item-18 example)</td><td><code>calculation</code> is free Python inside YAML: no closed vocabulary, no cross-item reuse, and no split between extraction and decision parameters</td></tr>
+    <tr><td>LLM judge</td><td><code>facets.model_based[]</code>: <code>prompt</code> + <code>output_schema</code>. Lane split = deterministic vs model judgment, mirroring I6's weights (§9.1)</td><td>Outputs carry free-text evidence (<code>customer_specific_evidence: str</code>), not turn id + quote, so S3 cannot ground them</td></tr>
+    <tr><td>Thresholds</td><td>Registry <code>indicators.yaml</code> (Argus-owned since 2026-09-20): 13 indicators + 18 rubric-extracted predicates</td><td>Most thresholds are placeholders. §3.1 records a unit mismatch (<code>wpm</code> declared, <code>words_per_sec</code> emitted) under which every segment flags.</td></tr>
+    <tr><td>"No step left to model discretion"</td><td>Two admission gates (§9.1 §5): <em>measurable</em> and <em>computable</em>, conjunctive</td><td>How an item that <em>needs</em> an LLM judge (Item-9 ④, Item-12 ①④) passes the computable gate is not stated (§6)</td></tr>
+    <tr><td>Overlap timing</td><td><code>between_turn_pauses</code> ≤ 0 means overlap (§9.1 §3.4)</td><td>A turn-boundary scalar cannot express a mid-turn overlap where the overlapped speaker carries on (§5)</td></tr>
+    <tr><td>Speech rate</td><td><code>speaking_rate.words_per_sec</code>, <code>syllables_per_sec_est</code>, per-speaker <code>wpm_mean</code></td><td>Which measure is canonical is still open (§9.1 §3.5). Speech rate vs articulation rate is not distinguished.</td></tr>
+  </tbody>
+</table>
+<p style="font-size:0.84rem;color:var(--muted);">The proposal below therefore adds no new layer. It gives the existing facets layer a type system and states which half of each item runs where.</p>
+
+<!-- ════════ §3 ════════ -->
+<h2><span class="num">§3 · OPERATOR IR</span>A closed operator vocabulary, typed the way issue #25 already types it</h2>
+
+<p>Issue #25 tags every step of an item with a kind: <code>[指标]</code> metric, <code>[标签]</code> label, <code>[超参数]</code> hyperparameter, <code>[LLM Judge]</code>. Promoting those tags into a small closed vocabulary lets each item compile to a DAG of operators instead of bespoke code. The executor implements each operator once, tests it once, and every item reuses it. Item-9 and Item-12 already share a window sampler and an overlap enumerator.</p>
+
+<table class="grid">
+  <thead><tr><th style="width:13%">Kind</th><th style="width:9%">#25 tag</th><th style="width:9%">Stage</th><th style="width:11%">Provenance</th><th style="width:58%">Contract</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">segment</td><td>—</td><td class="mono">extract</td><td><span class="det">det.</span></td><td>Inter-pausal units per speaker (pause ≥ θ ms). The atom every rate and level operator reads. Channel mode (stereo/mono) and attribution confidence ride each unit.</td></tr>
+    <tr><td class="mono">window</td><td>超参数</td><td class="mono">extract</td><td><span class="det">det.</span></td><td>Selects spans to measure: <code>census</code> (default) or <code>sample{N, length, seed}</code>. A sample must be seeded and recorded. Event operators may not consume a sample (§5.4).</td></tr>
+    <tr><td class="mono">measure</td><td>指标</td><td class="mono">extract</td><td><span class="det">det.</span></td><td>A scalar over a window or unit: rate, ratio, duration, count, variance, adjacent delta. Declares unit, error and a minimum-support rule (e.g. ≥ k syllables), otherwise <code>insufficient</code>.</td></tr>
+    <tr><td class="mono">event</td><td>指标</td><td class="mono">extract</td><td><span class="det">det.</span></td><td>An exhaustive list of typed intervals (overlap, silence, short utterance), each with onset, offset, speakers and confidence.</td></tr>
+    <tr><td class="mono">lexicon / regex</td><td>—</td><td class="mono">extract</td><td><span class="det">det.</span></td><td>Matches against a pinned lexicon group or pattern and returns turn id, character span and the matched text.</td></tr>
+    <tr><td class="mono">judge</td><td>LLM Judge</td><td class="mono">extract</td><td><span class="hum">model</span></td><td>One closed yes/no question with a versioned prompt. Must return <code>{answer ∈ yes|no|cannot_determine, turn_id, quote}</code>. Free-text evidence is invalid. Runs only where the lexicon operator for the same check found nothing (lexicon first, judge as fallback).</td></tr>
+    <tr><td class="mono">label</td><td>标签</td><td class="mono">decide</td><td><span class="det">det.</span></td><td>Maps a measure to a label through a threshold or band with an <code>indeterminate</code> margin (spec v6 D26). Thresholds are rubric: versioned, with calibration status <code>provisional | calibrated{n, κ}</code>.</td></tr>
+    <tr><td class="mono">combine</td><td>—</td><td class="mono">decide</td><td><span class="det">det.</span></td><td>Boolean and count logic over labels and events → a signal (F/E). This is the only place "多次" (repeatedly) becomes a number.</td></tr>
+  </tbody>
+</table>
+
+<h3>3.1 — The stage rule: measure in the producer, decide in the consumer</h3>
+<ul class="spec">
+  <li><b>Why extraction belongs to audio2tree.</b> It needs audio, alignment and the ASR stack. The contract already says the consumer never re-derives a facet, and spec D13 keeps audio code out of <code>src/argus/</code>.</li>
+  <li><b>Why decisions belong to Argus.</b> Thresholds are rubric (spec D16) and are the thing calibration changes. Keeping <code>label</code>/<code>combine</code> in Argus means a κ-driven threshold change re-labels stored evidence without re-extracting, and replay never needs audio.</li>
+  <li><b>The parameter split follows from it.</b> Window length, IPU pause, sampling seed and onset tolerance are <em>extraction</em> parameters: changing one requires a re-extraction and a new operator version. Bands, counts and durations ("?次", "?秒") are <em>decision</em> parameters, and changing one is a rubric epoch only.</li>
+</ul>
+
+<h3>3.2 — Operator record (what the compiler emits per operator)</h3>
+<pre>- <span class="k">op</span>: <span class="s">overlap_events</span>            <span class="c"># id, unique in the item's DAG; shared ops dedup across items</span>
+  <span class="k">kind</span>: <span class="s">event</span>
+  <span class="k">version</span>: <span class="s">2</span>                     <span class="c"># bumps on any extraction-param change</span>
+  <span class="k">stage</span>: <span class="s">extract</span>                <span class="c"># extract → audio2tree · decide → Argus S1m</span>
+  <span class="k">provenance</span>: <span class="s">deterministic</span>     <span class="c"># deterministic | model  → I6 independence class follows</span>
+  <span class="k">inputs</span>: [<span class="s">segment.agent</span>, <span class="s">segment.customer</span>]
+  <span class="k">extraction_params</span>: { <span class="k">onset_tol_ms</span>: <span class="f">180</span>, <span class="k">min_overlap_ms</span>: <span class="f">100</span> }   <span class="c"># 180 ms ≈ one beat (Schegloff)</span>
+  <span class="k">output</span>: { <span class="k">anchor</span>: <span class="s">interval</span>, <span class="k">fields</span>: [<span class="s">onset</span>, <span class="s">offset</span>, <span class="s">first</span>, <span class="s">second</span>, <span class="s">onset_class</span>, <span class="s">resolution</span>, <span class="s">confidence</span>] }
+  <span class="k">na_when</span>: <span class="s">"channel_mode == mono AND overlap_detector_conf &lt; τ_ov"</span>   <span class="c"># → unavailable, never guessed</span>
+  <span class="k">enables_signals</span>: [<span class="s">12.F1</span>, <span class="s">12.F2</span>, <span class="s">12.F3</span>, <span class="s">9.F3</span>]</pre>
+
+<!-- ════════ §4 ════════ -->
+<h2><span class="num">§4 · ITEM-9</span>语速适中，能配合客户的速度，语音平稳</h2>
+
+<p class="lead">Rubric text (<code>rubric_com_hotline.md</code>): 1分 — 语速适中，能配合客户的速度，<b>音量能使客户听清，不会出现忽高忽低的情况</b>. 0分 — ① 语速过快或过慢，<b>使得客户表现出沟通上的不适</b>; ② <b>语音突然出现明显上升或下降</b>，使人感到不适; ③ 电话中<b>虽未出现抢话</b>，可是多次出现由于接话太急等原因造成的略有重叠; ④ <b>客户语速很慢，客服语速快</b>，客户表达了"需要慢一点". NA — 无.</p>
+
+<h3>4.1 — Findings on the issue's operator design</h3>
+<table class="grid">
+  <thead><tr><th style="width:6%">#</th><th style="width:30%">Issue step</th><th style="width:64%">Finding</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">a</td><td>5) the variance of speech rate across sampled windows decides 语音平稳 vs 忽高忽低</td><td><span class="redm">WRONG CONSTRUCT.</span> In this rubric, "语音平稳" is defined by fail ② "语音<em>突然</em>出现明显上升或下降" and by the pass standard "音量能使客户听清，不会出现<b>忽高忽低</b>的情况". In the full text, 忽高忽低 is said of <b>音量</b> (volume): the rubric itself names the construct. That is voice <em>level</em> (intensity, pitch), not speaking rate. Variance also measures dispersion, not suddenness: a slow steady drift has high variance and no jump, while one shouted sentence in a calm call has low variance and is exactly the failure. Use an adjacent-delta operator on intensity (dB) and F0 (semitones) between consecutive agent units, normalised to the agent's level <em>within this call</em>.</td></tr>
+    <tr><td class="mono">b</td><td>3) 0.8 ≤ agent rate / customer rate ≤ 1.5 means 语速适中</td><td><span class="semi">SOUND, INCOMPLETE.</span> Using the customer in the same window as the reference matches the entrainment literature: speakers' speaking rates are measurably closer to their partner's than to non-partners' at session level. At turn level, though, the rate correlation is weak (r ≈ 0.15, Levitan &amp; Hirschberg 2011), so a 10 s window is too short for a stable ratio. Add (i) a minimum support of ≥ k syllables per speaker, below which the window is <code>insufficient</code>; (ii) an <em>absolute</em> band, because a ratio of 1.0 at a fast absolute rate passes the ratio test but is still too fast; (iii) a calibrated band, since 0.8/1.5 are authoring guesses.</td></tr>
+    <tr><td class="mono">c</td><td>3) unit 字/s</td><td><span class="semi">DEFINE IT.</span> Use <b>articulation rate</b> (syllables per second excluding pauses ≥ 250 ms), not speech rate including pauses. Otherwise a slow speaker and a hesitant one look the same. Mandarin characters ≈ syllables, so 字/s works. This settles the canonical-measure gap in §9.1 §3.5.</td></tr>
+    <tr><td class="mono">d</td><td>3) an out-of-band ratio is labelled 语速过快 / 过慢</td><td><span class="redm">MISSING CONDITION.</span> Fail ① fails the call only when the rate "<b>使客户表现不适</b>" (made the customer uncomfortable). A ratio label alone is a candidate, not a failure. F1 = rate out of band <b>AND</b> a customer-discomfort marker within the next k turns: asks to repeat, "什么？", "没听清", or a slow-down request.</td></tr>
+    <tr><td class="mono">e</td><td>— (not in the issue)</td><td><span class="semi">BOUNDARY WITH ITEM-12.</span> Fail ③ "接话太急略有重叠" (jumping in too fast, slight overlap) uses the same overlap events as Item-12. Without a boundary one event is penalised twice. Split by where the overlap starts: overlaps at the customer's turn end (last-item / transition-space) belong to <b>Item-9 ③</b>; overlaps mid-turn (interjacent) belong to <b>Item-12</b> (§5.1). The full text settles this: ③ applies when "电话中<b>虽未出现抢话</b>".</td></tr>
+    <tr><td class="mono">f</td><td>4) customer says "你慢一点" alone fails ④</td><td><span class="redm">MISSING CONDITION (full text).</span> ④ reads "<b>客户语速很慢，客服语速快</b>，客户表达了'需要慢一点'": three conjuncts. F4 = customer rate low (absolute band) ∧ agent/customer ratio high ∧ slow-down request. A request alone, after a long agent explanation at normal speed, is not ④.</td></tr>
+    <tr><td class="mono">g</td><td>— (not in the issue)</td><td><span class="semi">NEW SIGNAL (full text).</span> The pass standard requires "音量能使客户听清". Absent a fail clause (G1), compile it as a minor signal: the customer signals they can't hear (听不清 / 大点声 / 声音太小) while the channel isn't the cause (customer-side noise measured on their channel).</td></tr>
+    <tr><td class="mono">h</td><td>4) customer says "你慢一点" (LLM Judge)</td><td><span class="det">KEEP, LEXICON FIRST.</span> 慢一点 / 慢点 / 说慢点 / 没听清 / 再说一遍 is a small closed set: run a lexicon operator first, which is deterministic and counts as independent evidence. Use the judge only as a fallback for paraphrases, and it must return a span.</td></tr>
+    <tr><td class="mono">i</td><td>1) sample N two-speaker windows</td><td><span class="semi">USE CENSUS.</span> Rates over aligned segments are arithmetic; nothing is compute-bound. Sampling adds variance and makes the label depend on the seed. Measure all qualifying windows.</td></tr>
+  </tbody>
+</table>
+
+<h3>4.2 — Item-9 compiled</h3>
+<pre><span class="k">item</span>: <span class="f">9</span>
+<span class="k">signals</span>:
+  <span class="k">F1</span>: <span class="s">"语速相对客户或绝对越界，且 k 轮内客户表现不适"</span>      <span class="c"># fail ①</span>
+  <span class="k">F2</span>: <span class="s">"坐席相邻语段音量/音高突变"</span>                            <span class="c"># fail ②</span>
+  <span class="k">F3</span>: <span class="s">"客户话轮末端多次接话过急（零间隔或末端重叠）"</span>          <span class="c"># fail ③ — terminal overlaps only</span>
+  <span class="k">F4</span>: <span class="s">"客户语速很慢 ∧ 坐席语速快 ∧ 客户要求慢一点"</span>                <span class="c"># fail ④ — conjunction (full text)</span>
+  <span class="k">F5</span>: <span class="s">"客户表示听不清（音量）"</span>                                <span class="c"># pass: 音量能使客户听清 (G1, minor)</span>
+<span class="k">extract</span>:                                                   <span class="c"># → audio2tree</span>
+  - { <span class="k">op</span>: segment,    <span class="k">params</span>: { <span class="k">min_pause_ms</span>: <span class="f">250</span> } }
+  - { <span class="k">op</span>: art_rate,   <span class="k">kind</span>: measure, <span class="k">in</span>: segment, <span class="k">out</span>: <span class="s">syll_per_s, n_syll</span> }
+  - { <span class="k">op</span>: win30,      <span class="k">kind</span>: window,  <span class="k">params</span>: { <span class="k">mode</span>: census, <span class="k">length_s</span>: <span class="f">30</span>, <span class="k">min_syll_each</span>: <span class="f">15</span> } }
+  - { <span class="k">op</span>: rate_pair,  <span class="k">kind</span>: measure, <span class="k">in</span>: [win30, art_rate], <span class="k">out</span>: <span class="s">agent, customer, ratio</span> }
+  - { <span class="k">op</span>: level_jump, <span class="k">kind</span>: measure, <span class="k">in</span>: segment.agent, <span class="k">params</span>: { <span class="k">features</span>: [intensity_db, f0_st], <span class="k">adjacent</span>: <span class="k">true</span> } }
+  - { <span class="k">op</span>: overlap_events, <span class="k">kind</span>: event }                   <span class="c"># shared with item 12</span>
+  - { <span class="k">op</span>: slow_lex,   <span class="k">kind</span>: lexicon, <span class="k">group</span>: customer/slow-or-repeat }
+  - { <span class="k">op</span>: slow_judge, <span class="k">kind</span>: judge, <span class="k">when</span>: slow_lex.empty, <span class="k">q</span>: <span class="s">"客户是否要求坐席放慢语速或重复？"</span> }
+  - { <span class="k">op</span>: discomfort, <span class="k">kind</span>: lexicon, <span class="k">group</span>: customer/repair-request }   <span class="c"># 什么？/没听清/再说一遍</span>
+<span class="k">decide</span>:                                                    <span class="c"># → Argus S1m</span>
+  - { <span class="k">op</span>: rate_lbl, <span class="k">kind</span>: label, <span class="k">in</span>: rate_pair, <span class="k">band</span>: { <span class="k">ratio</span>: [<span class="f">0.8</span>, <span class="f">1.5</span>], <span class="k">abs</span>: [θ_lo, θ_hi] }, <span class="k">status</span>: provisional }
+  - { <span class="k">op</span>: F1, <span class="k">kind</span>: combine, <span class="k">rule</span>: <span class="s">"rate_lbl ∈ {fast, slow} AND discomfort within 2 turns after window"</span> }
+  - { <span class="k">op</span>: F2, <span class="k">kind</span>: combine, <span class="k">rule</span>: <span class="s">"count(level_jump.delta &gt; θ_jump) ≥ 1"</span> }
+  - { <span class="k">op</span>: F3, <span class="k">kind</span>: combine, <span class="k">rule</span>: <span class="s">"count(overlap_events where second=agent AND onset_class ∈ {last_item, transition}) ≥ n_many"</span> }
+  - { <span class="k">op</span>: F4, <span class="k">kind</span>: combine, <span class="k">rule</span>: <span class="s">"rate_pair.customer &lt; θ_cust_slow AND rate_lbl == fast AND (slow_lex ∪ slow_judge) non-empty"</span> }
+  - { <span class="k">op</span>: F5, <span class="k">kind</span>: combine, <span class="k">rule</span>: <span class="s">"hear_lex(听不清|大点声|声音太小) non-empty AND customer-channel noise below θ_noise"</span> }</pre>
+
+<!-- ════════ §5 ════════ -->
+<h2><span class="num">§5 · ITEM-12</span>无无故打断客户的话或抢话、压话</h2>
+
+<p class="lead">Rubric text (<code>rubric_com_hotline.md</code>): 1分 — 不出现无故打断客户谈话、抢话、压话的情况；当客户有意打断客服的表达的时候，要适当停顿或询问客户。<b>当确实需要时，适当礼貌的打断用户，例如：非常抱歉，打断您一下</b>. 0分 — 出现和客户抢话现象；出现压话；当企业有意打断客服的表达的时候，不予理睬. NA — 无. (A needed, polite interruption passes; an unprovoked one, 无故, does not.)</p>
+
+<h3>5.1 — Onset matching attributes the overlap; it does not classify it</h3>
+<p>The issue replaces "head/tail overlap" with "does the overlap start at the agent's or the customer's speech onset". That settles <em>attribution</em>: who started second. It is also how commercial overtalk metrics attribute incidents (VoiceBase counts agent overtalk as "the agent started talking while the caller was already talking"). It does <em>not</em> settle whether the overlap was an interruption. Conversation analysis classifies an overlap by <b>where it starts relative to the overlapped speaker's turn end</b>, and most overlaps are benign. In the Gervits &amp; Scheutz coding of 541 overlaps, 70% were transition-space or last-item overlaps and only 15% were interjacent (mid-turn). Two quantities are needed beyond the onset:</p>
+<ul class="spec">
+  <li><b>Onset position</b>, the overlapped speaker's remaining time after the onset. If it is at most about one beat (≈ 180 ms, roughly a syllable) or only the final word, the overlap is <code>last_item</code>/<code>transition</code> and goes to Item-9 ③ at most. If the overlapped speaker still has a substantial part of the turn left, it is <code>interjacent</code>, an Item-12 candidate.</li>
+  <li><b>Resolution</b>, meaning who stops. If the customer stops within the overlap, the agent's interjacent cut-in succeeded: <b>打断/抢话</b>. If the customer starts during agent speech and the agent keeps talking past a yield window, that is <b>压话</b>, or 不予理睬 when the customer's onset is a floor claim. The pass clause "适当停顿或询问" is the complement: the agent yields within the window or asks a question.</li>
+</ul>
+
+<h3>5.2 — Mapping the issue's three overlap types</h3>
+<table class="grid">
+  <thead><tr><th style="width:12%">Type</th><th style="width:38%">Issue definition</th><th style="width:50%">Operational definition</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">插话</td><td>customer first, agent second; overlap starts at the agent's onset</td><td><code>second=agent ∧ onset_class=interjacent ∧ resolution=customer_drops</code>. Mitigated (not a failure) if the agent's overlapping unit contains a cut-in apology (lexicon first: 抱歉打断 / 不好意思打断一下; judge as fallback).</td></tr>
+    <tr><td class="mono">抢话</td><td>both start together; the overlap starts at both onsets</td><td><code>onset_class=transition</code> (starts within one beat after a shared silence). Simultaneous starts are normal and self-resolve. Fail only when the agent <em>persists</em> past the yield window, and repeatedly.</td></tr>
+    <tr><td class="mono">压话</td><td>agent first; the overlap starts at the customer's onset</td><td><code>first=agent ∧ second=customer ∧ resolution=agent_continues &gt; yield_ms</code>, <b>excluding</b> customer backchannels (§5.3). If the customer's unit matches a floor claim (你听我说 / 等一下 / 我还没说完), it is 不予理睬.</td></tr>
+  </tbody>
+</table>
+
+<h3>5.3 — Backchannels are the dominant false positive</h3>
+<p>An agent's "嗯 / 对 / 好的" under the customer's speech is listening, not interrupting. Separating backchannels from failed interruptions is the main confusion even for a WavLM classifier trained on two-channel audio (AUC 0.949 for failed interruptions, with most errors falling into backchannel, in a 2023 meeting-interruption study). The rule must therefore exclude an overlapping unit that is short, matches the backchannel lexicon, <em>and</em> leaves the overlapped speaker continuing. The issue's step 7, counting the customer's sub-1/2/3-second utterances, is the right instinct for the reverse case. A short customer unit during agent speech is either a backchannel (fine) or a failed attempt to take the floor (the agent talked over them). The lexicon separates the two.</p>
+
+<h3>5.4 — Count every event; don't sample windows</h3>
+<p>Interruptions are sparse events. Sampling N windows either misses them or makes the count depend on the seed. The issue's own step 6 also totals counts and durations over the whole call, which contradicts step 0's sampling. The <code>overlap_events</code> operator enumerates every overlap in the call. The overlap ratio is <code>Σ overlap duration / union(speech time)</code>, with silence removed from the denominator as the issue specifies and overlap time counted once, not once per speaker.</p>
+
+<h3>5.5 — The substrate decides what is measurable</h3>
+<div class="callout warn">
+<b>Overlap timing on mono, diarised audio is the weakest measurement in the pipeline.</b> Overlapped speech is the hardest part of diarisation (pyannote reports 9.3% overlapping speech across its benchmark, with hard domains well above that). Commercial overtalk metrics that attribute agent vs caller are <b>stereo-only</b> (VoiceBase). On stereo recordings, per-channel voice-activity detection gives exact overlap intervals: a deterministic, independent-class signal. On mono recordings, every overlap event must carry the detector's confidence, and low-confidence events become <code>unavailable</code> (spec v6 I9), never counted. <code>between_turn_pauses</code> (§9.1 §3.4) cannot carry interjacent overlaps, because the overlapped turn does not end. Item-12 needs a new <code>overlaps[]</code> facet from audio2tree. <b>Whether the hotline recordings are stereo is the first fact to establish (R4).</b>
+</div>
+
+<h3>5.6 — "The more overlaps, the more likely" needs a calibrated function</h3>
+<p>Steps 1–3 leave "?次" and "?秒" open and argue that more and longer overlaps make an interruption more likely. That is a scoring model. Make it a deterministic one: a monotone function (logistic over count, total duration and maximum duration of qualifying events) fitted on the κ seed calls (Chain B's 50, labelled blind) and frozen as a versioned decision parameter. Until it is fitted, the item's label stays <code>provisional</code> and the criterion stays deferred under the κ gate. The open values are calibration targets, not authoring choices.</p>
+
+<h3>5.7 — A third consumer: Item-26 (added 2026-10-14)</h3>
+<p>Item-26 (沟通氛围融洽) fails on "<b>多次带有情绪的抢话、压话</b>", the same events as Item-12, and on "严重质问、反问", the strong end of Item-10's "轻微反问句式". Partition by an emotion qualifier: Item-12 owns every 抢话/压话 event; Item-26 owns only a repeated pattern whose overlapping units also carry an emotion marker (an intensity/F0 jump from the level-jump operator, or a hostile-lexicon hit). One event then never fails two items for the same reason. This is X3 in <code>docs/rubric/rubric-source-diff.md</code>.</p>
+
+<!-- ════════ §6 ════════ -->
+<h2><span class="num">§6 · THE JUDGE OPERATOR</span>How a model step passes the "computable" gate</h2>
+
+<p>The §9.1 admission gate requires "no step left to model discretion", yet Item-9 ④ and Item-12 ①④ need a judge. The two fit together once the judge's <em>output</em> is the thing the gate checks:</p>
+<ol class="spec">
+  <li><b>Closed binary question.</b> One question per check, answered <code>yes | no | cannot_determine</code>. Decomposing criteria into binary checklist questions raised agreement between LLM evaluators from α = 0.09 (Likert-style G-Eval) to 0.48 on SummEval, and improved correlation with humans by 0.10 on average (CheckEval). That is the same move as issue #25's "derive scores from binary checks".</li>
+  <li><b>Span or nothing.</b> A <code>yes</code> must return turn id + exact quote. S3 verifies the quote (I2). The item-18 example's <code>customer_specific_evidence: str</code> fails this and should be migrated.</li>
+  <li><b>Provenance stays model.</b> A judge reading is correlated (matched against a confirmed exemplar) or redundant (text judgment on the proposer's own channel). It is never independent corroboration (I6). The <code>combine</code> logic over it is deterministic, which is what "computable" requires.</li>
+  <li><b>Lexicon first.</b> Wherever a closed phrase set covers most cases (slow-down requests, cut-in apologies, floor claims), the deterministic lexicon operator runs first, and the judge runs only when it finds nothing. This keeps most evidence in the independent class.</li>
+  <li><b>Health per operator.</b> Track κ per judge operator, not only per criterion, so a drifting judge can be found before it demotes the whole item.</li>
+</ol>
+
+<!-- ════════ §7 ════════ -->
+<h2><span class="num">§7 · CONSEQUENCES FOR SPEC v6</span>Two corrections, stated with where v6 went wrong</h2>
+
+<div class="invariant">
+  <div class="row"><div class="tag" style="color:#e8c07a;">C1</div><div class="body"><b>The Instrument contains model operators: v6's I9 ("no model in the Instrument") is too strong.</b> v6 took "it does not guess" as the Instrument's <em>scope</em> and pushed every interpretive feature into S2. But compiled items mix operator kinds by design: Item-9 ④ and Item-12 ①④ are judges inside the same measurement program as rates and overlaps. The 9011 lane split (programmatic vs model_based) already carries the distinction the invariant needs. The invariant should constrain <em>provenance</em>, not model presence. Proposed I9′: <em>deterministic readings are pure functions of (call record, operator version); model readings are span-anchored, typed <code>model</code>, grounded by S3, and never count as independent corroboration.</em></div></div>
+  <div class="row"><div class="tag" style="color:#e8c07a;">C2</div><div class="body"><b>Extraction runs in audio2tree, not in Argus: v6's D24 placed it in the wrong tier.</b> v6 had S1m "apply the registry to the call record" inside Argus core. The shaping chain, and §9.1's "the consumer never re-derives a facet", put extraction in the producer. Proposed D24′: <em>S1m verifies that each reading names a known operator id/version at the pinned epoch with a valid anchor, then runs the decide half (<code>label</code> with the indeterminate band, then <code>combine</code>).</em> D25 (cite only fired readings) and D26 (indeterminate band) carry over unchanged into the <code>label</code> operator.</div></div>
+  <div class="row"><div class="tag" style="color:#e8c07a;">C3</div><div class="body"><b>New facet requirements on audio2tree</b>, which belong in the §9.1 revision: inter-pausal units per speaker with syllable count and articulation rate; per-unit intensity (dB) and F0 (semitones); an <code>overlaps[]</code> event list with onset, offset, first/second speaker, onset class, resolution and confidence; <code>channel_mode</code>; and judge outputs as span-anchored records.</div></div>
+</div>
+
+<!-- ════════ §8 ════════ -->
+<h2><span class="num">§8 · FAILURE MODES</span>Operator-level</h2>
+<table class="grid">
+  <thead><tr><th style="width:22%">Failure</th><th style="width:40%">Mechanism</th><th style="width:38%">Stopped by</th></tr></thead>
+  <tbody>
+    <tr><td><b>Construct swap</b></td><td>An operator measures something adjacent to the rubric clause (rate variance for 语音平稳)</td><td>Each signal cites its source clause (<code>decomposed_from</code>); the compiler's evaluator checks the operator measures the clause's noun, not a neighbour</td></tr>
+    <tr><td><b>Double penalty</b></td><td>One overlap event fires Item-9 ③ and Item-12</td><td>Onset-class partition (§5.1); <code>enables_signals</code> lists are checked for disjoint event predicates across items</td></tr>
+    <tr><td><b>Backchannel as interruption</b></td><td>"嗯/对" under customer speech counted as 打断</td><td>Backchannel exclusion: short + lexicon + overlapped speaker continues (§5.3)</td></tr>
+    <tr><td><b>Sampled events</b></td><td>Counts depend on the seed; sparse events are missed</td><td>Event operators reject a sampled window (§3, §5.4)</td></tr>
+    <tr><td><b>Mono overlap guesses</b></td><td>Diarisation error in overlap regions becomes "agent interrupted"</td><td><code>na_when</code> on low confidence → <code>unavailable</code> (§5.5)</td></tr>
+    <tr><td><b>Thin windows</b></td><td>A 10 s window with three customer syllables yields a meaningless ratio</td><td>Minimum-support rule on <code>measure</code> → <code>insufficient</code></td></tr>
+    <tr><td><b>Cause-free failure</b></td><td>A rate label fails the call although the rubric requires customer discomfort</td><td>The <code>combine</code> rule encodes the clause's condition (§4.1d)</td></tr>
+    <tr><td><b>Ungroundable judge</b></td><td>Judge returns free-text evidence</td><td>Judge contract: <code>yes</code> requires turn id + quote; S3 quote fidelity</td></tr>
+    <tr><td><b>Unit drift</b></td><td>Threshold in wpm, reading in words/s (§9.1 §3.1)</td><td>Operator output declares its unit; <code>label</code> refuses a unit mismatch at compile time</td></tr>
+    <tr><td><b>Re-extraction on recalibration</b></td><td>Changing a band forces re-processing audio</td><td>Extraction/decision parameter split (§3.1)</td></tr>
+    <tr><td><b>Code in rubric</b></td><td>Free Python in <code>calculation</code> runs unreviewed per item</td><td>Closed operator vocabulary; existing calculations migrate to operator DAGs</td></tr>
+  </tbody>
+</table>
+
+<!-- ════════ §9 ════════ -->
+<h2><span class="num">§9 · DECISIONS TO SETTLE BEFORE BUILD</span>Each with a recommendation</h2>
+<table class="grid">
+  <thead><tr><th style="width:6%">ID</th><th style="width:40%">Decision</th><th style="width:40%">Recommendation</th><th style="width:14%">Unblocks</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">R1</td><td>Split each item into an extract half (audio2tree) and a decide half (Argus)?</td><td><b>Yes</b> (§3.1). Spec v6 D24/I9 are revised as C1/C2.</td><td>spec v6.1, §9.1</td></tr>
+    <tr><td class="mono">R2</td><td>Closed operator vocabulary instead of free <code>calculation</code> code?</td><td><b>Yes</b>: eight kinds (§3). Existing item calculations migrate; any that cannot be expressed reveal a missing operator kind.</td><td>9011 compiler</td></tr>
+    <tr><td class="mono">R3</td><td>Where do judge operators run?</td><td><b>In the producer</b>, as model-provenance extract operators with span outputs. Alternative: Argus S2. That keeps every model call in one place, but splits an item's program across two stages.</td><td>§9.1, spec</td></tr>
+    <tr><td class="mono">R4</td><td>Are hotline recordings stereo (agent/customer on separate channels)?</td><td><b>Establish the fact first.</b> If stereo, overlap and per-speaker rate are deterministic. If mono, Item-12 is confidence-gated and partly <code>unavailable</code>.</td><td>Item-12, Item-9 ③</td></tr>
+    <tr><td class="mono">R5</td><td>Item-9 "语音平稳" = level jumps (intensity/F0), not rate variance?</td><td><b>Yes</b>. Now textually grounded: the full pass standard says "音量…不会出现忽高忽低". A human ruling is still needed because it changes the issue's step 5.</td><td>Item-9 F2</td></tr>
+    <tr><td class="mono">R6</td><td>Partition overlaps between Item-9 ③ and Item-12 by onset class?</td><td><b>Yes</b>: terminal overlaps → 9 ③; interjacent → 12. Confirmed by "虽未出现抢话" in ③.</td><td>both items</td></tr>
+    <tr><td class="mono">R7</td><td>Census or sampling?</td><td><b>Census by default.</b> Sampling only when declared, seeded and non-event.</td><td>both items</td></tr>
+    <tr><td class="mono">R8</td><td>Item-9 F1 requires a customer-discomfort marker?</td><td><b>Yes</b>, per the clause "使客户表现不适".</td><td>Item-9 F1</td></tr>
+    <tr><td class="mono">R9</td><td>How "?次 / ?秒" get values</td><td>A monotone function fitted on the κ seed calls, frozen as a decision parameter; <code>provisional</code> until then (§5.6).</td><td>calibration</td></tr>
+    <tr><td class="mono">R10</td><td>Track κ per judge operator, not only per criterion?</td><td><b>Yes</b> (§6, point 5).</td><td>§6 health</td></tr>
+  </tbody>
+</table>
+<p style="font-size:0.84rem;color:var(--muted);">Also open: who owns the operator executor library. The extract half runs in audio2tree and the decide half in Argus, but the operator definitions are one artifact. The natural owner is the compiler line, with both tiers pinning a version.</p>
+
+<!-- ════════ Sources ════════ -->
+<h2><span class="num">SOURCES</span>External</h2>
+<ul class="spec">
+  <li>Gervits &amp; Scheutz, <a href="https://hrilab.tufts.edu/publications/gervits2018lrec.pdf">Towards a Conversation-Analytic Taxonomy of Speech Overlap</a> (LREC 2018): onset-point classes, the 180 ms beat, competitive vs non-competitive management, and the 541-overlap distribution. Builds on <a href="https://mail.emcawiki.net/Schegloff2000">Schegloff 2000</a>.</li>
+  <li>Levitan &amp; Hirschberg, <a href="https://www.cs.columbia.edu/~julia/papers/levitanetal11-interspeech.pdf">Measuring acoustic-prosodic entrainment with respect to multiple levels and dimensions</a> (Interspeech 2011): speaking rate shows partner proximity at session level and weak turn-level synchrony (r = 0.15).</li>
+  <li><a href="https://arxiv.org/pdf/2304.00658">Improving Meeting Inclusiveness using Speech Interruption Analysis</a> (2023): backchannel vs failed-interruption confusion, two-channel input, AUC 0.949.</li>
+  <li>pyannote, <a href="https://www.pyannote.ai/blog/overlapping-speech-and-speaker-separation-the-hardest-problem-in-diarization">Overlapping speech and speaker separation: the hardest problem in diarization</a>: 9.3% overlapping speech in the benchmark; call-centre audio often shares one channel.</li>
+  <li>VoiceBase, <a href="https://docs.voicebase.com/docs/conversation-metrics">Conversation Metrics</a>: overtalk attributed to whoever started second; agent/caller-specific metrics are stereo-only; agent-to-caller talk-rate ratio.</li>
+  <li>Lee et al., <a href="https://arxiv.org/html/2403.18771v2">CheckEval</a>: binary checklists vs Likert for LLM judges; inter-evaluator α 0.48 vs 0.09 on SummEval.</li>
+  <li>Lew, Chen &amp; Lin, <a href="https://aclanthology.org/2022.rocling-1.29.pdf">Speech Timing in Typically Developing Mandarin-Speaking Children</a> (ROCLING 2022): cited only for the speech-rate vs articulation-rate definitions (pauses ≥ 250 ms excluded), not for adult norms. Adult hotline bands should be calibrated on the corpus, which already emits <code>syllables_per_sec_est</code> ≈ 3.0.</li>
+  <li><a href="https://en.wikipedia.org/wiki/Behaviorally_anchored_rating_scales">Behaviorally anchored rating scales</a>: background for issue #25's "behaviourally anchored levels" alternative to binary checks.</li>
+</ul>
+
+</div>
+</body>
+</html>
